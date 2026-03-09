@@ -1,0 +1,56 @@
+package co.edu.sena.sigea.equipo.dto;
+
+
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import co.edu.sena.sigea.common.enums.EstadoEquipo;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+
+
+@Getter 
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class EquipoRespuestaDTO {
+  
+    private Long id;
+
+    private String nombre;
+
+    private String descripcion;
+
+    private String codigoUnico;
+
+    private Long categoriaId;
+
+    private String categoriaNombre;
+
+    private Long ambienteId;
+
+    private String ambienteNombre;
+
+    private EstadoEquipo estado;
+
+    private Integer cantidadTotal;
+
+    private Integer cantidadDisponible;
+
+    private Integer umbralMinimo;
+
+    private Boolean activo; 
+
+    private List<FotoEquipoRespuestaDTO> fotos;
+
+    private LocalDateTime fechaCreacion;
+
+    private LocalDateTime fechaActualizacion;
+
+}
