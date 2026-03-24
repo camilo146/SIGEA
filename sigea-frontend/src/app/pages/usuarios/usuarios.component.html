@@ -15,16 +15,14 @@
 }
 
 <!-- Tabs de vista -->
-<div class="vista-tabs">
-  <button type="button" class="btn" [class.btn-primary]="vistaActual()==='todos'" [class.btn-outline]="vistaActual()!=='todos'" (click)="cambiarVista('todos')">
+<div class="tabs-header" style="margin-bottom:1rem; border-radius: var(--border-radius-lg); background:var(--bg-card); border:1px solid var(--border-color); overflow:hidden">
+  <button type="button" class="tab-item" [class.active]="vistaActual()==='todos'" (click)="cambiarVista('todos')">
     <i class="fas fa-users"></i> Todos los usuarios
   </button>
-  <button type="button" class="btn tab-btn-pendientes" [class.btn-warning]="vistaActual()==='pendientes'" [class.btn-outline]="vistaActual()!=='pendientes'" (click)="cambiarVista('pendientes')">
+  <button type="button" class="tab-item" [class.active]="vistaActual()==='pendientes'" (click)="cambiarVista('pendientes')">
     <i class="fas fa-user-clock"></i> Pendientes de aprobación
     @if (usuariosPendientes().length > 0) {
-      <span class="badge badge-red tab-counter">
-        {{ usuariosPendientes().length }}
-      </span>
+      <span class="tab-count count-danger">{{ usuariosPendientes().length }}</span>
     }
   </button>
 </div>

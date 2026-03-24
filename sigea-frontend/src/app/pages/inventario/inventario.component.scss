@@ -73,9 +73,10 @@
   white-space: nowrap;
 }
 
-/* ---- Badge de stock bajo (overlay sobre stock) ---- */
+/* ---- Badge de stock bajo — aparece en línea propia bajo el nombre ---- */
 .low-stock-badge {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
   align-items: center;
   gap: 0.22rem;
   font-size: 0.7rem;
@@ -83,7 +84,7 @@
   background: #fef3c7;
   padding: 0.1rem 0.4rem;
   border-radius: var(--border-radius-full);
-  margin-left: 0.3rem;
+  margin-top: 0.3rem;
   i { font-size: 0.62rem; }
 }
 

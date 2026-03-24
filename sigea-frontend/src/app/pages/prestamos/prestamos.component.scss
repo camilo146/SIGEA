@@ -48,3 +48,73 @@
 
 .num     { text-align: right !important; }
 .actions { text-align: right !important; }
+
+/* ---- Chip de equipo en tabla ---- */
+.equipo-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--border-radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0.1rem 0.1rem 0 0;
+  white-space: nowrap;
+}
+
+/* ---- Código de préstamo ---- */
+.id-code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  background: var(--color-primary-light);
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(57,169,0,0.25);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ---- Fila agregar equipo en modal ---- */
+.add-equipo-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+
+  .equipo-select { flex: 1; }
+  .cant-input    { width: 80px; text-align: center; }
+}
+
+/* ---- Chips de ítems en solicitud ---- */
+.detalle-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.detalle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--color-primary-light);
+  border: 1px solid rgba(57,169,0,0.2);
+  color: var(--color-primary);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--border-radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    padding: 0;
+    line-height: 1;
+    font-size: 0.9rem;
+    &:hover { opacity: 1; }
+  }
+}

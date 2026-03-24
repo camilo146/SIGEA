@@ -107,6 +107,10 @@
   &:hover { color: var(--text-primary); }
 }
 
-.prestamos-count { font-weight: 600; color: var(--color-primary); }
+.footer-success-icon { color: var(--color-success); margin: 0 0.2rem; }
+.footer-note { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.users-loading { padding: 2.5rem; }
+
 .num     { text-align: right !important; }
 .actions { text-align: right !important; }
+.prestamos-count { font-weight: 600; color: var(--color-primary); }

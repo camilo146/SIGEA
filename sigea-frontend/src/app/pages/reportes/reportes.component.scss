@@ -1,59 +1,257 @@
 ﻿/* REPORTES — estilos específicos */
-.reportes-grid {
+
+/* ---- Grid de tarjetas de tipo de reporte ---- */
+.report-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.85rem;
   margin-bottom: 1.5rem;
 }
 
-.reporte-card {
+.report-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   padding: 1.25rem;
-  box-shadow: var(--shadow-sm);
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+  gap: 0.65rem;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
   }
 
-  .reporte-icon {
-    width: 46px;
-    height: 46px;
-    border-radius: var(--border-radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.15rem;
+  &.selected {
+    border-color: var(--color-primary);
     background: var(--color-primary-light);
-    color: var(--color-primary);
-    flex-shrink: 0;
+    box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-md);
   }
 
   h4 {
-    margin: 0 0 0.2rem;
-    font-size: 0.95rem;
-    font-weight: 700;
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 600;
     color: var(--text-primary);
   }
 
   p {
     margin: 0;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+}
+
+/* ---- Ícono de tarjeta de reporte (48×48) ---- */
+.report-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+
+  /* Variantes de color */
+  &.icon-green    { background: #d1fae5; color: #065f46; }
+  &.icon-blue     { background: #dbeafe; color: #1e40af; }
+  &.icon-purple   { background: #ede9fe; color: #5b21b6; }
+  &.icon-orange   { background: #ffedd5; color: #9a3412; }
+  &.icon-yellow   { background: #fef3c7; color: #92400e; }
+  &.icon-red      { background: #fee2e2; color: #991b1b; }
+  &.icon-primary  { background: var(--color-primary-light); color: var(--color-primary); }
+  &.icon-gray     { background: var(--bg-hover); color: var(--text-muted); }
+}
+
+html.dark {
+  .icon-green  { background: rgba(34,197,94,0.15);  color: #86efac; }
+  .icon-blue   { background: rgba(96,165,250,0.15); color: #93c5fd; }
+  .icon-purple { background: rgba(167,139,250,0.15);color: #c4b5fd; }
+  .icon-orange { background: rgba(249,115,22,0.15); color: #fdba74; }
+  .icon-yellow { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .icon-red    { background: rgba(248,113,113,0.15);color: #fca5a5; }
+}
+
+/* ---- Tarjeta de parámetros ---- */
+.params-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.params-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-input);
+
+  h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.params-body {
+  padding: 1.25rem;
+}
+
+.params-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 160px;
+  flex: 1;
+
+  label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     color: var(--text-muted);
   }
 }
 
-.reports-section-title {
-  font-size: 1rem;
-  font-weight: 600;
+.param-select,
+.param-input {
+  padding: 0.52rem 0.75rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--bg-input);
   color: var(--text-primary);
-  margin: 0 0 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
+  font-family: inherit;
+  width: 100%;
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+  }
 }
+
+/* ---- Grupo de formato de exportación ---- */
+.format-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  > label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+}
+
+.format-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.params-actions {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 0.5rem;
+}
+
+/* ---- Sección de exportaciones rápidas ---- */
+.quick-reports {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quick-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  transition: background var(--duration-fast), box-shadow var(--duration-fast);
+
+  &:hover {
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.quick-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+
+  i { font-size: 1rem; flex-shrink: 0; }
+}
+
+.quick-btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ---- Botones rápidos XLSX / PDF ---- */
+.btn-quick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.7rem;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.03em;
+  transition: opacity var(--duration-fast), transform var(--duration-fast);
+
+  &:hover { opacity: 0.85; transform: translateY(-1px); }
+  &:active { transform: translateY(0); }
+
+  &.xlsx {
+    background: #16a34a;
+    color: #fff;
+  }
+
+  &.pdf {
+    background: #dc2626;
+    color: #fff;
+  }
+}
+

@@ -39,3 +39,29 @@
 
 .num     { text-align: right !important; }
 .actions { text-align: right !important; }
+
+/* ---- Tarjeta contenedora principal ---- */
+.res-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+/* ---- Info box en modal ---- */
+.info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  background: rgba(37,99,235,0.07);
+  border: 1px solid rgba(37,99,235,0.2);
+  border-radius: var(--border-radius-md);
+  color: var(--color-info);
+  font-size: var(--font-size-sm);
+  margin-bottom: 1rem;
+
+  i { flex-shrink: 0; margin-top: 2px; }
+}
