@@ -1,60 +1,32 @@
-.trans-card {
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 12px;
+﻿/* TRANSFERENCIAS — estilos específicos */
+.transferencias-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
 .inv-toolbar {
-  padding: 0.9rem 1rem;
-  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
 }
 
-.equipo-cell {
+.toolbar-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.transfer-route {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.4rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  .arrow { color: var(--text-light); }
+  strong { color: var(--text-primary); font-weight: 600; }
 }
 
-.equipo-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: rgba(57, 169, 0, 0.1);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 0.85rem;
-}
-
-.ambiente-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.83rem;
-  padding: 0.22rem 0.55rem;
-  border-radius: 6px;
-  white-space: nowrap;
-  i { font-size: 0.7rem; }
-  &.origen { background: #fef3c7; color: #92400e; }
-  &.destino { background: #dbeafe; color: #1e40af; }
-}
-
-.arrow-icon {
-  font-size: 1.15rem;
-  color: var(--text-light, #94a3b8);
-}
-
-.motivo-text {
-  font-size: 0.83rem;
-  color: var(--text-muted);
-}
-
-.num { text-align: right; }
+.num     { text-align: right !important; }
+.actions { text-align: right !important; }

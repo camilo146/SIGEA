@@ -1,17 +1,24 @@
+﻿/* ============================================================
+   INVENTARIO — Diseño SaaS Profesional SIGEA
+   ============================================================ */
+
+/* ---- Tarjeta contenedora principal ---- */
 .inv-card {
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
+/* ---- Barra de herramientas (toolbar) ---- */
 .inv-toolbar {
-  padding: 0.9rem 1rem;
-  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
 }
 
@@ -19,168 +26,160 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-}
-
-.filter-select {
-  padding: 0.52rem 0.75rem;
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: var(--bg-input, #f9fafb);
-  color: var(--text-primary);
-  min-width: 160px;
-  &:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.12);
-  }
-}
-
-.table-footer {
-  padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border-color, #e2e8f0);
-  background: #f8fafc;
-}
-
-.code-tag {
-  font-size: 0.82rem;
-  font-family: monospace;
-  background: #f1f5f9;
-  padding: 0.2rem 0.45rem;
-  border-radius: 5px;
-  border: 1px solid #e2e8f0;
-}
-
-.low-stock-badge {
-  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.73rem;
-  color: #92400e;
-  background: #fef3c7;
-  padding: 0.1rem 0.4rem;
-  border-radius: 100px;
-  margin-left: 0.35rem;
-  i { font-size: 0.65rem; }
 }
 
-.badge {
-  display: inline-flex; padding: 0.2rem 0.55rem; border-radius: 100px; font-size: 0.75rem; font-weight: 500;
-  &.badge-disponible { background: #d1fae5; color: #065f46; }
-  &.badge-en_prestamo { background: #ede9fe; color: #5b21b6; }
-  &.badge-en_mantenimiento { background: #fef3c7; color: #92400e; }
-  &.badge-dado_de_baja { background: #fee2e2; color: #991b1b; }
-}
-
+/* ---- Foto en tabla ---- */
 .foto-cell {
-  width: 56px;
-  padding: 0.35rem !important;
+  width: 58px;
+  padding: 0.4rem 0.5rem !important;
   vertical-align: middle;
 }
+
 .equipo-thumb {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #e2e8f0);
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+  cursor: zoom-in;
+
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
+    transform: scale(1.08);
+    box-shadow: var(--shadow-md);
+    z-index: 1;
+    position: relative;
   }
+
   &.placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-input, #f1f5f9);
-    color: var(--text-muted);
-    font-size: 1.1rem;
+    background: var(--bg-hover);
+    color: var(--text-light);
+    font-size: 1.2rem;
   }
 }
+
 .file-name {
   display: block;
-  margin-top: 0.25rem;
-  font-size: 0.85rem;
+  margin-top: 0.22rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* ---- Badge de stock bajo (overlay sobre stock) ---- */
+.low-stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  font-size: 0.7rem;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--border-radius-full);
+  margin-left: 0.3rem;
+  i { font-size: 0.62rem; }
+}
+
+/* ---- Checkbox filter ---- */
 .filter-check {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   cursor: pointer;
+  color: var(--text-secondary);
   white-space: nowrap;
+  user-select: none;
+
+  input[type=checkbox] { cursor: pointer; accent-color: var(--color-primary); }
 }
 
+/* ---- Modal de detalle de equipo ---- */
 .equipo-detail-card {
   position: relative;
-  background: var(--bg-card, #fff);
-  border-radius: 16px;
+  background: var(--bg-card);
+  border-radius: var(--border-radius-xl);
   padding: 1.5rem;
-  max-width: 420px;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  .btn-close {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #64748b;
-    line-height: 1;
-  }
+  border: 1px solid var(--border-color);
+
   .equipo-detail-photo {
     text-align: center;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+
     img {
       max-width: 100%;
-      max-height: 220px;
+      max-height: 230px;
       object-fit: contain;
-      border-radius: 12px;
-      border: 1px solid var(--border-color, #e2e8f0);
+      display: block;
     }
+
     .no-photo {
-      height: 180px;
-      background: var(--bg-input, #f1f5f9);
-      border-radius: 12px;
+      height: 190px;
+      background: var(--bg-hover);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #94a3b8;
+      color: var(--text-light);
       font-size: 3rem;
     }
   }
+
   .equipo-detail-info {
-    h3 { margin: 0 0 0.5rem; font-size: 1.2rem; }
-    p { margin: 0.35rem 0; font-size: 0.95rem; }
-    .desc { font-size: 0.85rem; color: #64748b; }
+    h3 {
+      margin: 0 0 0.6rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin: 0.35rem 0;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: block;
+      margin-top: 0.5rem;
+    }
   }
+
   .equipo-detail-actions {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
   }
 }
 
-.export-group { display: flex; gap: 0.4rem; }
-.num { text-align: right; }
-.actions { text-align: right; }
-.text-danger { color: var(--color-danger) !important; font-weight: 600; }
-
-@media (max-width: 960px) {
-  .inv-toolbar {
-    align-items: stretch;
-  }
-
-  .toolbar-filters {
-    width: 100%;
-  }
-
-  .filter-select {
-    flex: 1;
-    min-width: 140px;
-  }
+/* ---- Grupo de exportación ---- */
+.export-group {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
+
+/* ---- Alineación de columnas numéricas ---- */
+.num     { text-align: right !important; }
+.actions { text-align: right !important; white-space: nowrap; }

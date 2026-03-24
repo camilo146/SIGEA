@@ -1,38 +1,44 @@
-.mi-amb-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  li {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border-color, #eee);
-    &:last-child { border-bottom: none; }
-  }
+﻿/* MI AMBIENTE — estilos específicos */
+.mi-ambiente-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.mi-amb-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 1rem;
-}
-
-.mi-amb-card {
+.ambiente-info-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(57,169,0,0.06), transparent);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1.25rem;
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--border-color, #eee);
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--text-primary, #333);
-  transition: background 0.2s, border-color 0.2s;
-  i {
-    font-size: 1.75rem;
+  align-items: flex-start;
+  gap: 1rem;
+
+  .amb-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: var(--border-radius-lg);
+    background: var(--color-primary-light);
     color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
   }
-  &:hover {
-    background: var(--hover-bg, #f8f9fa);
-    border-color: var(--color-primary);
-  }
+
+  h3 { margin: 0 0 0.2rem; font-size: 1.2rem; font-weight: 700; }
+  p  { margin: 0; font-size: var(--font-size-sm); color: var(--text-muted); }
 }
+
+.equipos-section-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.num     { text-align: right !important; }
