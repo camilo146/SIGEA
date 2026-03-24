@@ -32,7 +32,7 @@ import co.edu.sena.sigea.reporte.service.ReporteServicio;
 
 @RestController
 @RequestMapping("/reportes")
-@PreAuthorize("hasRole('ADMINISTRADOR')")
+@PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
 public class ReporteControlador {
 
     private final ReporteServicio reporteServicio;
@@ -43,16 +43,18 @@ public class ReporteControlador {
 
     /**
      * RF-REP-01 + RF-REP-05/06: Reporte de inventario con filtros opcionales.
-     * GET /reportes/inventario?formato=xlsx|pdf&ambienteId=&categoriaId=&estado=
+     * GET
+     * /reportes/inventario?formato=xlsx|pdf&inventarioInstructorId=&categoriaId=&estado=
      */
     @GetMapping("/inventario")
     public ResponseEntity<ByteArrayResource> reporteInventario(
             @RequestParam(defaultValue = "xlsx") String formato,
-            @RequestParam(required = false) Long ambienteId,
+            @RequestParam(required = false) Long inventarioInstructorId,
             @RequestParam(required = false) Long categoriaId,
             @RequestParam(required = false) EstadoEquipo estado) {
 
-        byte[] contenido = reporteServicio.generarReporteInventario(formato, ambienteId, categoriaId, estado);
+        byte[] contenido = reporteServicio.generarReporteInventario(formato, inventarioInstructorId, categoriaId,
+                estado);
         String extension = "pdf".equalsIgnoreCase(formato) ? "pdf" : "xlsx";
         String nombreArchivo = "reporte-inventario." + extension;
 
@@ -64,7 +66,8 @@ public class ReporteControlador {
 
     /**
      * RF-REP-02 + RF-REP-05/06: Historial de préstamos con filtros opcionales.
-     * GET /reportes/prestamos?formato=xlsx|pdf&usuarioId=&equipoId=&desde=&hasta=&estado=
+     * GET
+     * /reportes/prestamos?formato=xlsx|pdf&usuarioId=&equipoId=&desde=&hasta=&estado=
      * desde/hasta: ISO (2026-01-01T00:00:00) o solo fecha (2026-01-01).
      */
     @GetMapping("/prestamos")
@@ -78,7 +81,8 @@ public class ReporteControlador {
 
         LocalDateTime desdeDt = parseFechaHora(desde);
         LocalDateTime hastaDt = parseFechaHora(hasta);
-        byte[] contenido = reporteServicio.generarReportePrestamos(formato, usuarioId, equipoId, desdeDt, hastaDt, estado);
+        byte[] contenido = reporteServicio.generarReportePrestamos(formato, usuarioId, equipoId, desdeDt, hastaDt,
+                estado);
         String extension = "pdf".equalsIgnoreCase(formato) ? "pdf" : "xlsx";
         String nombreArchivo = "reporte-prestamos." + extension;
 
@@ -117,7 +121,8 @@ public class ReporteControlador {
 
     /** Parsea parámetro de fecha/hora desde la URL (ISO o solo fecha). */
     private LocalDateTime parseFechaHora(String valor) {
-        if (valor == null || valor.isBlank()) return null;
+        if (valor == null || valor.isBlank())
+            return null;
         try {
             return LocalDateTime.parse(valor, FECHA_HORA);
         } catch (DateTimeParseException e1) {
@@ -134,8 +139,8 @@ public class ReporteControlador {
      * Content-Disposition: attachment hace que el navegador ofrezca "Guardar como".
      */
     private ResponseEntity<ByteArrayResource> responderConArchivo(byte[] contenido,
-                                                                  String nombreArchivo,
-                                                                  String extension) {
+            String nombreArchivo,
+            String extension) {
         String contentType = "pdf".equals(extension)
                 ? MediaType.APPLICATION_PDF_VALUE
                 : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

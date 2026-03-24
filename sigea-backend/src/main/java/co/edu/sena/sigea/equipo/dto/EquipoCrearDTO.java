@@ -1,5 +1,6 @@
 package co.edu.sena.sigea.equipo.dto;
 
+import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,8 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-
 
 @Getter
 @Setter
@@ -24,19 +23,28 @@ public class EquipoCrearDTO {
     @Size(max = 2000, message = "La descripcion no puede superar los 2000 caracteres")
     private String descripcion;
 
-    @NotBlank(message = "El codigo unico del equipo es obligatorio")
+    /**
+     * Opcional: si viene vacío o null, el sistema genera uno automáticamente (ej:
+     * SIGEA-EQ-1739123456789).
+     */
     @Size(max = 50, message = "El codigo unico no puede superar los 50 caracteres")
     private String codigoUnico;
 
     @NotNull(message = "La categoria del equipo es obligatoria")
     private Long categoriaId;
 
-    @NotNull(message = "El ambiente del equipo es obligatorio")
+    @NotNull(message = "La ubicacion del equipo es obligatoria")
     private Long ambienteId;
+
+    /** Solo para ADMINISTRADOR: asigna el instructor dueño original del equipo. */
+    private Long propietarioId;
 
     @NotNull(message = "La cantidad total es obligatoria")
     @Min(value = 1, message = "La cantidad total debe ser al menos 1")
     private Integer cantidadTotal;
+
+    @NotNull(message = "Debes indicar si el equipo es consumible o no consumible")
+    private TipoUsoEquipo tipoUso;
 
     @NotNull(message = "El umbral minimo es obligatorio")
     @Min(value = 0, message = "El umbral minimo no puede ser negativo")

@@ -50,13 +50,15 @@ public class ReportePdfServicio {
             document.add(new Paragraph("Reporte de Inventario - SIGEA", FONT_TITULO));
             document.add(new Paragraph(" "));
 
-            PdfPTable table = new PdfPTable(8);
+            PdfPTable table = new PdfPTable(10);
             table.setWidthPercentage(100f);
-            table.setWidths(new float[]{1.5f, 2.5f, 1.5f, 1.5f, 1.2f, 1f, 1f, 1f});
+            table.setWidths(new float[] { 1.4f, 2.2f, 1.2f, 1.4f, 1.8f, 1.8f, 1.1f, 0.8f, 0.8f, 0.8f });
             agregarCeldaHeader(table, "Código");
             agregarCeldaHeader(table, "Nombre");
             agregarCeldaHeader(table, "Categoría");
-            agregarCeldaHeader(table, "Ambiente");
+            agregarCeldaHeader(table, "Ubicación");
+            agregarCeldaHeader(table, "Dueño");
+            agregarCeldaHeader(table, "Inventario actual");
             agregarCeldaHeader(table, "Estado");
             agregarCeldaHeader(table, "Total");
             agregarCeldaHeader(table, "Disp.");
@@ -67,6 +69,11 @@ public class ReportePdfServicio {
                 agregarCelda(table, e.getNombre());
                 agregarCelda(table, e.getCategoria() != null ? e.getCategoria().getNombre() : "");
                 agregarCelda(table, e.getAmbiente() != null ? e.getAmbiente().getNombre() : "");
+                agregarCelda(table, e.getPropietario() != null ? e.getPropietario().getNombreCompleto() : "");
+                agregarCelda(table,
+                        e.getInventarioActualInstructor() != null
+                                ? e.getInventarioActualInstructor().getNombreCompleto()
+                                : "");
                 agregarCelda(table, e.getEstado() != null ? e.getEstado().name() : "");
                 agregarCelda(table, e.getCantidadTotal() != null ? e.getCantidadTotal().toString() : "0");
                 agregarCelda(table, e.getCantidadDisponible() != null ? e.getCantidadDisponible().toString() : "0");
@@ -95,7 +102,7 @@ public class ReportePdfServicio {
 
             PdfPTable table = new PdfPTable(7);
             table.setWidthPercentage(100f);
-            table.setWidths(new float[]{0.5f, 2f, 2f, 1.2f, 1.5f, 1.5f, 1.5f});
+            table.setWidths(new float[] { 0.5f, 2f, 2f, 1.2f, 1.5f, 1.5f, 1.5f });
             agregarCeldaHeader(table, "ID");
             agregarCeldaHeader(table, "Solicitante");
             agregarCeldaHeader(table, "Correo");
@@ -106,12 +113,20 @@ public class ReportePdfServicio {
 
             for (Prestamo p : prestamos) {
                 agregarCelda(table, p.getId() != null ? p.getId().toString() : "");
-                agregarCelda(table, p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getNombreCompleto() : "");
-                agregarCelda(table, p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getCorreoElectronico() : "");
+                agregarCelda(table,
+                        p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getNombreCompleto() : "");
+                agregarCelda(table,
+                        p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getCorreoElectronico() : "");
                 agregarCelda(table, p.getEstado() != null ? p.getEstado().name() : "");
-                agregarCelda(table, p.getFechaHoraSolicitud() != null ? p.getFechaHoraSolicitud().format(FECHA_HORA) : "");
-                agregarCelda(table, p.getFechaHoraDevolucionEstimada() != null ? p.getFechaHoraDevolucionEstimada().format(FECHA_HORA) : "");
-                agregarCelda(table, p.getFechaHoraDevolucionReal() != null ? p.getFechaHoraDevolucionReal().format(FECHA_HORA) : "");
+                agregarCelda(table,
+                        p.getFechaHoraSolicitud() != null ? p.getFechaHoraSolicitud().format(FECHA_HORA) : "");
+                agregarCelda(table,
+                        p.getFechaHoraDevolucionEstimada() != null
+                                ? p.getFechaHoraDevolucionEstimada().format(FECHA_HORA)
+                                : "");
+                agregarCelda(table,
+                        p.getFechaHoraDevolucionReal() != null ? p.getFechaHoraDevolucionReal().format(FECHA_HORA)
+                                : "");
             }
             document.add(table);
             document.close();
@@ -136,7 +151,7 @@ public class ReportePdfServicio {
 
             PdfPTable table = new PdfPTable(4);
             table.setWidthPercentage(100f);
-            table.setWidths(new float[]{1.5f, 3f, 2f, 1.2f});
+            table.setWidths(new float[] { 1.5f, 3f, 2f, 1.2f });
             agregarCeldaHeader(table, "Código");
             agregarCeldaHeader(table, "Nombre");
             agregarCeldaHeader(table, "Categoría");
@@ -144,7 +159,8 @@ public class ReportePdfServicio {
 
             for (int i = 0; i < equipos.size(); i++) {
                 Equipo e = equipos.get(i);
-                long count = i < cantidades.size() ? cantidades.get(i) : 0;
+                Long countValue = i < cantidades.size() ? cantidades.get(i) : null;
+                long count = countValue != null ? countValue : 0L;
                 agregarCelda(table, e.getCodigoUnico());
                 agregarCelda(table, e.getNombre());
                 agregarCelda(table, e.getCategoria() != null ? e.getCategoria().getNombre() : "");
@@ -173,7 +189,7 @@ public class ReportePdfServicio {
 
             PdfPTable table = new PdfPTable(5);
             table.setWidthPercentage(100f);
-            table.setWidths(new float[]{1.2f, 2.5f, 2f, 1.2f, 1f});
+            table.setWidths(new float[] { 1.2f, 2.5f, 2f, 1.2f, 1f });
             agregarCeldaHeader(table, "Documento");
             agregarCeldaHeader(table, "Nombre completo");
             agregarCeldaHeader(table, "Correo");

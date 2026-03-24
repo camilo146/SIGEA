@@ -1,0 +1,210 @@
+<div class="login-page">
+  <div class="login-bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-box">
+      <!-- Logo -->
+      <div class="sena-logo">
+        <div class="logo-circle">
+          <i class="fas fa-graduation-cap"></i>
+        </div>
+      </div>
+      <h1 class="system-title">SIGEA</h1>
+      <p class="system-subtitle">Sistema Integral de Gestión de Equipos y Activos</p>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'login'" (click)="switchTab('login')">
+          <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+        </button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'register'" (click)="switchTab('register')">
+          <i class="fas fa-user-plus"></i> Registrarse
+        </button>
+      </div>
+
+      <!-- Mensajes globales -->
+      @if (error) {
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+      }
+      @if (successMsg) {
+        <div class="alert alert-success">
+          <i class="fas fa-check-circle"></i> {{ successMsg }}
+        </div>
+      }
+
+      <!-- ======================== VERIFICAR CÓDIGO (tras registro) ======================== -->
+      @if (showVerificacionCodigo && correoPendienteVerificar) {
+        <div class="verificar-codigo-box">
+          <p class="verificar-codigo-label">Ingresa el código de 6 dígitos enviado a:</p>
+          <p class="verificar-codigo-email"><strong>{{ correoPendienteVerificar }}</strong></p>
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-key"></i></span>
+            <input
+              type="text"
+              [(ngModel)]="codigoVerificacion"
+              name="codigoVerificacion"
+              placeholder="Código de 6 dígitos"
+              maxlength="6"
+              inputmode="numeric"
+              (input)="onCodigoInput()"
+              (keyup.enter)="enviarCodigoVerificacion()"
+            />
+          </div>
+          <button type="button" class="btn-submit" (click)="enviarCodigoVerificacion()" [disabled]="loading">
+            @if (loading) {
+              <i class="fas fa-spinner fa-spin"></i> Verificando...
+            } @else {
+              <i class="fas fa-check-circle"></i> Verificar correo
+            }
+          </button>
+          <button type="button" class="link-secondary" (click)="showVerificacionCodigo = false; correoPendienteVerificar = ''; codigoVerificacion = ''">
+            Volver al registro / inicio de sesión
+          </button>
+        </div>
+      } @else if (activeTab === 'login') {
+      <!-- ======================== LOGIN ======================== -->
+        <form class="auth-form" (ngSubmit)="login()">
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-envelope"></i></span>
+            <input
+              type="email"
+              [(ngModel)]="correoElectronico"
+              name="correoElectronico"
+              placeholder="Correo electrónico"
+              required
+            />
+          </div>
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-lock"></i></span>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="contrasena"
+              name="contrasena"
+              placeholder="Contraseña"
+              required
+            />
+            <button type="button" class="toggle-pw" (click)="showPassword = !showPassword">
+              <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+
+          <button type="submit" class="btn-submit" [disabled]="loading">
+            @if (loading) {
+              <i class="fas fa-spinner fa-spin"></i> Ingresando...
+            } @else {
+              <i class="fas fa-sign-in-alt"></i> INICIAR SESIÓN
+            }
+          </button>
+
+          <a href="#" class="link-secondary">¿Olvidó su contraseña?</a>
+        </form>
+
+        <div class="roles-info">
+          <p>Roles disponibles en SIGEA:</p>
+          <div class="role-badges">
+            <span class="role-chip admin"><i class="fas fa-user-shield"></i> Administrador</span>
+            <span class="role-chip instructor"><i class="fas fa-chalkboard-teacher"></i> Instructor</span>
+            <span class="role-chip aprendiz"><i class="fas fa-user-graduate"></i> Aprendiz</span>
+          </div>
+        </div>
+      }
+
+      <!-- ======================== REGISTRO ======================== -->
+      @if (activeTab === 'register') {
+        <form class="auth-form" (ngSubmit)="register()">
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-user"></i></span>
+            <input type="text" [(ngModel)]="reg.nombre" name="nombre" placeholder="Nombre completo *" required minlength="2" maxlength="150" />
+          </div>
+
+          <div class="form-row-2">
+            <div class="select-group">
+              <span class="input-icon"><i class="fas fa-id-card"></i></span>
+              <select [(ngModel)]="reg.tipoDocumento" name="tipoDocumento">
+                @for (t of TIPOS_DOC; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+            <div class="input-group">
+              <input type="text" [(ngModel)]="reg.numeroDocumento" name="numeroDocumento" placeholder="Número de documento *" required minlength="5" maxlength="20" />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-envelope"></i></span>
+            <input type="email" [(ngModel)]="reg.correoElectronico" name="regCorreo" placeholder="Correo electrónico *" required />
+          </div>
+
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-phone"></i></span>
+            <input type="text" [(ngModel)]="reg.telefono" name="telefono" placeholder="Teléfono (opcional)" maxlength="20" />
+          </div>
+
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-book"></i></span>
+            <input type="text" [(ngModel)]="reg.programaFormacion" name="programaFormacion" placeholder="Programa de formación (opcional)" maxlength="200" />
+          </div>
+
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-hashtag"></i></span>
+            <input type="text" [(ngModel)]="reg.numeroFicha" name="numeroFicha" placeholder="Número de ficha (si es aprendiz)" maxlength="10" />
+          </div>
+
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-lock"></i></span>
+            <input
+              [type]="showRegPassword ? 'text' : 'password'"
+              [(ngModel)]="reg.contrasena"
+              name="regContrasena"
+              placeholder="Contraseña (mín. 8 caracteres) *"
+              required
+              minlength="8"
+            />
+            <button type="button" class="toggle-pw" (click)="showRegPassword = !showRegPassword">
+              <i class="fas" [ngClass]="showRegPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+
+          <div class="input-group">
+            <span class="input-icon"><i class="fas fa-lock"></i></span>
+            <input
+              [type]="showRegPassword ? 'text' : 'password'"
+              [(ngModel)]="regConfirmPassword"
+              name="confirmPassword"
+              placeholder="Confirmar contraseña *"
+              required
+            />
+          </div>
+
+          <div class="register-note">
+            <i class="fas fa-info-circle"></i>
+            Al registrarse, un <strong>Administrador</strong> asignará su rol de acceso (Instructor, Aprendiz o Funcionario).
+          </div>
+
+          <button type="submit" class="btn-submit" [disabled]="loading">
+            @if (loading) {
+              <i class="fas fa-spinner fa-spin"></i> Registrando...
+            } @else {
+              <i class="fas fa-user-plus"></i> CREAR CUENTA
+            }
+          </button>
+
+          <button type="button" class="link-secondary" (click)="switchTab('login')">
+            ¿Ya tiene cuenta? Inicie sesión
+          </button>
+        </form>
+      }
+
+      <div class="login-footer">
+        <p>SENA · Servicio Nacional de Aprendizaje</p>
+      </div>
+    </div>
+  </div>
+</div>

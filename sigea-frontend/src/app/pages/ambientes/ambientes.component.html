@@ -1,0 +1,275 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">Ubicaciones</h2>
+    <p class="page-subtitle">Gestión de espacios, laboratorios y salas del SENA</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openCreate()">
+      <i class="fas fa-plus"></i> Nueva Ubicación
+    </button>
+  </div>
+</div>
+
+@if (error() && !modalOpen()) {
+  <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+}
+
+<!-- Stats rápidas -->
+<div class="amb-stats">
+  <div class="amb-stat">
+    <i class="fas fa-map-marker-alt"></i>
+    <div>
+      <strong>{{ ambientes().length }}</strong>
+      <span>Total ubicaciones</span>
+    </div>
+  </div>
+  <div class="amb-stat">
+    <i class="fas fa-check-circle" style="color:var(--color-success)"></i>
+    <div>
+      <strong>{{ totalActivos }}</strong>
+      <span>Activos</span>
+    </div>
+  </div>
+  <div class="amb-stat">
+    <i class="fas fa-times-circle" style="color:var(--color-danger)"></i>
+    <div>
+      <strong>{{ ambientes().length - totalActivos }}</strong>
+      <span>Inactivos</span>
+    </div>
+  </div>
+</div>
+
+<div class="amb-card">
+  <!-- Toolbar -->
+  <div class="inv-toolbar">
+    <div class="search-input-wrap" style="flex:1; max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input
+        type="text"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        placeholder="Buscar por nombre, ubicación o instructor..."
+      />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-wrap" style="padding:2rem">
+      <i class="fas fa-spinner fa-spin"></i> Cargando ubicaciones...
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ubicación</th>
+            <th>Dirección</th>
+            <th>Instructor responsable</th>
+            <th>Estado</th>
+            <th>Equipos</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of filteredAmbientes(); track a.id) {
+            <tr>
+              <td (click)="openEquipos(a)" style="cursor:pointer">
+                <div class="amb-name">
+                  <div class="amb-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                  </div>
+                  <div>
+                    <strong>{{ a.nombre }}</strong>
+                    @if (a.descripcion) {
+                      <br><small class="text-muted">{{ a.descripcion | slice:0:60 }}{{ a.descripcion.length > 60 ? '…' : '' }}</small>
+                    }
+                  </div>
+                </div>
+              </td>
+              <td>{{ a.direccion || a.ubicacion || '—' }}</td>
+              <td>
+                <div class="instructor-cell">
+                  <div class="avatar sm-avatar">{{ getInitials(a.instructorResponsableNombre) }}</div>
+                  <span>{{ a.instructorResponsableNombre }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge" [class]="a.activo ? 'badge-green' : 'badge-red'">
+                  {{ a.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline" (click)="openEquipos(a)" title="Ver herramientas asignadas">
+                  <i class="fas fa-tools"></i> Ver equipos
+                </button>
+              </td>
+              <td class="actions">
+                <button type="button" class="btn-icon" (click)="openEdit(a)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                @if (a.activo) {
+                  <button type="button" class="btn-icon danger" (click)="desactivar(a)" title="Desactivar">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                } @else {
+                  <button type="button" class="btn-icon success" (click)="activar(a)" title="Activar">
+                    <i class="fas fa-check"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="empty">
+                <i class="fas fa-map" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
+                No se encontraron ubicaciones
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="text-muted" style="font-size:0.85rem">{{ filteredAmbientes().length }} ubicación(es)</span>
+    </div>
+  }
+</div>
+
+<!-- Modal crear/editar -->
+@if (modalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-map-marker-alt" style="color:var(--color-primary);margin-right:.4rem"></i>
+          {{ editingId() ? 'Editar ubicación' : 'Nueva ubicación' }}
+        </h3>
+        <button type="button" class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <form (ngSubmit)="submitForm()" class="modal-body">
+        @if (error()) {
+          <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+        }
+        <div class="form-group">
+          <label>Nombre de la ubicación *</label>
+          <input
+            type="text"
+            [(ngModel)]="form.nombre"
+            name="nombre"
+            required
+            maxlength="100"
+            placeholder="Ej: Laboratorio de Redes"
+          />
+        </div>
+        <div class="form-group">
+          <label>Ubicación</label>
+          <input
+            type="text"
+            [(ngModel)]="form.ubicacion"
+            name="ubicacion"
+            maxlength="200"
+            placeholder="Ej: Bloque A, Piso 2, Sala 201"
+          />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea
+            [(ngModel)]="form.descripcion"
+            name="descripcion"
+            rows="2"
+            maxlength="500"
+            placeholder="Descripción breve del espacio..."
+          ></textarea>
+        </div>
+        @if (!editingId()) {
+          <div class="form-group">
+            <label>Foto de la ubicación *</label>
+            <input type="file" accept="image/*" (change)="onFotoSelected($event)" required />
+            <small class="text-muted">Obligatorio para crear ubicación. JPG/PNG, máximo 5 MB.</small>
+            @if (fotoArchivo) {
+              <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
+            }
+          </div>
+        }
+        <div class="form-group">
+          <label>Instructor / Responsable *</label>
+          @if (instructoresParaSelect().length > 0) {
+            <select [(ngModel)]="form.idInstructorResponsable" name="idInstructorResponsable" required>
+              <option [value]="0" disabled>Seleccione responsable</option>
+              @for (u of instructoresParaSelect(); track u.id) {
+                <option [value]="u.id">{{ u.nombreCompleto }} ({{ u.rol }})</option>
+              }
+            </select>
+          } @else {
+            <p class="text-muted" style="font-size:0.85rem">
+              <i class="fas fa-info-circle"></i>
+              Cargando lista de responsables...
+            </p>
+            <input
+              type="number"
+              [(ngModel)]="form.idInstructorResponsable"
+              name="idInstructorResponsable"
+              required
+              placeholder="ID del responsable"
+            />
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Card detalle ambiente (clic en fila o Ver equipos) -->
+@if (modalEquiposOpen() && selectedAmbiente(); as amb) {
+  <div class="modal-overlay" (click)="closeEquiposModal()">
+    <div class="modal-box ambiente-detail-card" style="max-width:580px" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-map-marker-alt" style="color:var(--color-primary);margin-right:.4rem"></i>{{ amb.nombre }}</h3>
+        <button type="button" class="btn-close" (click)="closeEquiposModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        @if (getAmbienteFotoUrl(amb)) {
+          <div class="ambiente-detail-photo">
+            <img [src]="getAmbienteFotoUrl(amb)" alt="Foto del ambiente" />
+          </div>
+        }
+        <div class="ambiente-detail-info">
+          @if (amb.ubicacion) {
+            <p><strong>Ubicación:</strong> {{ amb.ubicacion }}</p>
+          }
+          @if (amb.descripcion) {
+            <p><strong>Descripción:</strong> {{ amb.descripcion }}</p>
+          }
+          <p><strong>Responsable:</strong> {{ amb.instructorResponsableNombre }}</p>
+          <p><strong>Estado:</strong> <span class="badge" [class]="amb.activo ? 'badge-green' : 'badge-red'">{{ amb.activo ? 'Activo' : 'Inactivo' }}</span></p>
+        </div>
+        <h4 style="margin:0.75rem 0 0.4rem; font-size:1rem">Equipos en esta ubicación</h4>
+        @if (loadingEquipos()) {
+          <p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando equipos...</p>
+        } @else if (equiposAmbiente().length === 0) {
+          <p class="text-muted">No hay equipos asignados a esta ubicación.</p>
+        } @else {
+          <ul class="equipos-list equipos-list-card">
+            @for (e of equiposAmbiente(); track e.id) {
+              <li>
+                @if (getEquipoFotoUrl(e)) {
+                  <img [src]="getEquipoFotoUrl(e)" alt="" class="equipo-thumb-sm" />
+                } @else {
+                  <span class="equipo-thumb-sm placeholder"><i class="fas fa-image"></i></span>
+                }
+                <span><strong>{{ e.nombre }}</strong> <code>{{ e.codigoUnico }}</code> · {{ e.cantidadDisponible }}/{{ e.cantidadTotal }}</span>
+                <span class="badge badge-sm" [class]="e.estado === 'EN_MANTENIMIENTO' ? 'badge-orange' : 'badge-green'">{{ e.estado === 'EN_MANTENIMIENTO' ? 'En mantenimiento' : 'Activo' }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  </div>
+}

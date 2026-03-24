@@ -15,6 +15,7 @@ package co.edu.sena.sigea.reserva.dto;
 import java.time.LocalDateTime;
 
 import co.edu.sena.sigea.common.enums.EstadoReserva;
+import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,6 +38,7 @@ public class ReservaRespuestaDTO {
     private Long equipoId;
     private String nombreEquipo;
     private String codigoEquipo;
+    private TipoUsoEquipo tipoUso;
 
     private Integer cantidad;
 

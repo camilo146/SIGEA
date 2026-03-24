@@ -1,0 +1,147 @@
+<header class="main-header">
+  <div class="header-left">
+    <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" title="Menú">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div class="logo-small"><i class="fas fa-graduation-cap"></i></div>
+    <span class="system-name">SIGEA</span>
+  </div>
+
+  <div class="header-center">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Buscar equipos, usuarios, préstamos..." />
+      <kbd class="search-shortcut">Ctrl+K</kbd>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <button type="button" class="theme-toggle" (click)="toggleTheme()" title="Cambiar tema">
+      <i class="fas" [ngClass]="darkMode() ? 'fa-sun' : 'fa-moon'"></i>
+    </button>
+    <button type="button" class="notification-icon" (click)="toggleNotifications()" title="Notificaciones">
+      <i class="fas fa-bell"></i>
+      @if (contadorNoLeidas() > 0) {
+        <span class="header-badge">{{ contadorNoLeidas() }}</span>
+      }
+    </button>
+    <div class="user-menu" (click)="toggleUserMenu()">
+      <div class="user-avatar">{{ (user()?.nombreCompleto ?? 'NA').slice(0, 2).toUpperCase() }}</div>
+      <div class="user-info-header">
+        <span class="user-name-header">{{ user()?.nombreCompleto ?? 'Usuario' }}</span>
+        <span class="user-role-header">{{ getRolLabel(user()?.rol) }}</span>
+      </div>
+      <i class="fas fa-chevron-down" style="font-size:0.7rem; color:var(--text-muted)"></i>
+    </div>
+  </div>
+</header>
+
+<!-- Panel notificaciones -->
+@if (notificationOpen()) {
+  <div class="notification-panel" id="notificationPanel">
+    <div class="notif-header">
+      <h3><i class="fas fa-bell" style="margin-right:0.4rem; color:var(--color-primary)"></i>Notificaciones</h3>
+      <span style="font-size:0.8rem; color:var(--text-muted)">{{ contadorNoLeidas() }} nuevas</span>
+    </div>
+    <div class="notif-list">
+      @for (n of notificaciones(); track n.id) {
+        <div class="notif-item" [class.unread]="!n.leida" (click)="n.leida || marcarLeida(n)">
+          <strong>{{ n.titulo || 'Notificación' }}</strong>
+          <p>{{ n.mensaje }}</p>
+          <small>{{ n.fechaEnvio ? (n.fechaEnvio | date:'dd/MM/yyyy HH:mm') : '' }}</small>
+        </div>
+      } @empty {
+        <p class="text-muted" style="text-align:center; padding:1.5rem 0">No hay notificaciones</p>
+      }
+    </div>
+  </div>
+}
+
+<!-- Dropdown usuario -->
+@if (userMenuOpen()) {
+  <div class="user-dropdown" id="userDropdown">
+    <div class="dropdown-header">
+      <div class="user-avatar large">{{ (user()?.nombreCompleto ?? 'NA').slice(0, 2).toUpperCase() }}</div>
+      <div>
+        <strong>{{ user()?.nombreCompleto }}</strong>
+        <p>{{ user()?.correoElectronico }}</p>
+        <p style="color:var(--color-primary); font-weight:600; font-size:0.8rem;">{{ getRolLabel(user()?.rol) }}</p>
+      </div>
+    </div>
+    <div class="dropdown-divider"></div>
+    <a href="#" class="dropdown-item"><i class="fas fa-user-edit"></i> Mi Perfil</a>
+    <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Configuración</a>
+    <a href="#" class="dropdown-item"><i class="fas fa-question-circle"></i> Ayuda</a>
+    <div class="dropdown-divider"></div>
+    <button type="button" class="dropdown-item danger" (click)="logout()">
+      <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+    </button>
+  </div>
+}
+
+<div class="main-container" (click)="closeDropdowns()">
+  <aside class="sidebar" [class.collapsed]="!sidebarOpen()" id="sidebar">
+    <nav class="sidebar-nav">
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" [routerLinkActiveOptions]="{ exact: true }">
+        <i class="fas fa-chart-line"></i><span>Dashboard</span>
+      </a>
+      <a routerLink="/inventario" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-boxes"></i>
+        <span>{{ isAdmin() ? 'Inventario' : 'Equipos' }}</span>
+      </a>
+      <a routerLink="/prestamos" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-exchange-alt"></i>
+        <span>{{ isAdmin() ? 'Préstamos' : 'Mis Préstamos' }}</span>
+      </a>
+      <a routerLink="/reservas" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-calendar-check"></i>
+        <span>{{ isAdmin() ? 'Reservas' : 'Mis Reservas' }}</span>
+      </a>
+      @if (isInstructor()) {
+        <div class="nav-section-label">Mi ubicación</div>
+        <a routerLink="/mi-ambiente" routerLinkActive="active" class="nav-item">
+          <i class="fas fa-door-open"></i><span>Mi ubicación</span>
+        </a>
+      }
+      @if (isAdminOrInstructor()) {
+        <div class="nav-section-label">{{ isAdmin() ? 'Administración' : 'Gestión' }}</div>
+        <a routerLink="/ambientes" routerLinkActive="active" class="nav-item">
+          <i class="fas fa-map-marker-alt"></i><span>Ubicaciones</span>
+        </a>
+        @if (isAdmin()) {
+          <a routerLink="/usuarios" routerLinkActive="active" class="nav-item">
+            <i class="fas fa-users"></i><span>Usuarios</span>
+          </a>
+        }
+        <a routerLink="/transferencias" routerLinkActive="active" class="nav-item">
+          <i class="fas fa-truck"></i><span>Transferencias</span>
+        </a>
+        <a routerLink="/mantenimientos" routerLinkActive="active" class="nav-item">
+          <i class="fas fa-wrench"></i><span>Mantenimientos</span>
+        </a>
+        <a routerLink="/reportes" routerLinkActive="active" class="nav-item">
+          <i class="fas fa-chart-bar"></i><span>Reportes</span>
+        </a>
+      }
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-info">
+        <i class="fas fa-circle" style="font-size:0.5rem; color:#39a900"></i>
+        <span>SIGEA v2.0</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="breadcrumb">
+      <a routerLink="/dashboard"><i class="fas fa-home"></i></a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">{{ getBreadcrumb() }}</span>
+    </div>
+    <router-outlet />
+  </main>
+</div>
+
+@if (!sidebarOpen()) {
+  <div class="sidebar-overlay" id="sidebarOverlay" (click)="toggleSidebar()"></div>
+}

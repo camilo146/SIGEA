@@ -1,26 +1,23 @@
 package co.edu.sena.sigea.equipo.dto;
 
-
-
 import java.time.LocalDateTime;
 import java.util.List;
 
 import co.edu.sena.sigea.common.enums.EstadoEquipo;
+import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
-
-@Getter 
+@Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class EquipoRespuestaDTO {
-  
+
     private Long id;
 
     private String nombre;
@@ -37,15 +34,25 @@ public class EquipoRespuestaDTO {
 
     private String ambienteNombre;
 
+    private Long propietarioId;
+
+    private String propietarioNombre;
+
+    private Long inventarioActualInstructorId;
+
+    private String inventarioActualInstructorNombre;
+
     private EstadoEquipo estado;
 
     private Integer cantidadTotal;
 
     private Integer cantidadDisponible;
 
+    private TipoUsoEquipo tipoUso;
+
     private Integer umbralMinimo;
 
-    private Boolean activo; 
+    private Boolean activo;
 
     private List<FotoEquipoRespuestaDTO> fotos;
 

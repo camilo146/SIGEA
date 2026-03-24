@@ -29,6 +29,7 @@ package co.edu.sena.sigea.prestamo.dto;
 // =============================================================================
 
 import co.edu.sena.sigea.common.enums.EstadoCondicion;
+import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -46,21 +47,23 @@ public class DetallePrestamoRespuestaDTO {
     // CAMPO: id
     // =========================================================================
     // ID del registro en la tabla detalle_prestamo.
-    // Lo necesita el frontend para luego hacer PATCH /prestamos/{id}/devolver-item/{detalleId}
+    // Lo necesita el frontend para luego hacer PATCH
+    // /prestamos/{id}/devolver-item/{detalleId}
     // =========================================================================
     private Long id;
 
     // =========================================================================
     // CAMPO: equipoId
     // =========================================================================
-    // ID del equipo prestado. Sirve para enlazar con el módulo de equipos si se necesita.
+    // ID del equipo prestado. Sirve para enlazar con el módulo de equipos si se
+    // necesita.
     // =========================================================================
     private Long equipoId;
 
     // =========================================================================
     // CAMPOS: nombreEquipo, codigoEquipo
     // =========================================================================
-    //  Datos del equipo incluidos directamente para no requerir otra petición HTTP.
+    // Datos del equipo incluidos directamente para no requerir otra petición HTTP.
     // - nombreEquipo: "Laptop Dell Latitude"
     // - codigoEquipo: "LAP-DELL-001"
     // =========================================================================
@@ -75,6 +78,8 @@ public class DetallePrestamoRespuestaDTO {
     // =========================================================================
     private Integer cantidad;
 
+    private TipoUsoEquipo tipoUso;
+
     // =========================================================================
     // CAMPO: estadoEquipoEntrega
     // =========================================================================
@@ -87,7 +92,8 @@ public class DetallePrestamoRespuestaDTO {
     // =========================================================================
     // CAMPO: observacionesEntrega
     // =========================================================================
-    // Notas del admin al momento de entregar. Ej: "Pantalla tiene una rayita pequeña"
+    // Notas del admin al momento de entregar. Ej: "Pantalla tiene una rayita
+    // pequeña"
     // Permite documentar el estado ANTES de que el usuario lo lleve.
     // RN-03: "Documentar estado del equipo al prestar"
     // =========================================================================
@@ -114,7 +120,7 @@ public class DetallePrestamoRespuestaDTO {
     // CAMPO: devuelto
     // =========================================================================
     // false → el equipo todavía está en manos del usuario.
-    // true  → el equipo fue devuelto y reincorporado al stock.
+    // true → el equipo fue devuelto y reincorporado al stock.
     //
     // En el Servicio, cuando TODOS los detalles tienen devuelto=true,
     // el préstamo cambia de estado ACTIVO → DEVUELTO.

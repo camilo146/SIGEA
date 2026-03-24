@@ -51,15 +51,25 @@ public class Transferencia extends EntidadBase {
     @JoinColumn(name = "equipo_id", nullable = false)
     private Equipo equipo;
 
-    // Ambiente de donde SALE el equipo
+    // Inventario (instructor) de donde SALE el equipo.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ambiente_origen_id", nullable = false)
-    private Ambiente ambienteOrigen;
+    @JoinColumn(name = "inventario_origen_instructor_id", nullable = false)
+    private Usuario inventarioOrigenInstructor;
 
-    // Ambiente a donde LLEGA el equipo
+    // Inventario (instructor) a donde LLEGA el equipo.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ambiente_destino_id", nullable = false)
-    private Ambiente ambienteDestino;
+    @JoinColumn(name = "inventario_destino_instructor_id", nullable = false)
+    private Usuario inventarioDestinoInstructor;
+
+    // Dueño original del equipo (se mantiene tras la transferencia).
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "propietario_equipo_id", nullable = false)
+    private Usuario propietarioEquipo;
+
+    // Ubicación final opcional dentro del inventario destino.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ubicacion_destino_id")
+    private Ambiente ubicacionDestino;
 
     @Column(name = "cantidad", nullable = false)
     private Integer cantidad = 1;

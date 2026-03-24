@@ -1,0 +1,63 @@
+services:
+  db:
+    image: mariadb:11.4
+    container_name: sigea-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-sigea_db}
+      MARIADB_USER: ${MARIADB_USER:-sigea_user}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-sigea_password_2026}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root_sigea_2026}
+      TZ: ${TZ:-America/Bogota}
+    ports:
+      - "3305:3306"
+    volumes:
+      - sigea_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./sigea-backend
+      dockerfile: Dockerfile
+    container_name: sigea-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-America/Bogota}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-sigea_user}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-sigea_password_2026}
+      SIGEA_UPLOADS_PATH: ${SIGEA_UPLOADS_PATH:-/app/uploads}
+      SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION: ${SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION:-false}
+      SIGEA_SMTP_HOST: ${SIGEA_SMTP_HOST:-localhost}
+      SIGEA_SMTP_PORT: ${SIGEA_SMTP_PORT:-587}
+      SIGEA_SMTP_USERNAME: ${SIGEA_SMTP_USERNAME:-sigea@sena.edu.co}
+      SIGEA_SMTP_PASSWORD: ${SIGEA_SMTP_PASSWORD:-password-smtp}
+      SIGEA_SMTP_AUTH: ${SIGEA_SMTP_AUTH:-true}
+      SIGEA_SMTP_STARTTLS: ${SIGEA_SMTP_STARTTLS:-true}
+      SIGEA_APP_URL: ${SIGEA_APP_URL:-http://localhost:${FRONTEND_PORT:-8083}}
+    ports:
+      - "8080:8080"
+    volumes:
+      - sigea_uploads_data:/app/uploads
+
+  frontend:
+    build:
+      context: ./sigea-frontend
+      dockerfile: Dockerfile
+    container_name: sigea-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8083}:80"
+
+volumes:
+  sigea_db_data:
+  sigea_uploads_data:

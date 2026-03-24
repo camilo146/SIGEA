@@ -94,6 +94,11 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
 
 		<!-- ==================== JWT (JSON Web Tokens) ==================== -->
 		<!-- Libreria para generar y validar tokens JWT (autenticacion stateless) -->
@@ -164,6 +169,16 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<configuration>
+					<url>jdbc:mariadb://localhost:3305/sigea_db?useUnicode=true&amp;characterEncoding=UTF-8</url>
+					<user>sigea_user</user>
+					<password>sigea_password_2026</password>
+					<locations>filesystem:src/main/resources/db/migration</locations>
 				</configuration>
 			</plugin>
 		</plugins>

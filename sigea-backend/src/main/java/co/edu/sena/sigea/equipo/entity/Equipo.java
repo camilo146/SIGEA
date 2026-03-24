@@ -29,6 +29,8 @@ import co.edu.sena.sigea.ambiente.entity.Ambiente;
 import co.edu.sena.sigea.categoria.entity.Categoria;
 import co.edu.sena.sigea.common.entity.EntidadBase;
 import co.edu.sena.sigea.common.enums.EstadoEquipo;
+import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
+import co.edu.sena.sigea.usuario.entity.Usuario;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -81,8 +83,8 @@ public class Equipo extends EntidadBase {
     // Ejemplo: "EQ-TEL-001", "HER-MAN-015", "CAB-UTP-089"
     //
     // unique = true → La BD garantiza que NUNCA habrá dos equipos
-    //   con el mismo código. Si alguien intenta insertar un duplicado,
-    //   la BD lanza una excepción → el sistema muestra un error amigable.
+    // con el mismo código. Si alguien intenta insertar un duplicado,
+    // la BD lanza una excepción → el sistema muestra un error amigable.
     // =========================================================================
     @Column(name = "codigo_unico", nullable = false, unique = true, length = 50)
     private String codigoUnico;
@@ -93,7 +95,8 @@ public class Equipo extends EntidadBase {
     // La categoría a la que pertenece este equipo.
     //
     // @ManyToOne: "Muchos equipos pueden pertenecer a la misma categoría"
-    //   Ejemplo: "Multímetro Fluke" y "Multímetro Uni-T" son ambos "Equipos de medición"
+    // Ejemplo: "Multímetro Fluke" y "Multímetro Uni-T" son ambos "Equipos de
+    // medición"
     //
     // nullable = false → Todo equipo DEBE tener una categoría (es obligatorio).
     // =========================================================================
@@ -110,8 +113,8 @@ public class Equipo extends EntidadBase {
     // EN_MANTENIMIENTO = está en reparación, NO se puede prestar.
     //
     // NOTA: Esto es DIFERENTE a "activo" (boolean de soft delete).
-    //   activo=true, estado=EN_MANTENIMIENTO → "Existe pero está en reparación"
-    //   activo=false → "Dado de baja, ya no existe en el inventario"
+    // activo=true, estado=EN_MANTENIMIENTO → "Existe pero está en reparación"
+    // activo=false → "Dado de baja, ya no existe en el inventario"
     // =========================================================================
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
@@ -124,8 +127,8 @@ public class Equipo extends EntidadBase {
     // Incluye las prestadas + las disponibles + las en mantenimiento.
     //
     // Ejemplo: Tenemos 10 cables UTP Cat6.
-    //   cantidadTotal = 10 (siempre)
-    //   cantidadDisponible = 7 (3 están prestados)
+    // cantidadTotal = 10 (siempre)
+    // cantidadDisponible = 7 (3 están prestados)
     // =========================================================================
     @Column(name = "cantidad_total", nullable = false)
     private Integer cantidadTotal = 1;
@@ -148,17 +151,31 @@ public class Equipo extends EntidadBase {
     @Column(name = "cantidad_disponible", nullable = false)
     private Integer cantidadDisponible = 1;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_uso", nullable = false, length = 20)
+    private TipoUsoEquipo tipoUso = TipoUsoEquipo.NO_CONSUMIBLE;
+
     // =========================================================================
     // CAMPO: ambiente
     // =========================================================================
     // El ambiente de formación donde está ubicado físicamente este equipo.
     //
     // @ManyToOne: "Muchos equipos pueden estar en el mismo ambiente"
-    //   RF-AMB-03: "Cada ambiente tiene su inventario independiente."
+    // RF-AMB-03: "Cada ambiente tiene su inventario independiente."
     // =========================================================================
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ambiente_id", nullable = false)
     private Ambiente ambiente;
+
+    // Instructor dueño del equipo (no cambia con transferencias de inventario).
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "propietario_id", nullable = false)
+    private Usuario propietario;
+
+    // Instructor cuyo inventario contiene actualmente el equipo.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inventario_actual_instructor_id", nullable = false)
+    private Usuario inventarioActualInstructor;
 
     // =========================================================================
     // CAMPO: umbralMinimo
@@ -169,10 +186,10 @@ public class Equipo extends EntidadBase {
     // unidades disponibles lleguen al umbral mínimo configurado."
     //
     // Si cantidadDisponible <= umbralMinimo → se envía notificación STOCK_BAJO
-    //   al administrador del ambiente.
+    // al administrador del ambiente.
     //
     // Ejemplo: umbralMinimo = 2, cantidadDisponible = 1
-    //   → ¡Alerta! Solo queda 1 unidad de este equipo.
+    // → ¡Alerta! Solo queda 1 unidad de este equipo.
     // =========================================================================
     @Column(name = "umbral_minimo", nullable = false)
     private Integer umbralMinimo = 0;
@@ -186,7 +203,7 @@ public class Equipo extends EntidadBase {
     // RN-09: "Los equipos eliminados se marcan como dados de baja."
     //
     // activo = false → El equipo fue dado de baja. Ya no aparece en búsquedas
-    //   ni se puede prestar, pero su historial de préstamos se conserva.
+    // ni se puede prestar, pero su historial de préstamos se conserva.
     // =========================================================================
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;

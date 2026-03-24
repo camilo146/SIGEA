@@ -27,6 +27,8 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
 
     long countByUsuarioSolicitanteIdAndEstado(Long usuarioId, EstadoPrestamo estado);
 
+    long countByEstado(EstadoPrestamo estado);
+
     /** RF-REP-02: Historial de préstamos con filtro por rango de fechas. */
     List<Prestamo> findByFechaHoraSolicitudBetween(LocalDateTime desde, LocalDateTime hasta);
 

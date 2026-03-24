@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,26 +40,29 @@ public class EquipoControlador {
 
     // POST /api/v1/equipos
     @PostMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<EquipoRespuestaDTO> crear(
-            @Valid @RequestBody EquipoCrearDTO dto) {
+            @Valid @RequestBody EquipoCrearDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        EquipoRespuestaDTO respuesta = equipoServicio.crear(dto);
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        EquipoRespuestaDTO respuesta = equipoServicio.crear(dto, correo);
         return new ResponseEntity<>(respuesta, HttpStatus.CREATED);
     }
 
-    // GET /api/v1/equipos
+    // GET /api/v1/equipos (cualquier autenticado puede listar para
+    // préstamos/reservas)
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EquipoRespuestaDTO>> listarActivos() {
 
         List<EquipoRespuestaDTO> equipos = equipoServicio.listarActivos();
         return ResponseEntity.ok(equipos);
     }
 
-    // GET /api/v1/equipos/todos
+    // GET /api/v1/equipos/todos (cualquier autenticado para formularios)
     @GetMapping("/todos")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EquipoRespuestaDTO>> listarTodos() {
 
         List<EquipoRespuestaDTO> equipos = equipoServicio.listarTodos();
@@ -66,7 +71,7 @@ public class EquipoControlador {
 
     // GET /api/v1/equipos/categoria/{categoriaId}
     @GetMapping("/categoria/{categoriaId}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EquipoRespuestaDTO>> listarPorCategoria(
             @PathVariable Long categoriaId) {
 
@@ -76,7 +81,7 @@ public class EquipoControlador {
 
     // GET /api/v1/equipos/ambiente/{ambienteId}
     @GetMapping("/ambiente/{ambienteId}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EquipoRespuestaDTO>> listarPorAmbiente(
             @PathVariable Long ambienteId) {
 
@@ -86,7 +91,7 @@ public class EquipoControlador {
 
     // GET /api/v1/equipos/estado/{estado}
     @GetMapping("/estado/{estado}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EquipoRespuestaDTO>> listarPorEstado(
             @PathVariable EstadoEquipo estado) {
 
@@ -94,9 +99,43 @@ public class EquipoControlador {
         return ResponseEntity.ok(equipos);
     }
 
+    // GET /api/v1/equipos/mi-inventario
+    @GetMapping("/mi-inventario")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<List<EquipoRespuestaDTO>> listarMiInventario(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        List<EquipoRespuestaDTO> equipos = equipoServicio.listarMiInventario(correo);
+        return ResponseEntity.ok(equipos);
+    }
+
+    // GET /api/v1/equipos/mis-equipos
+    @GetMapping("/mis-equipos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<List<EquipoRespuestaDTO>> listarMisEquiposComoPropietario(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        List<EquipoRespuestaDTO> equipos = equipoServicio.listarMisEquiposComoPropietario(correo);
+        return ResponseEntity.ok(equipos);
+    }
+
+    // PATCH /api/v1/equipos/{id}/recuperar
+    @PatchMapping("/{id}/recuperar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<EquipoRespuestaDTO> recuperarEquipo(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        EquipoRespuestaDTO respuesta = equipoServicio.recuperarEquipo(id, correo);
+        return ResponseEntity.ok(respuesta);
+    }
+
     // GET /api/v1/equipos/{id}
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<EquipoRespuestaDTO> buscarPorId(
             @PathVariable Long id) {
 
@@ -106,63 +145,89 @@ public class EquipoControlador {
 
     // PUT /api/v1/equipos/{id}
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<EquipoRespuestaDTO> actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody EquipoCrearDTO dto) {
+            @Valid @RequestBody EquipoCrearDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        EquipoRespuestaDTO respuesta = equipoServicio.actualizar(id, dto);
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        EquipoRespuestaDTO respuesta = equipoServicio.actualizar(id, dto, correo);
         return ResponseEntity.ok(respuesta);
     }
 
     // PATCH /api/v1/equipos/{id}/estado/{nuevoEstado}
     @PatchMapping("/{id}/estado/{nuevoEstado}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<EquipoRespuestaDTO> cambiarEstado(
             @PathVariable Long id,
-            @PathVariable EstadoEquipo nuevoEstado) {
+            @PathVariable EstadoEquipo nuevoEstado,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        EquipoRespuestaDTO respuesta = equipoServicio.cambiarEstado(id, nuevoEstado);
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        EquipoRespuestaDTO respuesta = equipoServicio.cambiarEstado(id, nuevoEstado, correo);
         return ResponseEntity.ok(respuesta);
     }
 
     // PATCH /api/v1/equipos/{id}/dar-de-baja
     @PatchMapping("/{id}/dar-de-baja")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
-    public ResponseEntity<Void> darDeBaja(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<Void> darDeBaja(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        equipoServicio.darDeBaja(id);
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        equipoServicio.darDeBaja(id, correo);
         return ResponseEntity.noContent().build();
     }
 
     // PATCH /api/v1/equipos/{id}/activar
     @PatchMapping("/{id}/activar")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
-    public ResponseEntity<Void> activar(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<Void> activar(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        equipoServicio.activar(id);
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        equipoServicio.activar(id, correo);
         return ResponseEntity.noContent().build();
     }
 
     // POST /api/v1/equipos/{id}/fotos
     @PostMapping(value = "/{id}/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<FotoEquipoRespuestaDTO> subirFoto(
             @PathVariable Long id,
-            @RequestParam("archivo") MultipartFile archivo) throws IOException {
+            @RequestParam("archivo") MultipartFile archivo,
+            @AuthenticationPrincipal UserDetails userDetails) throws IOException {
 
-        FotoEquipoRespuestaDTO respuesta = equipoServicio.subirFoto(id, archivo);
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        FotoEquipoRespuestaDTO respuesta = equipoServicio.subirFoto(id, archivo, correo);
         return new ResponseEntity<>(respuesta, HttpStatus.CREATED);
     }
 
     // DELETE /api/v1/equipos/{id}/fotos/{fotoId}
     @DeleteMapping("/{id}/fotos/{fotoId}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<Void> eliminarFoto(
             @PathVariable Long id,
-            @PathVariable Long fotoId) throws IOException {
+            @PathVariable Long fotoId,
+            @AuthenticationPrincipal UserDetails userDetails) throws IOException {
 
-        equipoServicio.eliminarFoto(id, fotoId);
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        equipoServicio.eliminarFoto(id, fotoId, correo);
+        return ResponseEntity.noContent().build();
+    }
+
+    // DELETE /api/v1/equipos/{id} — eliminar equipo permanentemente (si no tiene
+    // reservas/préstamos/mantenimientos/transferencias)
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<Void> eliminar(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        equipoServicio.eliminar(id, correo);
         return ResponseEntity.noContent().build();
     }
 }

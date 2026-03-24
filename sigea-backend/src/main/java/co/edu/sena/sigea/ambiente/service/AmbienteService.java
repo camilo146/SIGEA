@@ -1,14 +1,24 @@
 package co.edu.sena.sigea.ambiente.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import co.edu.sena.sigea.ambiente.dto.AmbienteCrearDTO;
 import co.edu.sena.sigea.ambiente.dto.AmbienteRespuestaDTO;
 import co.edu.sena.sigea.ambiente.entity.Ambiente;
 import co.edu.sena.sigea.ambiente.repository.AmbienteRepository;
+import co.edu.sena.sigea.common.enums.Rol;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoDuplicadoException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
@@ -21,49 +31,140 @@ public class AmbienteService {
     // Inyectamos los repositorios necesarios para acceder a la base de datos
     private final AmbienteRepository ambienteRepository;
     private final UsuarioRepository usuarioRepository;
-    
+
+    @Value("${sigea.uploads.path:./uploads}")
+    private String rutaUploads;
+
     // Constructor para inyectar los repositorios
     public AmbienteService(AmbienteRepository ambienteRepository,
-                            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository) {
         this.ambienteRepository = ambienteRepository;
         this.usuarioRepository = usuarioRepository;
     }
 
-    @Transactional// si algo falla revierte todo 
+    @Transactional
 
-    //Metodo para crear un ambiente de formacion
-    public AmbienteRespuestaDTO crear(AmbienteCrearDTO dto) {
-        //Validar que no exista otro ambiente con el mismo nombre 
+    /**
+     * Crea un ambiente. Si correoInstructor no es null y el usuario es INSTRUCTOR,
+     * se asigna como responsable.
+     */
+    public AmbienteRespuestaDTO crear(AmbienteCrearDTO dto, String correoInstructor) {
         if (ambienteRepository.existsByNombre(dto.getNombre())) {
             throw new RecursoDuplicadoException(
                     "Ya existe un ambiente con el nombre: " + dto.getNombre());
         }
-        
-        //validar que el isntructor responsable exista ysea un instructor activo
-        Usuario instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
-        
-
-                        //construie la entidad usando el patron builder 
+        Usuario instructor;
+        if (correoInstructor != null && !correoInstructor.isBlank()) {
+            Usuario actual = usuarioRepository.findByCorreoElectronico(correoInstructor).orElse(null);
+            if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
+                instructor = actual;
+            } else {
+                if (dto.getIdInstructorResponsable() == null) {
+                    throw new OperacionNoPermitidaException("El ID del instructor responsable es obligatorio.");
+                }
+                instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
+                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+            }
+        } else {
+            if (dto.getIdInstructorResponsable() == null) {
+                throw new OperacionNoPermitidaException("El ID del instructor responsable es obligatorio.");
+            }
+            instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
+                    .orElseThrow(() -> new RecursoNoEncontradoException(
+                            "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+        }
         Ambiente ambiente = Ambiente.builder()
-                .nombre(dto.getNombre())//setea el nombre del ambiente 
-                .ubicacion(dto.getUbicacion())//setea la ubicacion del ambiente
-                .descripcion(dto.getDescripcion())//setea la descripcion del ambiente
-                .instructorResponsable(instructor)//setea el instructor responsable del ambiente
-                .activo(true)//todo ambiete nuevo nace activo por defecto
-                .build();//construye el objeto y lo retorna
-        
-
-        //Guardar en la base de datos 
+                .nombre(dto.getNombre())
+                .ubicacion(dto.getUbicacion())
+                .descripcion(dto.getDescripcion())
+                .direccion(dto.getDireccion())
+                .instructorResponsable(instructor)
+                .activo(true)
+                .build();
         Ambiente guardado = ambienteRepository.save(ambiente);
-         
-
-        //Convertir a DTO y retornar la respuesta
         return convertirADTO(guardado);
     }
-    
-    //Listar ambientes activos 
+
+    @Transactional
+    public AmbienteRespuestaDTO crearConFoto(AmbienteCrearDTO dto, MultipartFile archivo, String correoInstructor)
+            throws IOException {
+        if (archivo == null || archivo.isEmpty()) {
+            throw new OperacionNoPermitidaException("La foto de la ubicación es obligatoria.");
+        }
+
+        String nombreOriginal = archivo.getOriginalFilename();
+        if (nombreOriginal == null || nombreOriginal.isBlank()) {
+            throw new OperacionNoPermitidaException("El archivo de foto no tiene nombre.");
+        }
+        if (!nombreOriginal.contains(".")) {
+            throw new OperacionNoPermitidaException("El archivo de foto no tiene una extensión válida.");
+        }
+
+        String extension = nombreOriginal.substring(nombreOriginal.lastIndexOf('.') + 1).toLowerCase();
+        if (!List.of("jpg", "jpeg", "png").contains(extension)) {
+            throw new OperacionNoPermitidaException("Formato no permitido. Use: JPG, JPEG o PNG.");
+        }
+
+        long tamanoMaximo = 5L * 1024L * 1024L;
+        if (archivo.getSize() > tamanoMaximo) {
+            throw new OperacionNoPermitidaException("La foto excede el tamaño máximo de 5 MB.");
+        }
+
+        if (ambienteRepository.existsByNombre(dto.getNombre())) {
+            throw new RecursoDuplicadoException("Ya existe un ambiente con el nombre: " + dto.getNombre());
+        }
+
+        Usuario instructor;
+        if (correoInstructor != null && !correoInstructor.isBlank()) {
+            Usuario actual = usuarioRepository.findByCorreoElectronico(correoInstructor).orElse(null);
+            if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
+                instructor = actual;
+            } else {
+                if (dto.getIdInstructorResponsable() == null) {
+                    throw new OperacionNoPermitidaException("El ID del instructor responsable es obligatorio.");
+                }
+                instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
+                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+            }
+        } else {
+            if (dto.getIdInstructorResponsable() == null) {
+                throw new OperacionNoPermitidaException("El ID del instructor responsable es obligatorio.");
+            }
+            instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
+                    .orElseThrow(() -> new RecursoNoEncontradoException(
+                            "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+        }
+
+        Path directorio = Paths.get(rutaUploads).resolve("ambientes");
+        Files.createDirectories(directorio);
+
+        String nombreEnServidor = UUID.randomUUID().toString() + "_" + nombreOriginal;
+        Path rutaArchivo = directorio.resolve(nombreEnServidor);
+        Files.copy(archivo.getInputStream(), rutaArchivo, StandardCopyOption.REPLACE_EXISTING);
+        String rutaParaBD = "/uploads/ambientes/" + nombreEnServidor;
+
+        try {
+            Ambiente ambiente = Ambiente.builder()
+                    .nombre(dto.getNombre())
+                    .ubicacion(dto.getUbicacion())
+                    .descripcion(dto.getDescripcion())
+                    .direccion(dto.getDireccion())
+                    .instructorResponsable(instructor)
+                    .activo(true)
+                    .rutaFoto(rutaParaBD)
+                    .build();
+
+            Ambiente guardado = ambienteRepository.save(ambiente);
+            return convertirADTO(guardado);
+        } catch (RuntimeException ex) {
+            Files.deleteIfExists(rutaArchivo);
+            throw ex;
+        }
+    }
+
+    // Listar ambientes activos
     @Transactional(readOnly = true)
     public List<AmbienteRespuestaDTO> listarActivos() {
         return ambienteRepository.findByActivoTrue()
@@ -71,8 +172,8 @@ public class AmbienteService {
                 .map(this::convertirADTO)
                 .toList();
     }
-    
-    //Metodo para listar todos lo ambientes (incluye inactivos, solo admin)
+
+    // Metodo para listar todos lo ambientes (incluye inactivos, solo admin)
     @Transactional(readOnly = true)
     public List<AmbienteRespuestaDTO> listarTodos() {
         return ambienteRepository.findAll()
@@ -82,13 +183,24 @@ public class AmbienteService {
     }
 
     @Transactional(readOnly = true)
-
-    //Metodo para listar ambientes por instructor
     public List<AmbienteRespuestaDTO> listarPorInstructor(Long instructorId) {
         return ambienteRepository.findByInstructorResponsableId(instructorId)
                 .stream()
                 .map(this::convertirADTO)
                 .toList();
+    }
+
+    /**
+     * Lista ambientes que el usuario actual (instructor) administra. Por correo.
+     */
+    @Transactional(readOnly = true)
+    public List<AmbienteRespuestaDTO> listarPorCorreoInstructor(String correo) {
+        if (correo == null || correo.isBlank())
+            return Collections.emptyList();
+        return usuarioRepository.findByCorreoElectronico(correo)
+                .map(u -> ambienteRepository.findByInstructorResponsableId(u.getId())
+                        .stream().map(this::convertirADTO).toList())
+                .orElse(Collections.emptyList());
     }
 
     //
@@ -99,15 +211,19 @@ public class AmbienteService {
         return convertirADTO(ambiente);
     }
 
-    //Metodo para actulizar un hambiente de formacion 
     @Transactional
-    public AmbienteRespuestaDTO actualizar(Long id, AmbienteCrearDTO dto) {
-        
-
-        //recibe eñ id del ambiente a actualizar y eñ DTO con los nuevos datos 
+    public AmbienteRespuestaDTO actualizar(Long id, AmbienteCrearDTO dto, String correoUsuario) {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
-        //validar que el ambiente no exista 
+        if (correoUsuario != null && !correoUsuario.isBlank()) {
+            Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
+            if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
+                if (ambiente.getInstructorResponsable() == null
+                        || !ambiente.getInstructorResponsable().getId().equals(actual.getId())) {
+                    throw new OperacionNoPermitidaException("Solo puedes editar los ambientes que tú administras.");
+                }
+            }
+        }
         ambienteRepository.findByNombre(dto.getNombre())
                 .ifPresent(existente -> {
                     if (!existente.getId().equals(id)) {
@@ -115,65 +231,63 @@ public class AmbienteService {
                                 "Ya existe otro ambiente con el nombre: " + dto.getNombre());
                     }
                 });
-        //valiar que el instructor responsable exista y sea un instructor activo
         Usuario instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
-
-        //actualizar los campos del ambiente con los datos del DTO 
         ambiente.setNombre(dto.getNombre());
         ambiente.setUbicacion(dto.getUbicacion());
         ambiente.setDescripcion(dto.getDescripcion());
+        ambiente.setDireccion(dto.getDireccion());
         ambiente.setInstructorResponsable(instructor);
-        
-
-        //guardar los cambios en la DB
         Ambiente actualizado = ambienteRepository.save(ambiente);
-        
-
-        //convertir a DTO y retornar la respuesta
         return convertirADTO(actualizado);
     }
 
-
-    //Metodo para desactivar un ambiente 
     @Transactional
-    //
-    public void desactivar(Long id) {
+    public void desactivar(Long id, String correoUsuario) {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
-
+        verificarPropiedadInstructor(ambiente, correoUsuario);
         if (!ambiente.getActivo()) {
             throw new OperacionNoPermitidaException("El ambiente ya se encuentra desactivado");
         }
-
         ambiente.setActivo(false);
         ambienteRepository.save(ambiente);
     }
-    
 
-    //Metodo para activar un ambiente 
     @Transactional
-    public void activar(Long id) {
+    public void activar(Long id, String correoUsuario) {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
-
+        verificarPropiedadInstructor(ambiente, correoUsuario);
         if (ambiente.getActivo()) {
             throw new OperacionNoPermitidaException("El ambiente ya se encuentra activo");
         }
-
         ambiente.setActivo(true);
         ambienteRepository.save(ambiente);
     }
-    
 
-    //Metodo privado para convertir una entidad Ambiente a un DTO de respuesta
+    private void verificarPropiedadInstructor(Ambiente ambiente, String correoUsuario) {
+        if (correoUsuario == null || correoUsuario.isBlank())
+            return;
+        Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
+        if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
+            if (ambiente.getInstructorResponsable() == null
+                    || !ambiente.getInstructorResponsable().getId().equals(actual.getId())) {
+                throw new OperacionNoPermitidaException(
+                        "Solo puedes activar/desactivar los ambientes que tú administras.");
+            }
+        }
+    }
+
+    // Metodo privado para convertir una entidad Ambiente a un DTO de respuesta
     private AmbienteRespuestaDTO convertirADTO(Ambiente ambiente) {
         return AmbienteRespuestaDTO.builder()
                 .id(ambiente.getId())
                 .nombre(ambiente.getNombre())
                 .ubicacion(ambiente.getUbicacion())
                 .descripcion(ambiente.getDescripcion())
+                .direccion(ambiente.getDireccion())
                 .instructorResponsableId(
                         ambiente.getInstructorResponsable() != null
                                 ? ambiente.getInstructorResponsable().getId()
@@ -183,6 +297,7 @@ public class AmbienteService {
                                 ? ambiente.getInstructorResponsable().getNombreCompleto()
                                 : null)
                 .activo(ambiente.getActivo())
+                .rutaFoto(ambiente.getRutaFoto())
                 .fechaCreacion(ambiente.getFechaCreacion())
                 .fechaActualizacion(ambiente.getFechaActualizacion())
                 .build();

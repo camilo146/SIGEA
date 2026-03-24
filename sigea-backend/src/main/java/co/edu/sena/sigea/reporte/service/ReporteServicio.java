@@ -41,11 +41,11 @@ public class ReporteServicio {
     private final ReportePdfServicio reportePdfServicio;
 
     public ReporteServicio(EquipoRepository equipoRepository,
-                           PrestamoRepository prestamoRepository,
-                           DetallePrestamoRepository detallePrestamoRepository,
-                           UsuarioRepository usuarioRepository,
-                           ReporteExcelServicio reporteExcelServicio,
-                           ReportePdfServicio reportePdfServicio) {
+            PrestamoRepository prestamoRepository,
+            DetallePrestamoRepository detallePrestamoRepository,
+            UsuarioRepository usuarioRepository,
+            ReporteExcelServicio reporteExcelServicio,
+            ReportePdfServicio reportePdfServicio) {
         this.equipoRepository = equipoRepository;
         this.prestamoRepository = prestamoRepository;
         this.detallePrestamoRepository = detallePrestamoRepository;
@@ -60,14 +60,15 @@ public class ReporteServicio {
      */
     @Transactional(readOnly = true)
     public byte[] generarReporteInventario(String formato,
-                                           Long ambienteId,
-                                           Long categoriaId,
-                                           EstadoEquipo estado) {
+            Long inventarioInstructorId,
+            Long categoriaId,
+            EstadoEquipo estado) {
         List<Equipo> equipos = equipoRepository.findByActivoTrue();
 
-        if (ambienteId != null) {
+        if (inventarioInstructorId != null) {
             equipos = equipos.stream()
-                    .filter(e -> e.getAmbiente() != null && e.getAmbiente().getId().equals(ambienteId))
+                    .filter(e -> e.getInventarioActualInstructor() != null
+                            && e.getInventarioActualInstructor().getId().equals(inventarioInstructorId))
                     .collect(Collectors.toList());
         }
         if (categoriaId != null) {
@@ -93,11 +94,11 @@ public class ReporteServicio {
      */
     @Transactional(readOnly = true)
     public byte[] generarReportePrestamos(String formato,
-                                         Long usuarioId,
-                                         Long equipoId,
-                                         LocalDateTime desde,
-                                         LocalDateTime hasta,
-                                         EstadoPrestamo estado) {
+            Long usuarioId,
+            Long equipoId,
+            LocalDateTime desde,
+            LocalDateTime hasta,
+            EstadoPrestamo estado) {
         List<Prestamo> prestamos;
 
         if (equipoId != null) {
@@ -160,7 +161,8 @@ public class ReporteServicio {
     }
 
     /**
-     * RF-REP-04: Reporte de usuarios con préstamos pendientes o vencidos (ACTIVO o EN_MORA).
+     * RF-REP-04: Reporte de usuarios con préstamos pendientes o vencidos (ACTIVO o
+     * EN_MORA).
      */
     @Transactional(readOnly = true)
     public byte[] generarReporteUsuariosEnMora(String formato) {

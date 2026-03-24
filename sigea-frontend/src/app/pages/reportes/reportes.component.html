@@ -1,0 +1,114 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">Reportes</h2>
+    <p class="page-subtitle">Generación y exportación de reportes en XLSX y PDF</p>
+  </div>
+</div>
+
+<!-- Tarjetas de tipo de reporte -->
+<div class="report-cards-grid">
+  @for (r of reportTypes; track r.key) {
+    <div class="report-card" [class.selected]="selectedReport === r.key" (click)="selectReport(r.key)">
+      <div class="report-card-icon" [class]="'icon-' + r.color">
+        <i [class]="'fas ' + r.icon"></i>
+      </div>
+      <h4>{{ r.title }}</h4>
+      <p>{{ r.desc }}</p>
+    </div>
+  }
+</div>
+
+<!-- Parámetros del reporte seleccionado -->
+@if (selectedReport) {
+  <div class="params-card">
+    <div class="params-header">
+      <h4><i class="fas fa-sliders-h"></i> Parámetros del reporte: <strong>{{ getSelectedTitle() }}</strong></h4>
+    </div>
+    <div class="params-body">
+      @if (selectedReport === 'inventario') {
+        <div class="params-row">
+          <div class="param-group">
+            <label>Inventario (Instructor)</label>
+            <select [(ngModel)]="params.inventarioInstructorId" class="param-select">
+              <option [ngValue]="undefined">Todos</option>
+              @for (i of instructores(); track i.id) {
+                <option [ngValue]="i.id">{{ i.nombreCompleto }}</option>
+              }
+            </select>
+          </div>
+          <div class="param-group">
+            <label>Categoría</label>
+            <select [(ngModel)]="params.categoriaId" class="param-select">
+              <option [ngValue]="undefined">Todas</option>
+              @for (c of categorias(); track c.id) {
+                <option [ngValue]="c.id">{{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="param-group">
+            <label>Estado</label>
+            <select [(ngModel)]="params.estado" class="param-select">
+              <option value="">Todos</option>
+              <option value="ACTIVO">Activo</option>
+              <option value="EN_MANTENIMIENTO">En mantenimiento</option>
+            </select>
+          </div>
+        </div>
+      }
+      @if (selectedReport === 'prestamos') {
+        <div class="params-row">
+          <div class="param-group">
+            <label>Fecha inicio</label>
+            <input type="date" [(ngModel)]="params.desde" class="param-input" />
+          </div>
+          <div class="param-group">
+            <label>Fecha fin</label>
+            <input type="date" [(ngModel)]="params.hasta" class="param-input" />
+          </div>
+          <div class="param-group">
+            <label>Estado</label>
+            <select [(ngModel)]="params.estadoPrestamo" class="param-select">
+              <option value="">Todos</option>
+              <option value="SOLICITADO">Solicitado</option>
+              <option value="ACTIVO">Activo</option>
+              <option value="DEVUELTO">Devuelto</option>
+              <option value="EN_MORA">En mora</option>
+            </select>
+          </div>
+        </div>
+      }
+      <div class="params-actions">
+        <div class="format-group">
+          <label>Formato de exportación:</label>
+          <div class="format-btns">
+            <button type="button" class="btn btn-outline" (click)="exportar('xlsx')">
+              <i class="fas fa-file-excel" style="color:#22c55e"></i> Excel (XLSX)
+            </button>
+            <button type="button" class="btn btn-outline" (click)="exportar('pdf')">
+              <i class="fas fa-file-pdf" style="color:#dc2626"></i> PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Lista de todos los reportes rápidos -->
+<div class="quick-reports">
+  <h4 style="margin:0 0 1rem 0; font-size:1rem; font-weight:600">Exportaciones rápidas</h4>
+  <div class="quick-grid">
+    @for (r of reportTypes; track r.key) {
+      <div class="quick-card">
+        <div class="quick-info">
+          <i [class]="'fas ' + r.icon" [style.color]="'var(--' + r.color + '-color, #39a900)'"></i>
+          <span>{{ r.title }}</span>
+        </div>
+        <div class="quick-btns">
+          <button type="button" class="btn-quick xlsx" (click)="quickExport(r.key, 'xlsx')">XLSX</button>
+          <button type="button" class="btn-quick pdf" (click)="quickExport(r.key, 'pdf')">PDF</button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

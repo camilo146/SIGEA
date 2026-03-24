@@ -35,6 +35,7 @@ package co.edu.sena.sigea.prestamo.entity;
 
 import co.edu.sena.sigea.common.entity.EntidadBase;
 import co.edu.sena.sigea.common.enums.EstadoPrestamo;
+import co.edu.sena.sigea.reserva.entity.Reserva;
 import co.edu.sena.sigea.usuario.entity.Usuario;
 
 import jakarta.persistence.CascadeType;
@@ -108,6 +109,11 @@ public class Prestamo extends EntidadBase {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "administrador_recibe_id")
     private Usuario administradorRecibe;
+
+    /** Reserva desde la que se creó este préstamo (equipo recogido). Null si el préstamo no viene de reserva. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reserva_id")
+    private Reserva reserva;
 
     // =========================================================================
     // CAMPOS DE FECHA Y HORA

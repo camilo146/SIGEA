@@ -55,8 +55,10 @@ public class NotificacionControlador {
 
     // PATCH /notificaciones/{id}/marcar-leida
     @PatchMapping("/{id}/marcar-leida")
-    public ResponseEntity<Void> marcarComoLeida(@PathVariable Long id) {
-        notificacionServicio.marcarComoLeida(id);
+    public ResponseEntity<Void> marcarComoLeida(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        notificacionServicio.marcarComoLeida(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,0 +1,160 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">{{ isAdmin() ? 'Dashboard' : 'Mi Panel' }}</h2>
+    <p class="page-subtitle">
+      {{ isAdmin() ? 'Resumen general del sistema' : 'Bienvenido(a), aquí puedes ver tu actividad' }}
+      &nbsp;·&nbsp; <small>Última actualización: {{ lastUpdated() | date:'HH:mm' }}</small>
+    </p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-outline" (click)="load()" [disabled]="loading()">
+      <i class="fas fa-sync-alt" [class.fa-spin]="loading()"></i> Actualizar
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <div class="spinner-wrap"><i class="fas fa-spinner fa-spin"></i> Cargando estadísticas...</div>
+} @else if (stats()) {
+
+  <!-- Tarjetas principales -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon total"><i class="fas fa-boxes"></i></div>
+      <div class="metric-info">
+        <span class="metric-label">Total Equipos</span>
+        <span class="metric-value">{{ stats()!.totalEquipos }}</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon available"><i class="fas fa-check-circle"></i></div>
+      <div class="metric-info">
+        <span class="metric-label">Disponibles</span>
+        <span class="metric-value">{{ stats()!.equiposActivos }}</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon borrowed"><i class="fas fa-exchange-alt"></i></div>
+      <div class="metric-info">
+        <span class="metric-label">Prestados</span>
+        <span class="metric-value">{{ stats()!.prestamosActivos }}</span>
+      </div>
+    </div>
+    <div class="metric-card warn">
+      <div class="metric-icon overdue"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="metric-info">
+        <span class="metric-label">En Mora</span>
+        <span class="metric-value">{{ stats()!.prestamosEnMora }}</span>
+      </div>
+    </div>
+  </div>
+
+  @if (isAdmin()) {
+    <!-- Tarjetas secundarias -->
+    <div class="metrics-secondary">
+      <div class="metric-sm">
+        <i class="fas fa-tag"></i>
+        <div>
+          <strong>{{ stats()!.totalCategorias }}</strong>
+          <span>Categorías</span>
+        </div>
+      </div>
+      <div class="metric-sm">
+        <i class="fas fa-map-marker-alt"></i>
+        <div>
+          <strong>{{ stats()!.totalAmbientes }}</strong>
+          <span>Ambientes</span>
+        </div>
+      </div>
+      <div class="metric-sm">
+        <i class="fas fa-users"></i>
+        <div>
+          <strong>{{ stats()!.totalUsuarios }}</strong>
+          <span>Usuarios</span>
+        </div>
+      </div>
+      <div class="metric-sm">
+        <i class="fas fa-calendar-check"></i>
+        <div>
+          <strong>{{ stats()!.reservasActivas }}</strong>
+          <span>Reservas activas</span>
+        </div>
+      </div>
+      <div class="metric-sm">
+        <i class="fas fa-wrench"></i>
+        <div>
+          <strong>{{ stats()!.mantenimientosEnCurso }}</strong>
+          <span>En mantenimiento</span>
+        </div>
+      </div>
+      <div class="metric-sm" [class.low-stock]="stats()!.equiposStockBajo > 0">
+        <i class="fas fa-exclamation-circle"></i>
+        <div>
+          <strong>{{ stats()!.equiposStockBajo }}</strong>
+          <span>Stock bajo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h4><i class="fas fa-chart-bar"></i> Préstamos por Mes</h4>
+          <span class="chart-subtitle">Últimos 6 meses</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartPrestamos"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h4><i class="fas fa-chart-pie"></i> Distribución por Categoría</h4>
+          <span class="chart-subtitle">Equipos activos</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartCategoria"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Últimos préstamos -->
+    @if (ultimosPrestamos().length > 0) {
+      <div class="bottom-row">
+        <div class="bottom-card">
+          <div class="card-header-row">
+            <h4><i class="fas fa-clock"></i> Últimos Préstamos</h4>
+            <a routerLink="/prestamos" class="link-all">Ver todos <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <div class="prestamos-list">
+            @for (p of ultimosPrestamos(); track p.id) {
+              <div class="prestamo-row">
+                <div class="p-icon">
+                  <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="p-info">
+                  <strong>{{ (p.detalles && p.detalles[0]) ? p.detalles[0].nombreEquipo : 'Equipo' }}</strong>
+                  <span>{{ p.nombreUsuarioSolicitante }} · {{ p.fechaHoraSolicitud | date:'dd/MM/yy, HH:mm' }}</span>
+                </div>
+                <span class="badge" [class]="'badge-' + p.estado.toLowerCase()">{{ estadoLabel(p.estado) }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Alerta stock bajo -->
+    @if (stats()!.equiposStockBajo > 0) {
+      <div class="stock-alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>{{ stats()!.equiposStockBajo }} equipos</strong> con stock bajo. Revisa el inventario.
+        <a routerLink="/inventario" class="link-alert">Ver inventario</a>
+      </div>
+    }
+  }
+}

@@ -48,6 +48,7 @@ package co.edu.sena.sigea.usuario.entity;
 // =============================================================================
 
 import co.edu.sena.sigea.common.entity.EntidadBase;
+import co.edu.sena.sigea.common.enums.EstadoAprobacion;
 import co.edu.sena.sigea.common.enums.Rol;
 import co.edu.sena.sigea.common.enums.TipoDocumento;
 
@@ -65,15 +66,16 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Entity                         // JPA: "Esta clase es una tabla"
-@Table(name = "usuario")        // JPA: "La tabla se llama 'usuario' en la BD"
-@Getter                         // Lombok: genera getters para TODOS los campos
-@Setter                         // Lombok: genera setters para TODOS los campos
-@NoArgsConstructor              // Lombok: genera constructor vacío → public Usuario() {}
-                                //   JPA REQUIERE un constructor sin argumentos para crear instancias
-@AllArgsConstructor             // Lombok: genera constructor con TODOS los campos como parámetros
-@Builder                        // Lombok: genera el patrón Builder para crear objetos de forma legible
-                                //   Ejemplo: Usuario.builder().nombreCompleto("Juan").rol(Rol.ADMINISTRADOR).build();
+@Entity // JPA: "Esta clase es una tabla"
+@Table(name = "usuario") // JPA: "La tabla se llama 'usuario' en la BD"
+@Getter // Lombok: genera getters para TODOS los campos
+@Setter // Lombok: genera setters para TODOS los campos
+@NoArgsConstructor // Lombok: genera constructor vacío → public Usuario() {}
+                   // JPA REQUIERE un constructor sin argumentos para crear instancias
+@AllArgsConstructor // Lombok: genera constructor con TODOS los campos como parámetros
+@Builder // Lombok: genera el patrón Builder para crear objetos de forma legible
+         // Ejemplo:
+         // Usuario.builder().nombreCompleto("Juan").rol(Rol.ADMINISTRADOR).build();
 public class Usuario extends EntidadBase {
     // "extends EntidadBase" = hereda id, fechaCreacion, fechaActualizacion
 
@@ -83,10 +85,10 @@ public class Usuario extends EntidadBase {
     // Nombre completo del usuario tal como aparece en su documento de identidad.
     //
     // @Column:
-    //   name = "nombre_completo" → Nombre de la columna en la BD (snake_case)
-    //   nullable = false → NO puede ser NULL (es obligatorio)
-    //   length = 150 → Máximo 150 caracteres (suficiente para nombres colombianos
-    //                    que pueden ser largos: "Juan Pablo García de los Santos")
+    // name = "nombre_completo" → Nombre de la columna en la BD (snake_case)
+    // nullable = false → NO puede ser NULL (es obligatorio)
+    // length = 150 → Máximo 150 caracteres (suficiente para nombres colombianos
+    // que pueden ser largos: "Juan Pablo García de los Santos")
     // =========================================================================
     @Column(name = "nombre_completo", nullable = false, length = 150)
     private String nombreCompleto;
@@ -97,13 +99,13 @@ public class Usuario extends EntidadBase {
     // Número del documento de identidad del usuario.
     //
     // unique = true → No pueden existir dos usuarios con el mismo documento.
-    //   En la BD esto crea un índice UNIQUE que previene duplicados.
-    //   Si intentas insertar un duplicado, la BD lanza una excepción.
+    // En la BD esto crea un índice UNIQUE que previene duplicados.
+    // Si intentas insertar un duplicado, la BD lanza una excepción.
     //
     // ¿Por qué String y no Long?
-    //   Porque algunos documentos tienen letras (ej: CE, pasaportes)
-    //   y porque los documentos pueden empezar con ceros (ej: 0012345678).
-    //   Si fuera Long, los ceros iniciales se perderían.
+    // Porque algunos documentos tienen letras (ej: CE, pasaportes)
+    // y porque los documentos pueden empezar con ceros (ej: 0012345678).
+    // Si fuera Long, los ceros iniciales se perderían.
     // =========================================================================
     @Column(name = "numero_documento", nullable = false, unique = true, length = 20)
     private String numeroDocumento;
@@ -114,13 +116,13 @@ public class Usuario extends EntidadBase {
     // Tipo de documento de identidad: CC, TI, CE, PP, PEP
     //
     // @Enumerated(EnumType.STRING):
-    //   Guarda el valor como TEXTO en la BD: "CC", "TI", "CE", etc.
+    // Guarda el valor como TEXTO en la BD: "CC", "TI", "CE", etc.
     //
-    //   ¿Por qué STRING y no ORDINAL?
-    //   ORDINAL guardaría 0, 1, 2, 3, 4 (la posición del enum).
-    //   Problema: si reordenas el enum o agregas un valor en medio,
-    //   los números cambian y los datos existentes se rompen.
-    //   STRING es más seguro: aunque reordenes, "CC" siempre es "CC".
+    // ¿Por qué STRING y no ORDINAL?
+    // ORDINAL guardaría 0, 1, 2, 3, 4 (la posición del enum).
+    // Problema: si reordenas el enum o agregas un valor en medio,
+    // los números cambian y los datos existentes se rompen.
+    // STRING es más seguro: aunque reordenes, "CC" siempre es "CC".
     // =========================================================================
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_documento", nullable = false, length = 5)
@@ -132,12 +134,12 @@ public class Usuario extends EntidadBase {
     // Dirección de correo electrónico del usuario.
     //
     // nullable = true → El correo es OPCIONAL.
-    //   ¿Por qué? RF-NOT-06 dice: "Si el usuario no tiene correo registrado,
-    //   la notificación se mostrará dentro del sistema como alerta interna."
-    //   Entonces el sistema funciona sin correo.
+    // ¿Por qué? RF-NOT-06 dice: "Si el usuario no tiene correo registrado,
+    // la notificación se mostrará dentro del sistema como alerta interna."
+    // Entonces el sistema funciona sin correo.
     //
     // unique = true → Dos usuarios no pueden tener el mismo correo.
-    //   Pero como es nullable, MariaDB permite múltiples NULLs (NULL != NULL).
+    // Pero como es nullable, MariaDB permite múltiples NULLs (NULL != NULL).
     // =========================================================================
     @Column(name = "correo_electronico", unique = true, length = 100)
     private String correoElectronico;
@@ -148,8 +150,8 @@ public class Usuario extends EntidadBase {
     // Número de teléfono del usuario (opcional).
     //
     // ¿Por qué String y no Integer/Long?
-    //   Porque los teléfonos pueden tener formato: "+57 310 123 4567"
-    //   y porque pueden empezar con "+" o "0".
+    // Porque los teléfonos pueden tener formato: "+57 310 123 4567"
+    // y porque pueden empezar con "+" o "0".
     // =========================================================================
     @Column(name = "telefono", length = 20)
     private String telefono;
@@ -185,11 +187,11 @@ public class Usuario extends EntidadBase {
     // texto plano."
     //
     // ¿Qué es un hash?
-    //   Es una función matemática de UNA sola vía:
-    //   "MiContraseña123!@" → "$2a$10$Xk4B3... (60 caracteres aleatorios)"
-    //   No se puede revertir: del hash NO puedes obtener la contraseña original.
-    //   Para verificar, se hashea lo que el usuario escribe y se compara con el
-    //   hash almacenado.
+    // Es una función matemática de UNA sola vía:
+    // "MiContraseña123!@" → "$2a$10$Xk4B3... (60 caracteres aleatorios)"
+    // No se puede revertir: del hash NO puedes obtener la contraseña original.
+    // Para verificar, se hashea lo que el usuario escribe y se compara con el
+    // hash almacenado.
     //
     // length = 255 → BCrypt genera hashes de ~60 caracteres, pero dejamos margen.
     // =========================================================================
@@ -222,8 +224,8 @@ public class Usuario extends EntidadBase {
     // El superadmin ve y gestiona TODOS los ambientes.
     //
     // columnDefinition = "BOOLEAN DEFAULT FALSE":
-    //   Le dice a la BD que el valor por defecto es FALSE.
-    //   Así, si no se especifica al crear, será false automáticamente.
+    // Le dice a la BD que el valor por defecto es FALSE.
+    // Así, si no se especifica al crear, será false automáticamente.
     // =========================================================================
     @Column(name = "es_super_admin", nullable = false)
     private Boolean esSuperAdmin = false;
@@ -233,15 +235,17 @@ public class Usuario extends EntidadBase {
     // =========================================================================
     // Indica si el usuario está activo o ha sido "eliminado".
     //
-    // RF-USR-03: "El sistema debe permitir desactivar usuarios (eliminación lógica)."
+    // RF-USR-03: "El sistema debe permitir desactivar usuarios (eliminación
+    // lógica)."
     //
     // ¿Qué es eliminación lógica (soft delete)?
-    //   En vez de borrar el registro de la BD (DELETE FROM usuario WHERE id = 5),
-    //   simplemente ponemos activo = false.
-    //   El usuario "desaparece" del sistema, pero sus datos se conservan para
-    //   historial, auditoría y trazabilidad.
+    // En vez de borrar el registro de la BD (DELETE FROM usuario WHERE id = 5),
+    // simplemente ponemos activo = false.
+    // El usuario "desaparece" del sistema, pero sus datos se conservan para
+    // historial, auditoría y trazabilidad.
     //
-    // RN-13: "Un usuario desactivado no puede iniciar sesión ni realizar solicitudes."
+    // RN-13: "Un usuario desactivado no puede iniciar sesión ni realizar
+    // solicitudes."
     // =========================================================================
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
@@ -269,12 +273,32 @@ public class Usuario extends EntidadBase {
     //
     // Si es NULL → la cuenta NO está bloqueada.
     // Si tiene un valor en el futuro → la cuenta está bloqueada hasta esa hora.
-    // Si tiene un valor en el pasado → el bloqueo ya expiró, puede intentar de nuevo.
+    // Si tiene un valor en el pasado → el bloqueo ya expiró, puede intentar de
+    // nuevo.
     //
     // Ejemplo: si a las 10:00 se bloquea por 5 minutos, este campo tendrá 10:05.
-    //   A las 10:03 → sigue bloqueada (10:03 < 10:05)
-    //   A las 10:06 → ya puede intentar (10:06 > 10:05)
+    // A las 10:03 → sigue bloqueada (10:03 < 10:05)
+    // A las 10:06 → ya puede intentar (10:06 > 10:05)
     // =========================================================================
     @Column(name = "cuenta_bloqueada_hasta")
     private LocalDateTime cuentaBloqueadaHasta;
+
+    // =========================================================================
+    // CAMPO: emailVerificado
+    // =========================================================================
+    // Indica si el usuario verificó su correo mediante el enlace enviado al
+    // registrarse.
+    // =========================================================================
+    @Column(name = "email_verificado", nullable = false)
+    private Boolean emailVerificado = false;
+
+    @Column(name = "token_verificacion", length = 255)
+    private String tokenVerificacion;
+
+    @Column(name = "token_verificacion_expira")
+    private LocalDateTime tokenVerificacionExpira;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_aprobacion", nullable = false, length = 10)
+    private EstadoAprobacion estadoAprobacion = EstadoAprobacion.APROBADO;
 }

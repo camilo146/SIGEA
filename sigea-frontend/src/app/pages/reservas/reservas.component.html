@@ -1,0 +1,236 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">{{ isAdmin() ? 'Reservas' : 'Mis Reservas' }}</h2>
+    <p class="page-subtitle">{{ isAdmin() ? 'Gestión de reservas anticipadas de equipos' : 'Crea y gestiona tus reservas de equipos' }}</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openCrear()">
+      <i class="fas fa-plus"></i> Nueva Reserva
+    </button>
+  </div>
+</div>
+
+@if (error() && !modalCrear()) {
+  <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+}
+
+<div class="res-card">
+  <!-- Tabs / Filtro -->
+  <div class="tabs-header">
+    @for (tab of TABS; track tab.key) {
+      <button
+        type="button"
+        class="tab-item"
+        [class.active]="activeTab() === tab.key"
+        (click)="setTab(tab.key)"
+      >
+        {{ tab.label }}
+        <span class="tab-count" [class]="'count-' + tab.color">{{ tabCount(tab.key) }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Búsqueda -->
+  <div class="inv-toolbar">
+    <div class="search-input-wrap" style="flex:1; max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input
+        type="text"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        placeholder="Buscar por equipo o usuario..."
+      />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-wrap" style="padding:2rem">
+      <i class="fas fa-spinner fa-spin"></i> Cargando reservas...
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Equipo</th>
+            <th class="num">Cant.</th>
+            @if (isAdmin()) { <th>Usuario</th> }
+            <th>Inicio</th>
+            <th>Vence</th>
+            <th>Estado</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of filteredReservas(); track r.id) {
+            <tr>
+              <td>
+                <div class="equipo-cell">
+                  <div class="equipo-icon"><i class="fas fa-microchip"></i></div>
+                  <div>
+                    <strong>{{ r.nombreEquipo }}</strong>
+                    <br><small class="text-muted"><code>{{ r.codigoEquipo }}</code></small>
+                    <br><small class="text-muted">{{ tipoUsoLabel(r.tipoUso) }}</small>
+                  </div>
+                </div>
+              </td>
+              <td class="num"><strong>{{ r.cantidad }}</strong></td>
+              @if (isAdmin()) {
+                <td>
+                  <div style="display:flex; align-items:center; gap:0.45rem">
+                    <div class="sm-avatar">{{ getInitials(r.nombreUsuario) }}</div>
+                    <div>
+                      <strong style="font-size:0.88rem">{{ r.nombreUsuario }}</strong>
+                      <br><small class="text-muted">{{ r.correoUsuario }}</small>
+                    </div>
+                  </div>
+                </td>
+              }
+              <td>{{ formatDate(r.fechaHoraInicio) }}</td>
+              <td [class.overdue]="isVencida(r)">{{ formatDate(r.fechaHoraFin) }}</td>
+              <td>
+                <span class="badge" [class]="'badge-' + r.estado.toLowerCase()">
+                  {{ estadoLabel(r.estado) }}
+                </span>
+              </td>
+              <td class="actions">
+                @if (r.estado === 'ACTIVA') {
+                  @if (isAdmin()) {
+                    <button type="button" class="btn btn-primary btn-xs" (click)="openEquipoRecogido(r)">
+                      <i class="fas fa-hand-holding"></i> Equipo recogido
+                    </button>
+                  }
+                  <button type="button" class="btn btn-danger btn-xs" (click)="cancelar(r)">
+                    <i class="fas fa-times"></i> Cancelar
+                  </button>
+                }
+                @if (isAdminOrInstructor() && r.estado !== 'PRESTADO') {
+                  <button type="button" class="btn btn-outline btn-xs" (click)="eliminarReserva(r)" title="Eliminar">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="isAdmin() ? 7 : 6" class="empty">
+                <i class="fas fa-calendar-times" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
+                No hay reservas en esta sección
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="text-muted" style="font-size:0.85rem">
+        {{ filteredReservas().length }} reserva(s) ·
+        <strong style="color:var(--color-success)">{{ tabCount('activas') }}</strong> activas
+      </span>
+    </div>
+  }
+</div>
+
+<!-- Modal crear reserva -->
+@if (modalCrear()) {
+  <div class="modal-overlay" (click)="modalCrear.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-calendar-plus" style="color:var(--color-primary);margin-right:.4rem"></i>
+          Nueva reserva
+        </h3>
+        <button type="button" class="btn-close" (click)="modalCrear.set(false)">&times;</button>
+      </div>
+      <form (ngSubmit)="submitCrear()" class="modal-body">
+        @if (error()) {
+          <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+        }
+        <div class="form-group">
+          <label>Equipo *</label>
+          <select [(ngModel)]="form.equipoId" name="equipoId" required>
+            <option [value]="0" disabled>Seleccione un equipo</option>
+            @for (e of equipos(); track e.id) {
+              <option [value]="e.id">
+                {{ e.nombre }} &nbsp;·&nbsp; Disponible: {{ e.cantidadDisponible }}
+              </option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cantidad *</label>
+          <input
+            type="number"
+            [(ngModel)]="form.cantidad"
+            name="cantidad"
+            min="1"
+            required
+            placeholder="1"
+          />
+        </div>
+        <div class="form-group">
+          <label>Fecha y hora de recogida *</label>
+          <input
+            type="datetime-local"
+            [(ngModel)]="form.fechaHoraInicio"
+            name="fechaHoraInicio"
+            [min]="fechaMinInicio()"
+            required
+          />
+        </div>
+        <div class="info-box">
+          <i class="fas fa-info-circle"></i>
+          <span>La reserva <strong>vence automáticamente 2 horas</strong> después del inicio si no se recoge el equipo.</span>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="modalCrear.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-check"></i> Confirmar reserva
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal equipo recogido (admin): registrar hora de devolución -->
+@if (modalEquipoRecogido(); as r) {
+  <div class="modal-overlay" (click)="closeEquipoRecogido()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-hand-holding" style="color:var(--color-primary);margin-right:.4rem"></i>
+          Equipo recogido
+        </h3>
+        <button type="button" class="btn-close" (click)="closeEquipoRecogido()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:1rem">
+          <strong>{{ r.nombreEquipo }}</strong> ({{ r.codigoEquipo }}) · Usuario: {{ r.nombreUsuario }}
+        </p>
+        @if (error()) {
+          <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+        }
+        <div class="form-group">
+          <label>Fecha y hora de devolución *</label>
+          <input
+            type="datetime-local"
+            [ngModel]="fechaHoraDevolucion()"
+            (ngModelChange)="fechaHoraDevolucion.set($event)"
+            name="fechaHoraDevolucion"
+            required
+          />
+        </div>
+        <p class="text-muted" style="font-size:0.85rem; margin-top:0.5rem">
+          Se creará un préstamo activo y la reserva pasará a estado &quot;Prestado&quot;. La devolución se gestiona en Préstamos.
+        </p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeEquipoRecogido()">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="submitEquipoRecogido()">
+            <i class="fas fa-check"></i> Registrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -29,6 +29,12 @@ public enum TipoNotificacion {
     // Notificación al admin cuando llega una nueva solicitud de préstamo
     SOLICITUD_PRESTAMO,
 
+    // Reserva creada: el usuario recibe confirmación por correo
+    RESERVA_CREADA,
+
+    // Equipo recogido: el usuario recibe confirmación de que su reserva pasó a préstamo
+    EQUIPO_RECOGIDO,
+
     // Notificaciones genéricas del sistema
     GENERAL
 }

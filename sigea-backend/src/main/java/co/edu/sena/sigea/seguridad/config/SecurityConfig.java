@@ -16,11 +16,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;          // Marca métodos como creadores de beans
 
-import co.edu.sena.sigea.seguridad.jwt.JwtFiltroAutenticacion; 
+import co.edu.sena.sigea.seguridad.jwt.JwtFiltroAutenticacion;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration //contiene el beans de configuracion de
 @EnableWebSecurity //habilita la seguridad web de Spring Security
@@ -44,8 +46,9 @@ public class SecurityConfig {
         .csrf(csrf -> csrf.disable())
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .authorizeHttpRequests(auth -> auth 
-        .requestMatchers("/auth/**").permitAll()
-        .requestMatchers("/actuator/**").permitAll()
+        .requestMatchers(permitAuthPath()).permitAll()
+        .requestMatchers("/actuator/**", "/api/v1/actuator/**").permitAll()
+        .requestMatchers("/uploads/**").permitAll()
         .anyRequest().authenticated()
 
         )
@@ -60,7 +63,16 @@ public class SecurityConfig {
 
     }
 
-        @Bean
+    /** Permite cualquier ruta de autenticación (login/registro) sin importar context-path o proxy. */
+    private static RequestMatcher permitAuthPath() {
+        return (HttpServletRequest request) -> {
+            String uri = request.getRequestURI();
+            String path = request.getServletPath();
+            return (uri != null && uri.contains("/auth")) || (path != null && path.contains("/auth"));
+        };
+    }
+
+@Bean 
         // Configuración del PasswordEncoder para encriptar las contraseñas de los usuarios 
         public PasswordEncoder passwordEncoder(){
             return new BCryptPasswordEncoder();
@@ -75,16 +87,18 @@ public class SecurityConfig {
         }
 
         @Bean 
-        // Configuración de CORS para permitir solicitudes desde el frontend
+        // Configuración de CORS para permitir solicitudes desde el frontend (ng serve puede usar cualquier puerto)
         public CorsConfigurationSource corsConfigurationSource(){
             CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOriginPatterns(List.of("*")); // Permitir todas las fuentes (en producción, especificar dominios)
+            configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*", "http://127.0.0.1:*", "http://localhost:4200", "http://localhost:58648"
+            ));
             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-            configuration.setAllowedHeaders(List.of("*")); // Permitir todos los encabezados
-            configuration.setAllowCredentials(true); // Permitir envío de cookies y credenciales
+            configuration.setAllowedHeaders(List.of("*"));
+            configuration.setAllowCredentials(true);
 
             UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-            source.registerCorsConfiguration("/**", configuration); // Aplicar esta configuración a todas las rutas
+            source.registerCorsConfiguration("/**", configuration);
             return source;
         }
 

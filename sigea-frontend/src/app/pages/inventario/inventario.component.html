@@ -1,0 +1,283 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">{{ isAdminOrInstructor() ? 'Inventario' : 'Equipos' }}</h2>
+    <p class="page-subtitle">{{ isAdminOrInstructor() ? 'Gestión de equipos y herramientas' : 'Consulta los equipos y solicita préstamos' }}</p>
+  </div>
+  @if (isAdminOrInstructor()) {
+    <div class="content-actions">
+      <button type="button" class="btn btn-primary" (click)="openCreate()">
+        <i class="fas fa-plus"></i> Registrar Equipo
+      </button>
+      <div class="export-group">
+        <button type="button" class="btn btn-outline" (click)="exportar('xlsx')">
+          <i class="fas fa-file-excel"></i> Excel
+        </button>
+        <button type="button" class="btn btn-outline" (click)="exportar('pdf')">
+          <i class="fas fa-file-pdf"></i> PDF
+        </button>
+      </div>
+    </div>
+  }
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+}
+
+<div class="inv-card">
+  <!-- Toolbar: búsqueda + filtros -->
+  <div class="inv-toolbar">
+    <div class="search-input-wrap" style="flex:1; max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Buscar por nombre o código..." />
+    </div>
+
+    <div class="toolbar-filters">
+      <select [ngModel]="filterCategoria()" (ngModelChange)="filterCategoria.set($event)" class="filter-select">
+        <option value="">Todas las categorías</option>
+        @for (c of categorias(); track c.id) {
+          <option [value]="c.id">{{ c.nombre }}</option>
+        }
+      </select>
+      <select [ngModel]="filterAmbiente()" (ngModelChange)="filterAmbiente.set($event)" class="filter-select">
+        <option value="">Todas las ubicaciones</option>
+        @for (a of ambientes(); track a.id) {
+          <option [value]="a.id">{{ a.nombre }}</option>
+        }
+      </select>
+      <select [ngModel]="filterEstado()" (ngModelChange)="filterEstado.set($event)" class="filter-select">
+        @for (op of ESTADOS; track op.value) {
+          <option [value]="op.value">{{ op.label }}</option>
+        }
+      </select>
+      @if (isAdminOrInstructor()) {
+        <label class="filter-check">
+          <input type="checkbox" [ngModel]="incluirDadosDeBaja()" (ngModelChange)="incluirDadosDeBaja.set($event)" />
+          Incluir dados de baja
+        </label>
+      }
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  @if (loading()) {
+    <div class="spinner-wrap" style="padding:2rem"><i class="fas fa-spinner fa-spin"></i> Cargando inventario...</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Foto</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Estado</th>
+            <th class="num">Total</th>
+            <th class="num">Disponible</th>
+            <th>Ubicación</th>
+            <th>Dueño</th>
+            <th>Inventario actual</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of filteredEquipos(); track e.id) {
+            <tr>
+              <td class="foto-cell" (click)="openDetalle(e)" style="cursor:pointer">
+                @if (getFotoUrl(e)) {
+                  <img [src]="getFotoUrl(e)" alt="" class="equipo-thumb" />
+                } @else {
+                  <div class="equipo-thumb placeholder"><i class="fas fa-image"></i></div>
+                }
+              </td>
+              <td><code class="code-tag">{{ e.codigoUnico }}</code></td>
+              <td>
+                <strong (click)="openDetalle(e)" style="cursor:pointer; text-decoration:underline">{{ e.nombre }}</strong>
+                @if (e.cantidadDisponible <= e.umbralMinimo && e.activo) {
+                  <span class="low-stock-badge"><i class="fas fa-exclamation-triangle"></i> Stock bajo</span>
+                }
+              </td>
+              <td>{{ e.categoriaNombre }}</td>
+              <td>
+                <span class="badge" [class]="e.tipoUso === 'CONSUMIBLE' ? 'badge-yellow' : 'badge-blue'">
+                  {{ tipoUsoLabel(e.tipoUso) }}
+                </span>
+              </td>
+              <td><span class="badge" [class]="'badge-' + e.estado.toLowerCase()">{{ estadoLabel(e.estado) }}</span></td>
+              <td class="num">{{ e.cantidadTotal }}</td>
+              <td class="num" [class.text-danger]="e.cantidadDisponible === 0">{{ e.cantidadDisponible }}</td>
+              <td>{{ e.ambienteNombre }}</td>
+              <td>{{ e.propietarioNombre || '—' }}</td>
+              <td>
+                {{ e.inventarioActualInstructorNombre || '—' }}
+                @if (estaTransferido(e)) {
+                  <span class="badge badge-warning" style="margin-left:0.3rem; font-size:0.7rem"><i class="fas fa-exchange-alt"></i> Transferido</span>
+                }
+              </td>
+              <td class="actions">
+                @if (isAdminOrInstructor()) {
+                  <button type="button" class="btn-icon" (click)="openEdit(e)" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  @if (e.activo) {
+                    <button type="button" class="btn-icon danger" (click)="darDeBaja(e)" title="Dar de baja">
+                      <i class="fas fa-ban"></i>
+                    </button>
+                  } @else {
+                    <button type="button" class="btn-icon success" (click)="activar(e)" title="Activar">
+                      <i class="fas fa-check"></i>
+                    </button>
+                  }
+                  <button type="button" class="btn-icon danger" (click)="eliminarEquipo(e)" title="Eliminar">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                  @if (estaTransferido(e)) {
+                    <button type="button" class="btn-icon" (click)="recuperarEquipo(e)" title="Recuperar a mi inventario" style="color:var(--color-primary)">
+                      <i class="fas fa-undo"></i>
+                    </button>
+                  }
+                } @else if (e.activo && e.cantidadDisponible > 0) {
+                  <button type="button" class="btn btn-primary btn-xs" (click)="solicitarEquipo(e)">
+                    <i class="fas fa-hand-holding"></i> Solicitar
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="11" class="empty">
+              <i class="fas fa-box-open" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
+              No se encontraron equipos
+            </td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="text-muted" style="font-size:0.85rem">{{ filteredEquipos().length }} equipo(s) · {{ equipos().length }} en total</span>
+    </div>
+  }
+</div>
+
+<!-- Card detalle equipo (clic en foto/nombre) -->
+@if (selectedEquipo(); as e) {
+  <div class="modal-overlay" (click)="closeDetalle()">
+    <div class="equipo-detail-card" (click)="$event.stopPropagation()">
+      <button type="button" class="btn-close" (click)="closeDetalle()">&times;</button>
+      <div class="equipo-detail-photo">
+        @if (getFotoUrl(e)) {
+          <img [src]="getFotoUrl(e)" alt="" />
+        } @else {
+          <div class="no-photo"><i class="fas fa-image"></i></div>
+        }
+      </div>
+      <div class="equipo-detail-info">
+        <h3>{{ e.nombre }}</h3>
+        <p><code>{{ e.codigoUnico }}</code></p>
+        <p><strong>Categoría:</strong> {{ e.categoriaNombre }}</p>
+        <p><strong>Ubicación:</strong> {{ e.ambienteNombre }}</p>
+        <p><strong>Dueño:</strong> {{ e.propietarioNombre || '—' }}</p>
+        <p><strong>Inventario actual:</strong> {{ e.inventarioActualInstructorNombre || '—' }}
+          @if (e.propietarioId && e.inventarioActualInstructorId && e.propietarioId !== e.inventarioActualInstructorId) {
+            <span class="badge badge-warning" style="margin-left:0.3rem; font-size:0.7rem"><i class="fas fa-exchange-alt"></i> Transferido</span>
+          }
+        </p>
+        <p><strong>Estado:</strong> <span class="badge" [class]="'badge-' + e.estado.toLowerCase()">{{ estadoLabel(e.estado) }}</span></p>
+        <p><strong>Tipo:</strong> {{ tipoUsoLabel(e.tipoUso) }}</p>
+        <p><strong>Disponible:</strong> {{ e.cantidadDisponible }} / {{ e.cantidadTotal }}</p>
+        @if (e.descripcion) {
+          <p class="desc"><strong>Descripción:</strong> {{ e.descripcion }}</p>
+        }
+      </div>
+      <div class="equipo-detail-actions">
+        @if (e.activo && e.cantidadDisponible > 0) {
+          <button type="button" class="btn btn-primary" (click)="solicitarEquipo(e)">
+            <i class="fas fa-hand-holding"></i> Solicitar préstamo
+          </button>
+          <button type="button" class="btn btn-outline" (click)="irAReserva(e)">
+            <i class="fas fa-calendar-check"></i> Reservar
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal crear/editar -->
+@if (modalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ editingId() ? 'Editar equipo' : 'Registrar equipo' }}</h3>
+        <button type="button" class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <form (ngSubmit)="submitForm()" class="modal-body">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" [(ngModel)]="form.nombre" name="nombre" required maxlength="200" placeholder="Ej: Multímetro Digital Fluke 117" />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea [(ngModel)]="form.descripcion" name="descripcion" rows="2" placeholder="Descripción del equipo..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Código único</label>
+          <input type="text" [(ngModel)]="form.codigoUnico" name="codigoUnico" [readonly]="editingId() != null" placeholder="Opcional: dejar vacío para auto-generar (ej: SIGEA-EQ-...)" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoría *</label>
+            <select [(ngModel)]="form.categoriaId" name="categoriaId" required>
+              @for (c of categorias(); track c.id) {
+                <option [value]="c.id">{{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ubicación *</label>
+            <select [(ngModel)]="form.ambienteId" name="ambienteId" required>
+              @for (a of ambientes(); track a.id) {
+                <option [value]="a.id">{{ a.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cantidad total *</label>
+            <input type="number" [(ngModel)]="form.cantidadTotal" name="cantidadTotal" min="1" required />
+          </div>
+          <div class="form-group">
+            <label>Tipo de uso *</label>
+            <select [(ngModel)]="form.tipoUso" name="tipoUso" required>
+              @for (t of TIPOS_USO; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Umbral mínimo</label>
+            <input type="number" [(ngModel)]="form.umbralMinimo" name="umbralMinimo" min="0" placeholder="0" />
+          </div>
+        </div>
+        @if (!editingId()) {
+          <div class="form-group">
+            <label>Foto del equipo *</label>
+            <input type="file" accept="image/*" (change)="onFotoSelected($event)" #fotoInput />
+            <small class="text-muted">Desde PC: explorador de archivos. En celular: galería o cámara. JPG/PNG, máx. 5 MB.</small>
+            @if (fotoArchivo) {
+              <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
+            }
+          </div>
+        }
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

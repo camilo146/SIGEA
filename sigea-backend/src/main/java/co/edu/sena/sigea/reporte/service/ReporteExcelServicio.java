@@ -45,7 +45,8 @@ public class ReporteExcelServicio {
 
             int rowNum = 0;
             Row headerRow = sheet.createRow(rowNum++);
-            String[] headers = {"Código", "Nombre", "Categoría", "Ambiente", "Estado", "Cant. total", "Cant. disponible", "Umbral mín."};
+            String[] headers = { "Código", "Nombre", "Categoría", "Ubicación", "Dueño", "Inventario actual", "Estado",
+                    "Cant. total", "Cant. disponible", "Umbral mín." };
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -58,10 +59,17 @@ public class ReporteExcelServicio {
                 crearCelda(row, 1, e.getNombre(), cellStyle);
                 crearCelda(row, 2, e.getCategoria() != null ? e.getCategoria().getNombre() : "", cellStyle);
                 crearCelda(row, 3, e.getAmbiente() != null ? e.getAmbiente().getNombre() : "", cellStyle);
-                crearCelda(row, 4, e.getEstado() != null ? e.getEstado().name() : "", cellStyle);
-                crearCelda(row, 5, e.getCantidadTotal() != null ? e.getCantidadTotal().doubleValue() : 0, cellStyle);
-                crearCelda(row, 6, e.getCantidadDisponible() != null ? e.getCantidadDisponible().doubleValue() : 0, cellStyle);
-                crearCelda(row, 7, e.getUmbralMinimo() != null ? e.getUmbralMinimo().doubleValue() : 0, cellStyle);
+                crearCelda(row, 4, e.getPropietario() != null ? e.getPropietario().getNombreCompleto() : "", cellStyle);
+                crearCelda(row, 5,
+                        e.getInventarioActualInstructor() != null
+                                ? e.getInventarioActualInstructor().getNombreCompleto()
+                                : "",
+                        cellStyle);
+                crearCelda(row, 6, e.getEstado() != null ? e.getEstado().name() : "", cellStyle);
+                crearCelda(row, 7, e.getCantidadTotal() != null ? e.getCantidadTotal().doubleValue() : 0, cellStyle);
+                crearCelda(row, 8, e.getCantidadDisponible() != null ? e.getCantidadDisponible().doubleValue() : 0,
+                        cellStyle);
+                crearCelda(row, 9, e.getUmbralMinimo() != null ? e.getUmbralMinimo().doubleValue() : 0, cellStyle);
             }
 
             for (int i = 0; i < headers.length; i++) {
@@ -85,7 +93,8 @@ public class ReporteExcelServicio {
 
             int rowNum = 0;
             Row headerRow = sheet.createRow(rowNum++);
-            String[] headers = {"ID", "Solicitante", "Correo", "Estado", "Fecha solicitud", "Fecha dev. estimada", "Fecha dev. real"};
+            String[] headers = { "ID", "Solicitante", "Correo", "Estado", "Fecha solicitud", "Fecha dev. estimada",
+                    "Fecha dev. real" };
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -95,12 +104,24 @@ public class ReporteExcelServicio {
             for (Prestamo p : prestamos) {
                 Row row = sheet.createRow(rowNum++);
                 crearCelda(row, 0, p.getId() != null ? p.getId().doubleValue() : 0, cellStyle);
-                crearCelda(row, 1, p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getNombreCompleto() : "", cellStyle);
-                crearCelda(row, 2, p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getCorreoElectronico() : "", cellStyle);
+                crearCelda(row, 1,
+                        p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getNombreCompleto() : "",
+                        cellStyle);
+                crearCelda(row, 2,
+                        p.getUsuarioSolicitante() != null ? p.getUsuarioSolicitante().getCorreoElectronico() : "",
+                        cellStyle);
                 crearCelda(row, 3, p.getEstado() != null ? p.getEstado().name() : "", cellStyle);
-                crearCelda(row, 4, p.getFechaHoraSolicitud() != null ? p.getFechaHoraSolicitud().format(FECHA_HORA) : "", cellStyle);
-                crearCelda(row, 5, p.getFechaHoraDevolucionEstimada() != null ? p.getFechaHoraDevolucionEstimada().format(FECHA_HORA) : "", cellStyle);
-                crearCelda(row, 6, p.getFechaHoraDevolucionReal() != null ? p.getFechaHoraDevolucionReal().format(FECHA_HORA) : "", cellStyle);
+                crearCelda(row, 4,
+                        p.getFechaHoraSolicitud() != null ? p.getFechaHoraSolicitud().format(FECHA_HORA) : "",
+                        cellStyle);
+                crearCelda(row, 5,
+                        p.getFechaHoraDevolucionEstimada() != null
+                                ? p.getFechaHoraDevolucionEstimada().format(FECHA_HORA)
+                                : "",
+                        cellStyle);
+                crearCelda(row, 6,
+                        p.getFechaHoraDevolucionReal() != null ? p.getFechaHoraDevolucionReal().format(FECHA_HORA) : "",
+                        cellStyle);
             }
 
             for (int i = 0; i < headers.length; i++) {
@@ -124,7 +145,7 @@ public class ReporteExcelServicio {
 
             int rowNum = 0;
             Row headerRow = sheet.createRow(rowNum++);
-            String[] headers = {"Código", "Nombre", "Categoría", "Veces solicitado"};
+            String[] headers = { "Código", "Nombre", "Categoría", "Veces solicitado" };
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -133,7 +154,8 @@ public class ReporteExcelServicio {
 
             for (int i = 0; i < equipos.size(); i++) {
                 Equipo e = equipos.get(i);
-                long count = i < cantidades.size() ? cantidades.get(i) : 0;
+                Long countValue = i < cantidades.size() ? cantidades.get(i) : null;
+                long count = countValue != null ? countValue : 0L;
                 Row row = sheet.createRow(rowNum++);
                 crearCelda(row, 0, e.getCodigoUnico(), cellStyle);
                 crearCelda(row, 1, e.getNombre(), cellStyle);
@@ -162,7 +184,7 @@ public class ReporteExcelServicio {
 
             int rowNum = 0;
             Row headerRow = sheet.createRow(rowNum++);
-            String[] headers = {"Documento", "Nombre completo", "Correo", "Teléfono", "Rol"};
+            String[] headers = { "Documento", "Nombre completo", "Correo", "Teléfono", "Rol" };
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);

@@ -1,0 +1,175 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">Transferencias</h2>
+    <p class="page-subtitle">Registro de movimientos de equipos entre inventarios de instructores</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openCreate()">
+      <i class="fas fa-truck"></i> Nueva Transferencia
+    </button>
+  </div>
+</div>
+
+@if (error() && !modalOpen()) {
+  <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+}
+
+<div class="trans-card">
+  <!-- Toolbar -->
+  <div class="inv-toolbar">
+    <div class="search-input-wrap" style="flex:1; max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input
+        type="text"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        placeholder="Buscar por equipo, inventario o administrador..."
+      />
+    </div>
+    <span class="text-muted" style="font-size:0.85rem; margin-left:auto">
+      {{ filteredTransferencias().length }} transferencia(s)
+    </span>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-wrap" style="padding:2rem">
+      <i class="fas fa-spinner fa-spin"></i> Cargando transferencias...
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Equipo</th>
+            <th>Inventario origen</th>
+            <th></th>
+            <th>Inventario destino</th>
+            <th>Dueño</th>
+            <th class="num">Cant.</th>
+            <th>Fecha</th>
+            <th>Autoriza</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of filteredTransferencias(); track t.id) {
+            <tr>
+              <td>
+                <div class="equipo-cell">
+                  <div class="equipo-icon"><i class="fas fa-microchip"></i></div>
+                  <div>
+                    <strong>{{ t.nombreEquipo }}</strong>
+                    <br><small class="text-muted"><code>{{ t.codigoEquipo }}</code></small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="ambiente-chip origen">
+                  <i class="fas fa-user"></i> {{ t.nombreInventarioOrigenInstructor }}
+                </div>
+              </td>
+              <td>
+                <i class="fas fa-long-arrow-alt-right arrow-icon"></i>
+              </td>
+              <td>
+                <div class="ambiente-chip destino">
+                  <i class="fas fa-user"></i> {{ t.nombreInventarioDestinoInstructor }}
+                </div>
+              </td>
+              <td>{{ t.nombrePropietarioEquipo || '—' }}</td>
+              <td class="num"><strong>{{ t.cantidad }}</strong></td>
+              <td>{{ formatDate(t.fechaTransferencia) }}</td>
+              <td>{{ t.nombreAdministrador }}</td>
+              <td>
+                <span class="motivo-text" [title]="t.motivo ?? ''">
+                  {{ t.motivo ? ((t.motivo | slice:0:30) + (t.motivo.length > 30 ? '…' : '')) : '—' }}
+                </span>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="empty">
+                <i class="fas fa-truck" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
+                No hay transferencias registradas
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- Modal nueva transferencia -->
+@if (modalOpen()) {
+  <div class="modal-overlay" (click)="modalOpen.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-truck" style="color:var(--color-primary);margin-right:.4rem"></i>
+          Nueva transferencia
+        </h3>
+        <button type="button" class="btn-close" (click)="modalOpen.set(false)">&times;</button>
+      </div>
+      <form (ngSubmit)="submitForm()" class="modal-body">
+        @if (error()) {
+          <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+        }
+        <div class="form-group">
+          <label>Equipo *</label>
+          <select [(ngModel)]="form.equipoId" name="equipoId" required>
+            <option [value]="0" disabled>Seleccione equipo</option>
+            @for (e of equipos(); track e.id) {
+              <option [value]="e.id">{{ e.nombre }} ({{ e.codigoUnico }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Inventario destino (Instructor) *</label>
+            <select [(ngModel)]="form.instructorDestinoId" name="instructorDestinoId" required>
+              <option [value]="0" disabled>Seleccione instructor destino</option>
+              @for (i of instructores(); track i.id) {
+                <option [value]="i.id">{{ i.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ubicación destino</label>
+            <select [(ngModel)]="form.ubicacionDestinoId" name="ubicacionDestinoId">
+              <option [ngValue]="undefined">Mantener ubicación actual</option>
+              @for (a of ubicaciones(); track a.id) {
+                <option [value]="a.id">{{ a.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cantidad *</label>
+            <input type="number" [(ngModel)]="form.cantidad" name="cantidad" min="1" required />
+          </div>
+          <div class="form-group">
+            <label>Fecha y hora *</label>
+            <input type="datetime-local" [(ngModel)]="form.fechaTransferencia" name="fechaTransferencia" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Motivo (opcional)</label>
+          <textarea
+            [(ngModel)]="form.motivo"
+            name="motivo"
+            rows="2"
+            placeholder="Ej: Reubicación por mantenimiento del laboratorio..."
+          ></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="modalOpen.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Registrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

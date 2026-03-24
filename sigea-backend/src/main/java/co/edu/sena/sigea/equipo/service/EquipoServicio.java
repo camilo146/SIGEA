@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +22,7 @@ import co.edu.sena.sigea.ambiente.repository.AmbienteRepository;
 import co.edu.sena.sigea.categoria.entity.Categoria;
 import co.edu.sena.sigea.categoria.repository.CategoriaRepository;
 import co.edu.sena.sigea.common.enums.EstadoEquipo;
+import co.edu.sena.sigea.common.enums.Rol;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoDuplicadoException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
@@ -31,360 +33,569 @@ import co.edu.sena.sigea.equipo.entity.Equipo;
 import co.edu.sena.sigea.equipo.entity.FotoEquipo;
 import co.edu.sena.sigea.equipo.repository.EquipoRepository;
 import co.edu.sena.sigea.equipo.repository.FotoEquipoRepository;
+import co.edu.sena.sigea.mantenimiento.repository.MantenimientoRepository;
+import co.edu.sena.sigea.prestamo.repository.PrestamoRepository;
+import co.edu.sena.sigea.reserva.repository.ReservaRepository;
+import co.edu.sena.sigea.transferencia.repository.TransferenciaRepository;
+import co.edu.sena.sigea.usuario.entity.Usuario;
+import co.edu.sena.sigea.usuario.repository.UsuarioRepository;
 
 @Service
 public class EquipoServicio {
 
-    private static final Logger log = LoggerFactory.getLogger(EquipoServicio.class);
+        private static final Logger log = LoggerFactory.getLogger(EquipoServicio.class);
 
-    private final EquipoRepository equipoRepository;
-    private final FotoEquipoRepository fotoEquipoRepository;
-    private final CategoriaRepository categoriaRepository;
-    private final AmbienteRepository ambienteRepository;
-    private final String rutaUploads;
+        private final EquipoRepository equipoRepository;
+        private final FotoEquipoRepository fotoEquipoRepository;
+        private final CategoriaRepository categoriaRepository;
+        private final AmbienteRepository ambienteRepository;
+        private final ReservaRepository reservaRepository;
+        private final PrestamoRepository prestamoRepository;
+        private final MantenimientoRepository mantenimientoRepository;
+        private final TransferenciaRepository transferenciaRepository;
+        private final UsuarioRepository usuarioRepository;
+        private final String rutaUploads;
 
-    public EquipoServicio(
-            EquipoRepository equipoRepository,
-            FotoEquipoRepository fotoEquipoRepository,
-            CategoriaRepository categoriaRepository,
-            AmbienteRepository ambienteRepository,
-            @Value("${sigea.uploads.path}") String rutaUploads) {
+        public EquipoServicio(
+                        EquipoRepository equipoRepository,
+                        FotoEquipoRepository fotoEquipoRepository,
+                        CategoriaRepository categoriaRepository,
+                        AmbienteRepository ambienteRepository,
+                        ReservaRepository reservaRepository,
+                        PrestamoRepository prestamoRepository,
+                        MantenimientoRepository mantenimientoRepository,
+                        TransferenciaRepository transferenciaRepository,
+                        UsuarioRepository usuarioRepository,
+                        @Value("${sigea.uploads.path}") String rutaUploads) {
 
-        this.equipoRepository = equipoRepository;
-        this.fotoEquipoRepository = fotoEquipoRepository;
-        this.categoriaRepository = categoriaRepository;
-        this.ambienteRepository = ambienteRepository;
-        this.rutaUploads = rutaUploads;
-    }
-
-    @Transactional
-    public EquipoRespuestaDTO crear(EquipoCrearDTO dto) {
-
-        if (equipoRepository.existsByCodigoUnico(dto.getCodigoUnico())) {
-            throw new RecursoDuplicadoException(
-                    "Ya existe un equipo con el codigo: " + dto.getCodigoUnico());
+                this.equipoRepository = equipoRepository;
+                this.fotoEquipoRepository = fotoEquipoRepository;
+                this.categoriaRepository = categoriaRepository;
+                this.ambienteRepository = ambienteRepository;
+                this.reservaRepository = reservaRepository;
+                this.prestamoRepository = prestamoRepository;
+                this.mantenimientoRepository = mantenimientoRepository;
+                this.transferenciaRepository = transferenciaRepository;
+                this.usuarioRepository = usuarioRepository;
+                this.rutaUploads = rutaUploads;
         }
 
-        Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Categoria no encontrada con ID: " + dto.getCategoriaId()));
+        @Transactional
+        public EquipoRespuestaDTO crear(EquipoCrearDTO dto, String correoUsuario) {
 
-        if (!categoria.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "No se puede asignar el equipo a una categoria inactiva");
-        }
+                Usuario usuarioActual = obtenerUsuarioActual(correoUsuario);
+                Usuario propietario = resolverPropietarioParaCreacion(dto, usuarioActual);
 
-        Ambiente ambiente = ambienteRepository.findById(dto.getAmbienteId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Ambiente no encontrado con ID: " + dto.getAmbienteId()));
-
-        if (!ambiente.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "No se puede asignar el equipo a un ambiente inactivo");
-        }
-
-        Equipo equipo = Equipo.builder()
-                .nombre(dto.getNombre())
-                .descripcion(dto.getDescripcion())
-                .codigoUnico(dto.getCodigoUnico())
-                .categoria(categoria)
-                .ambiente(ambiente)
-                .estado(EstadoEquipo.ACTIVO)
-                .cantidadTotal(dto.getCantidadTotal())
-                .cantidadDisponible(dto.getCantidadTotal())
-                .umbralMinimo(dto.getUmbralMinimo())
-                .activo(true)
-                .build();
-
-        Equipo guardado = equipoRepository.save(equipo);
-
-        return convertirADTO(guardado);
-    }
-
-    @Transactional(readOnly = true)
-    public List<EquipoRespuestaDTO> listarActivos() {
-        return equipoRepository.findByActivoTrue()
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<EquipoRespuestaDTO> listarTodos() {
-        return equipoRepository.findAll()
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<EquipoRespuestaDTO> listarPorCategoria(Long categoriaId) {
-        if (!categoriaRepository.existsById(categoriaId)) {
-            throw new RecursoNoEncontradoException(
-                    "Categoria no encontrada con ID: " + categoriaId);
-        }
-        return equipoRepository.findByCategoriaIdAndActivoTrue(categoriaId)
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<EquipoRespuestaDTO> listarPorAmbiente(Long ambienteId) {
-        if (!ambienteRepository.existsById(ambienteId)) {
-            throw new RecursoNoEncontradoException(
-                    "Ambiente no encontrado con ID: " + ambienteId);
-        }
-        return equipoRepository.findByAmbienteIdAndActivoTrue(ambienteId)
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<EquipoRespuestaDTO> listarPorEstado(EstadoEquipo estado) {
-        return equipoRepository.findByEstadoAndActivoTrue(estado)
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public EquipoRespuestaDTO buscarPorId(Long id) {
-        Equipo equipo = equipoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
-        return convertirADTO(equipo);
-    }
-
-    @Transactional
-    public EquipoRespuestaDTO actualizar(Long id, EquipoCrearDTO dto) {
-
-        Equipo equipo = equipoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
-
-        equipoRepository.findByCodigoUnico(dto.getCodigoUnico())
-                .ifPresent(existente -> {
-                    if (!existente.getId().equals(id)) {
+                String codigoUnico = dto.getCodigoUnico();
+                if (codigoUnico == null || codigoUnico.isBlank()) {
+                        codigoUnico = generarCodigoUnico();
+                }
+                if (equipoRepository.existsByCodigoUnico(codigoUnico)) {
                         throw new RecursoDuplicadoException(
-                                "Ya existe otro equipo con el codigo: " + dto.getCodigoUnico());
-                    }
-                });
+                                        "Ya existe un equipo con el codigo: " + codigoUnico);
+                }
 
-        Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Categoria no encontrada con ID: " + dto.getCategoriaId()));
+                Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Categoria no encontrada con ID: " + dto.getCategoriaId()));
 
-        if (!categoria.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "No se puede asignar el equipo a una categoria inactiva");
+                if (!categoria.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede asignar el equipo a una categoria inactiva");
+                }
+
+                Ambiente ambiente = ambienteRepository.findById(dto.getAmbienteId())
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Ambiente no encontrado con ID: " + dto.getAmbienteId()));
+
+                if (!ambiente.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede asignar el equipo a un ambiente inactivo");
+                }
+
+                Equipo equipo = Equipo.builder()
+                                .nombre(dto.getNombre())
+                                .descripcion(dto.getDescripcion())
+                                .codigoUnico(codigoUnico)
+                                .categoria(categoria)
+                                .ambiente(ambiente)
+                                .propietario(propietario)
+                                .inventarioActualInstructor(propietario)
+                                .estado(EstadoEquipo.ACTIVO)
+                                .cantidadTotal(dto.getCantidadTotal())
+                                .cantidadDisponible(dto.getCantidadTotal())
+                                .tipoUso(dto.getTipoUso())
+                                .umbralMinimo(dto.getUmbralMinimo())
+                                .activo(true)
+                                .build();
+
+                Equipo guardado = equipoRepository.save(equipo);
+
+                return convertirADTO(guardado);
         }
 
-        Ambiente ambiente = ambienteRepository.findById(dto.getAmbienteId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Ambiente no encontrado con ID: " + dto.getAmbienteId()));
-
-        if (!ambiente.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "No se puede asignar el equipo a un ambiente inactivo");
+        /** Genera un código único automático (ej: SIGEA-EQ-20260310143022). */
+        private String generarCodigoUnico() {
+                String base = "SIGEA-EQ-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+                String codigo = base;
+                int sufijo = 0;
+                while (equipoRepository.existsByCodigoUnico(codigo)) {
+                        codigo = base + "-" + (++sufijo);
+                }
+                return codigo;
         }
 
-        if (dto.getCantidadTotal() < equipo.getCantidadDisponible()) {
-            throw new OperacionNoPermitidaException(
-                    "La cantidad total (" + dto.getCantidadTotal()
-                    + ") no puede ser menor que la cantidad disponible actual ("
-                    + equipo.getCantidadDisponible() + ")");
+        @Transactional(readOnly = true)
+        public List<EquipoRespuestaDTO> listarActivos() {
+                return equipoRepository.findByActivoTrue()
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
         }
 
-        equipo.setNombre(dto.getNombre());
-        equipo.setDescripcion(dto.getDescripcion());
-        equipo.setCodigoUnico(dto.getCodigoUnico());
-        equipo.setCategoria(categoria);
-        equipo.setAmbiente(ambiente);
-        equipo.setCantidadTotal(dto.getCantidadTotal());
-        equipo.setUmbralMinimo(dto.getUmbralMinimo());
-
-        Equipo actualizado = equipoRepository.save(equipo);
-
-        return convertirADTO(actualizado);
-    }
-
-    @Transactional
-    public EquipoRespuestaDTO cambiarEstado(Long id, EstadoEquipo nuevoEstado) {
-
-        Equipo equipo = equipoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
-
-        if (!equipo.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "No se puede cambiar el estado de un equipo dado de baja");
+        @Transactional(readOnly = true)
+        public List<EquipoRespuestaDTO> listarTodos() {
+                return equipoRepository.findAll()
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
         }
 
-        equipo.setEstado(nuevoEstado);
-        Equipo actualizado = equipoRepository.save(equipo);
-
-        return convertirADTO(actualizado);
-    }
-
-    @Transactional
-    public void darDeBaja(Long id) {
-
-        Equipo equipo = equipoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
-
-        if (!equipo.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "El equipo ya se encuentra dado de baja");
+        @Transactional(readOnly = true)
+        public List<EquipoRespuestaDTO> listarPorCategoria(Long categoriaId) {
+                if (!categoriaRepository.existsById(categoriaId)) {
+                        throw new RecursoNoEncontradoException(
+                                        "Categoria no encontrada con ID: " + categoriaId);
+                }
+                return equipoRepository.findByCategoriaIdAndActivoTrue(categoriaId)
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
         }
 
-        equipo.setActivo(false);
-        equipoRepository.save(equipo);
-    }
-
-    @Transactional
-    public void activar(Long id) {
-
-        Equipo equipo = equipoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
-
-        if (equipo.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "El equipo ya se encuentra activo");
+        @Transactional(readOnly = true)
+        public List<EquipoRespuestaDTO> listarPorAmbiente(Long ambienteId) {
+                if (!ambienteRepository.existsById(ambienteId)) {
+                        throw new RecursoNoEncontradoException(
+                                        "Ambiente no encontrado con ID: " + ambienteId);
+                }
+                return equipoRepository.findByAmbienteIdAndActivoTrue(ambienteId)
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
         }
 
-        equipo.setActivo(true);
-        equipoRepository.save(equipo);
-    }
-
-    @Transactional
-    public FotoEquipoRespuestaDTO subirFoto(Long equipoId, MultipartFile archivo)
-            throws IOException {
-
-        Equipo equipo = equipoRepository.findById(equipoId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", equipoId));
-
-        if (!equipo.getActivo()) {
-            throw new OperacionNoPermitidaException(
-                    "No se pueden subir fotos a un equipo dado de baja");
+        @Transactional(readOnly = true)
+        public List<EquipoRespuestaDTO> listarPorEstado(EstadoEquipo estado) {
+                return equipoRepository.findByEstadoAndActivoTrue(estado)
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
         }
 
-        long cantidadFotos = fotoEquipoRepository.countByEquipoId(equipoId);
-        if (cantidadFotos >= 3) {
-            throw new OperacionNoPermitidaException(
-                    "El equipo ya tiene el maximo de 3 fotos permitidas");
+        /**
+         * Equipos que actualmente están en el inventario del instructor autenticado.
+         */
+        @Transactional(readOnly = true)
+        public List<EquipoRespuestaDTO> listarMiInventario(String correoUsuario) {
+                Usuario usuario = obtenerUsuarioActual(correoUsuario);
+                return equipoRepository.findByInventarioActualInstructorIdAndActivoTrue(usuario.getId())
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
         }
 
-        if (archivo.isEmpty()) {
-            throw new OperacionNoPermitidaException("El archivo de imagen esta vacio");
+        /**
+         * Todos los equipos de los que el instructor autenticado es propietario (estén
+         * donde estén).
+         */
+        @Transactional(readOnly = true)
+        public List<EquipoRespuestaDTO> listarMisEquiposComoPropietario(String correoUsuario) {
+                Usuario usuario = obtenerUsuarioActual(correoUsuario);
+                return equipoRepository.findByPropietarioIdAndActivoTrue(usuario.getId())
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
         }
 
-        String nombreOriginal = archivo.getOriginalFilename();
+        /**
+         * El propietario recupera un equipo transferido, devolviéndolo a su inventario.
+         */
+        @Transactional
+        public EquipoRespuestaDTO recuperarEquipo(Long equipoId, String correoUsuario) {
+                Equipo equipo = equipoRepository.findById(equipoId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", equipoId));
 
-        if (nombreOriginal == null || nombreOriginal.isBlank()) {
-            throw new OperacionNoPermitidaException("El archivo no tiene nombre");
+                Usuario usuario = obtenerUsuarioActual(correoUsuario);
+
+                boolean esPropietario = equipo.getPropietario() != null
+                                && equipo.getPropietario().getId().equals(usuario.getId());
+                boolean esAdmin = usuario.getRol() == Rol.ADMINISTRADOR;
+
+                if (!esPropietario && !esAdmin) {
+                        throw new OperacionNoPermitidaException(
+                                        "Solo el propietario del equipo o un administrador puede recuperarlo.");
+                }
+
+                if (equipo.getInventarioActualInstructor() != null
+                                && equipo.getInventarioActualInstructor().getId()
+                                                .equals(equipo.getPropietario().getId())) {
+                        throw new OperacionNoPermitidaException(
+                                        "El equipo ya se encuentra en el inventario del propietario.");
+                }
+
+                equipo.setInventarioActualInstructor(equipo.getPropietario());
+                Equipo actualizado = equipoRepository.save(equipo);
+                return convertirADTO(actualizado);
         }
 
-        String extension = nombreOriginal
-                .substring(nombreOriginal.lastIndexOf('.') + 1)
-                .toLowerCase();
-
-        if (!List.of("jpg", "jpeg", "png").contains(extension)) {
-            throw new OperacionNoPermitidaException(
-                    "Formato no permitido. Use: JPG, JPEG o PNG");
+        @Transactional(readOnly = true)
+        public EquipoRespuestaDTO buscarPorId(Long id) {
+                Equipo equipo = equipoRepository.findById(id)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
+                return convertirADTO(equipo);
         }
 
-        long tamanoMaximo = 5L * 1024L * 1024L;
-        if (archivo.getSize() > tamanoMaximo) {
-            throw new OperacionNoPermitidaException(
-                    "El archivo excede el tamano maximo de 5 MB");
+        @Transactional
+        public EquipoRespuestaDTO actualizar(Long id, EquipoCrearDTO dto, String correoUsuario) {
+
+                Equipo equipo = equipoRepository.findById(id)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
+                validarPermisoGestion(equipo, correoUsuario);
+
+                equipoRepository.findByCodigoUnico(dto.getCodigoUnico())
+                                .ifPresent(existente -> {
+                                        if (!existente.getId().equals(id)) {
+                                                throw new RecursoDuplicadoException(
+                                                                "Ya existe otro equipo con el codigo: "
+                                                                                + dto.getCodigoUnico());
+                                        }
+                                });
+
+                Categoria categoria = categoriaRepository.findById(dto.getCategoriaId())
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Categoria no encontrada con ID: " + dto.getCategoriaId()));
+
+                if (!categoria.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede asignar el equipo a una categoria inactiva");
+                }
+
+                Ambiente ambiente = ambienteRepository.findById(dto.getAmbienteId())
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Ambiente no encontrado con ID: " + dto.getAmbienteId()));
+
+                if (!ambiente.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede asignar el equipo a un ambiente inactivo");
+                }
+
+                if (dto.getCantidadTotal() < equipo.getCantidadDisponible()) {
+                        throw new OperacionNoPermitidaException(
+                                        "La cantidad total (" + dto.getCantidadTotal()
+                                                        + ") no puede ser menor que la cantidad disponible actual ("
+                                                        + equipo.getCantidadDisponible() + ")");
+                }
+
+                equipo.setNombre(dto.getNombre());
+                equipo.setDescripcion(dto.getDescripcion());
+                equipo.setCodigoUnico(dto.getCodigoUnico());
+                equipo.setCategoria(categoria);
+                equipo.setAmbiente(ambiente);
+                equipo.setCantidadTotal(dto.getCantidadTotal());
+                equipo.setTipoUso(dto.getTipoUso());
+                equipo.setUmbralMinimo(dto.getUmbralMinimo());
+
+                Equipo actualizado = equipoRepository.save(equipo);
+
+                return convertirADTO(actualizado);
         }
 
-        String nombreEnServidor = UUID.randomUUID().toString() + "_" + nombreOriginal;
+        @Transactional
+        public EquipoRespuestaDTO cambiarEstado(Long id, EstadoEquipo nuevoEstado, String correoUsuario) {
 
-        Path directorio = Paths.get(rutaUploads);
-        Files.createDirectories(directorio);
+                Equipo equipo = equipoRepository.findById(id)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
+                validarPermisoGestion(equipo, correoUsuario);
 
-        Path rutaArchivo = directorio.resolve(nombreEnServidor);
-        Files.copy(archivo.getInputStream(), rutaArchivo, StandardCopyOption.REPLACE_EXISTING);
+                if (!equipo.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede cambiar el estado de un equipo dado de baja");
+                }
 
-        String rutaParaBD = "/uploads/" + nombreEnServidor;
+                equipo.setEstado(nuevoEstado);
+                Equipo actualizado = equipoRepository.save(equipo);
 
-        FotoEquipo foto = FotoEquipo.builder()
-                .equipo(equipo)
-                .nombreArchivo(nombreOriginal)
-                .rutaArchivo(rutaParaBD)
-                .tamanoBytes(archivo.getSize())
-                .fechaSubida(LocalDateTime.now())
-                .build();
-
-        FotoEquipo fotoGuardada = fotoEquipoRepository.save(foto);
-
-        return convertirFotoADTO(fotoGuardada);
-    }
-
-    @Transactional
-    public void eliminarFoto(Long equipoId, Long fotoId) {
-
-        if (!equipoRepository.existsById(equipoId)) {
-            throw new RecursoNoEncontradoException("Equipo", equipoId);
+                return convertirADTO(actualizado);
         }
 
-        FotoEquipo foto = fotoEquipoRepository.findById(fotoId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Foto", fotoId));
+        @Transactional
+        public void darDeBaja(Long id, String correoUsuario) {
 
-        if (!foto.getEquipo().getId().equals(equipoId)) {
-            throw new OperacionNoPermitidaException(
-                    "La foto no pertenece al equipo indicado");
+                Equipo equipo = equipoRepository.findById(id)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
+                validarPermisoGestion(equipo, correoUsuario);
+
+                if (!equipo.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "El equipo ya se encuentra dado de baja");
+                }
+
+                equipo.setActivo(false);
+                equipoRepository.save(equipo);
         }
 
-        fotoEquipoRepository.delete(foto);
+        @Transactional
+        public void activar(Long id, String correoUsuario) {
 
-        try {
-            Path archivoAEliminar = Paths.get("." + foto.getRutaArchivo());
-            Files.deleteIfExists(archivoAEliminar);
-        } catch (IOException e) {
-            log.warn("No se pudo eliminar el archivo físico del disco: {}", foto.getRutaArchivo(), e);
+                Equipo equipo = equipoRepository.findById(id)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
+                validarPermisoGestion(equipo, correoUsuario);
+
+                if (equipo.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "El equipo ya se encuentra activo");
+                }
+
+                equipo.setActivo(true);
+                equipoRepository.save(equipo);
         }
-    }
 
-    private EquipoRespuestaDTO convertirADTO(Equipo equipo) {
+        /**
+         * Elimina permanentemente un equipo. No se puede si tiene reservas, préstamos,
+         * mantenimientos o transferencias asociados. Elimina antes sus fotos (y
+         * archivos).
+         */
+        @Transactional
+        public void eliminar(Long id, String correoUsuario) {
+                Equipo equipo = equipoRepository.findById(id)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
+                validarPermisoGestion(equipo, correoUsuario);
+                if (reservaRepository.countByEquipoId(id) > 0) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede eliminar el equipo: tiene reservas asociadas.");
+                }
+                if (!prestamoRepository.findByDetallesEquipoId(id).isEmpty()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede eliminar el equipo: tiene préstamos asociados.");
+                }
+                if (!mantenimientoRepository.findByEquipoId(id).isEmpty()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede eliminar el equipo: tiene mantenimientos asociados.");
+                }
+                if (!transferenciaRepository.findByEquipoId(id).isEmpty()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede eliminar el equipo: tiene transferencias asociadas.");
+                }
+                List<FotoEquipo> fotos = fotoEquipoRepository.findByEquipoId(id);
+                for (FotoEquipo foto : fotos) {
+                        fotoEquipoRepository.delete(foto);
+                        try {
+                                Path archivoAEliminar = Paths.get(rutaUploads).resolve(
+                                                foto.getRutaArchivo().replace("/uploads/", ""));
+                                Files.deleteIfExists(archivoAEliminar);
+                        } catch (IOException e) {
+                                log.warn("No se pudo eliminar el archivo: {}", foto.getRutaArchivo(), e);
+                        }
+                }
+                equipoRepository.delete(equipo);
+        }
 
-        List<FotoEquipoRespuestaDTO> fotosDTO = fotoEquipoRepository
-                .findByEquipoId(equipo.getId())
-                .stream()
-                .map(this::convertirFotoADTO)
-                .toList();
+        @Transactional
+        public FotoEquipoRespuestaDTO subirFoto(Long equipoId, MultipartFile archivo, String correoUsuario)
+                        throws IOException {
 
-        return EquipoRespuestaDTO.builder()
-                .id(equipo.getId())
-                .nombre(equipo.getNombre())
-                .descripcion(equipo.getDescripcion())
-                .codigoUnico(equipo.getCodigoUnico())
-                .categoriaId(equipo.getCategoria() != null
-                        ? equipo.getCategoria().getId() : null)
-                .categoriaNombre(equipo.getCategoria() != null
-                        ? equipo.getCategoria().getNombre() : null)
-                .ambienteId(equipo.getAmbiente() != null
-                        ? equipo.getAmbiente().getId() : null)
-                .ambienteNombre(equipo.getAmbiente() != null
-                        ? equipo.getAmbiente().getNombre() : null)
-                .estado(equipo.getEstado())
-                .cantidadTotal(equipo.getCantidadTotal())
-                .cantidadDisponible(equipo.getCantidadDisponible())
-                .umbralMinimo(equipo.getUmbralMinimo())
-                .activo(equipo.getActivo())
-                .fotos(fotosDTO)
-                .fechaCreacion(equipo.getFechaCreacion())
-                .fechaActualizacion(equipo.getFechaActualizacion())
-                .build();
-    }
+                Equipo equipo = equipoRepository.findById(equipoId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", equipoId));
+                validarPermisoGestion(equipo, correoUsuario);
 
-    private FotoEquipoRespuestaDTO convertirFotoADTO(FotoEquipo foto) {
-        return FotoEquipoRespuestaDTO.builder()
-                .id(foto.getId())
-                .nombreArchivo(foto.getNombreArchivo())
-                .rutaArchivo(foto.getRutaArchivo())
-                .tamanoBytes(foto.getTamanoBytes())
-                .fechaSubida(foto.getFechaSubida())
-                .build();
-    }
+                if (!equipo.getActivo()) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se pueden subir fotos a un equipo dado de baja");
+                }
+
+                long cantidadFotos = fotoEquipoRepository.countByEquipoId(equipoId);
+                if (cantidadFotos >= 3) {
+                        throw new OperacionNoPermitidaException(
+                                        "El equipo ya tiene el maximo de 3 fotos permitidas");
+                }
+
+                if (archivo.isEmpty()) {
+                        throw new OperacionNoPermitidaException("El archivo de imagen esta vacio");
+                }
+
+                String nombreOriginal = archivo.getOriginalFilename();
+
+                if (nombreOriginal == null || nombreOriginal.isBlank()) {
+                        throw new OperacionNoPermitidaException("El archivo no tiene nombre");
+                }
+
+                String extension = nombreOriginal
+                                .substring(nombreOriginal.lastIndexOf('.') + 1)
+                                .toLowerCase();
+
+                if (!List.of("jpg", "jpeg", "png").contains(extension)) {
+                        throw new OperacionNoPermitidaException(
+                                        "Formato no permitido. Use: JPG, JPEG o PNG");
+                }
+
+                long tamanoMaximo = 5L * 1024L * 1024L;
+                if (archivo.getSize() > tamanoMaximo) {
+                        throw new OperacionNoPermitidaException(
+                                        "El archivo excede el tamano maximo de 5 MB");
+                }
+
+                String nombreEnServidor = UUID.randomUUID().toString() + "_" + nombreOriginal;
+
+                Path directorio = Paths.get(rutaUploads);
+                Files.createDirectories(directorio);
+
+                Path rutaArchivo = directorio.resolve(nombreEnServidor);
+                Files.copy(archivo.getInputStream(), rutaArchivo, StandardCopyOption.REPLACE_EXISTING);
+
+                String rutaParaBD = "/uploads/" + nombreEnServidor;
+
+                FotoEquipo foto = FotoEquipo.builder()
+                                .equipo(equipo)
+                                .nombreArchivo(nombreOriginal)
+                                .rutaArchivo(rutaParaBD)
+                                .tamanoBytes(archivo.getSize())
+                                .fechaSubida(LocalDateTime.now())
+                                .build();
+
+                FotoEquipo fotoGuardada = fotoEquipoRepository.save(foto);
+
+                return convertirFotoADTO(fotoGuardada);
+        }
+
+        @Transactional
+        public void eliminarFoto(Long equipoId, Long fotoId, String correoUsuario) {
+
+                Equipo equipo = equipoRepository.findById(equipoId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", equipoId));
+                validarPermisoGestion(equipo, correoUsuario);
+
+                FotoEquipo foto = fotoEquipoRepository.findById(fotoId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Foto", fotoId));
+
+                if (!foto.getEquipo().getId().equals(equipoId)) {
+                        throw new OperacionNoPermitidaException(
+                                        "La foto no pertenece al equipo indicado");
+                }
+
+                fotoEquipoRepository.delete(foto);
+
+                try {
+                        Path archivoAEliminar = Paths.get("." + foto.getRutaArchivo());
+                        Files.deleteIfExists(archivoAEliminar);
+                } catch (IOException e) {
+                        log.warn("No se pudo eliminar el archivo físico del disco: {}", foto.getRutaArchivo(), e);
+                }
+        }
+
+        private EquipoRespuestaDTO convertirADTO(Equipo equipo) {
+
+                List<FotoEquipoRespuestaDTO> fotosDTO = fotoEquipoRepository
+                                .findByEquipoId(equipo.getId())
+                                .stream()
+                                .map(this::convertirFotoADTO)
+                                .toList();
+
+                return EquipoRespuestaDTO.builder()
+                                .id(equipo.getId())
+                                .nombre(equipo.getNombre())
+                                .descripcion(equipo.getDescripcion())
+                                .codigoUnico(equipo.getCodigoUnico())
+                                .categoriaId(equipo.getCategoria() != null
+                                                ? equipo.getCategoria().getId()
+                                                : null)
+                                .categoriaNombre(equipo.getCategoria() != null
+                                                ? equipo.getCategoria().getNombre()
+                                                : null)
+                                .ambienteId(equipo.getAmbiente() != null
+                                                ? equipo.getAmbiente().getId()
+                                                : null)
+                                .ambienteNombre(equipo.getAmbiente() != null
+                                                ? equipo.getAmbiente().getNombre()
+                                                : null)
+                                .propietarioId(equipo.getPropietario() != null
+                                                ? equipo.getPropietario().getId()
+                                                : null)
+                                .propietarioNombre(equipo.getPropietario() != null
+                                                ? equipo.getPropietario().getNombreCompleto()
+                                                : null)
+                                .inventarioActualInstructorId(equipo.getInventarioActualInstructor() != null
+                                                ? equipo.getInventarioActualInstructor().getId()
+                                                : null)
+                                .inventarioActualInstructorNombre(equipo.getInventarioActualInstructor() != null
+                                                ? equipo.getInventarioActualInstructor().getNombreCompleto()
+                                                : null)
+                                .estado(equipo.getEstado())
+                                .cantidadTotal(equipo.getCantidadTotal())
+                                .cantidadDisponible(equipo.getCantidadDisponible())
+                                .tipoUso(equipo.getTipoUso())
+                                .umbralMinimo(equipo.getUmbralMinimo())
+                                .activo(equipo.getActivo())
+                                .fotos(fotosDTO)
+                                .fechaCreacion(equipo.getFechaCreacion())
+                                .fechaActualizacion(equipo.getFechaActualizacion())
+                                .build();
+        }
+
+        private FotoEquipoRespuestaDTO convertirFotoADTO(FotoEquipo foto) {
+                return FotoEquipoRespuestaDTO.builder()
+                                .id(foto.getId())
+                                .nombreArchivo(foto.getNombreArchivo())
+                                .rutaArchivo(foto.getRutaArchivo())
+                                .tamanoBytes(foto.getTamanoBytes())
+                                .fechaSubida(foto.getFechaSubida())
+                                .build();
+        }
+
+        private Usuario resolverPropietarioParaCreacion(EquipoCrearDTO dto, Usuario usuarioActual) {
+                if (usuarioActual.getRol() == Rol.INSTRUCTOR) {
+                        return usuarioActual;
+                }
+
+                if (usuarioActual.getRol() == Rol.ADMINISTRADOR) {
+                        if (dto.getPropietarioId() == null) {
+                                throw new OperacionNoPermitidaException(
+                                                "Debes indicar propietarioId cuando un administrador crea un equipo.");
+                        }
+                        Usuario propietario = usuarioRepository.findById(dto.getPropietarioId())
+                                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                        "Instructor propietario no encontrado con ID: "
+                                                                        + dto.getPropietarioId()));
+                        if (propietario.getRol() != Rol.INSTRUCTOR) {
+                                throw new OperacionNoPermitidaException(
+                                                "El propietario del equipo debe tener rol INSTRUCTOR.");
+                        }
+                        return propietario;
+                }
+
+                throw new OperacionNoPermitidaException("Solo administradores o instructores pueden crear equipos.");
+        }
+
+        private Usuario obtenerUsuarioActual(String correoUsuario) {
+                if (correoUsuario == null || correoUsuario.isBlank()) {
+                        throw new OperacionNoPermitidaException("No se pudo identificar el usuario autenticado.");
+                }
+                return usuarioRepository.findByCorreoElectronico(correoUsuario)
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Usuario no encontrado: " + correoUsuario));
+        }
+
+        private void validarPermisoGestion(Equipo equipo, String correoUsuario) {
+                Usuario usuarioActual = obtenerUsuarioActual(correoUsuario);
+                if (usuarioActual.getRol() == Rol.ADMINISTRADOR) {
+                        return;
+                }
+                if (usuarioActual.getRol() == Rol.INSTRUCTOR
+                                && equipo.getPropietario() != null
+                                && equipo.getPropietario().getId().equals(usuarioActual.getId())) {
+                        return;
+                }
+                throw new OperacionNoPermitidaException(
+                                "Solo el instructor dueño del equipo o un administrador puede gestionarlo.");
+        }
 }

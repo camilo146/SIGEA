@@ -1,0 +1,38 @@
+.mi-amb-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color, #eee);
+    &:last-child { border-bottom: none; }
+  }
+}
+
+.mi-amb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.mi-amb-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-primary, #333);
+  transition: background 0.2s, border-color 0.2s;
+  i {
+    font-size: 1.75rem;
+    color: var(--color-primary);
+  }
+  &:hover {
+    background: var(--hover-bg, #f8f9fa);
+    border-color: var(--color-primary);
+  }
+}

@@ -18,9 +18,11 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.sena.sigea.common.enums.EstadoReserva;
 import co.edu.sena.sigea.reserva.dto.ReservaCrearDTO;
+import co.edu.sena.sigea.reserva.dto.ReservaEquipoRecogidoDTO;
 import co.edu.sena.sigea.reserva.dto.ReservaRespuestaDTO;
 import co.edu.sena.sigea.reserva.service.ReservaServicio;
 import jakarta.validation.Valid;
@@ -57,9 +60,19 @@ public class ReservaControlador {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
-    public ResponseEntity<List<ReservaRespuestaDTO>> listarTodos() {
-        return ResponseEntity.ok(reservaServicio.listarTodos());
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ReservaRespuestaDTO>> listarTodos(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities() != null
+                && userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .anyMatch(a -> "ROLE_ADMINISTRADOR".equals(a) || "ROLE_INSTRUCTOR".equals(a));
+        if (isAdmin) {
+            return ResponseEntity.ok(reservaServicio.listarTodos());
+        }
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(reservaServicio.listarMisReservas(correo));
     }
 
     @GetMapping("/mis-reservas")
@@ -72,7 +85,7 @@ public class ReservaControlador {
     }
 
     @GetMapping("/estado/{estado}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ReservaRespuestaDTO>> listarPorEstado(
             @PathVariable EstadoReserva estado) {
 
@@ -80,7 +93,7 @@ public class ReservaControlador {
     }
 
     @GetMapping("/usuario/{usuarioId}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ReservaRespuestaDTO>> listarPorUsuario(
             @PathVariable Long usuarioId) {
 
@@ -88,7 +101,7 @@ public class ReservaControlador {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ReservaRespuestaDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(reservaServicio.buscarPorId(id));
     }
@@ -101,6 +114,25 @@ public class ReservaControlador {
 
         String correo = userDetails.getUsername();
         reservaServicio.cancelar(id, correo);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/equipo-recogido")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<ReservaRespuestaDTO> marcarEquipoRecogido(
+            @PathVariable Long id,
+            @Valid @RequestBody ReservaEquipoRecogidoDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String correo = userDetails.getUsername();
+        ReservaRespuestaDTO respuesta = reservaServicio.marcarEquipoRecogido(id, dto, correo);
+        return ResponseEntity.ok(respuesta);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        reservaServicio.eliminar(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -52,8 +52,10 @@ public class AuditoriaControlador {
             @PathVariable String entidad,
             @PathVariable Long entidadId) {
         return ResponseEntity.ok(auditoriaServicio.listarPorEntidad(entidad, entidadId));
-    }
-
+    }  
+    
+  
+    // 
     // GET /api/v1/auditoria/rango?desde=2026-01-01T00:00:00&hasta=2026-01-31T23:59:59
     // Filtra logs entre dos fechas (se pasan como query params en formato ISO)
     @GetMapping("/rango")

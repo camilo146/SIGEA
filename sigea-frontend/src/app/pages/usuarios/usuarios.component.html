@@ -1,0 +1,324 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">Usuarios</h2>
+    <p class="page-subtitle">Gestión de usuarios del sistema SIGEA</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openCreate()">
+      <i class="fas fa-user-plus"></i> Registrar Usuario
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger users-alert">{{ error() }}</div>
+}
+
+<!-- Tabs de vista -->
+<div class="vista-tabs">
+  <button type="button" class="btn" [class.btn-primary]="vistaActual()==='todos'" [class.btn-outline]="vistaActual()!=='todos'" (click)="cambiarVista('todos')">
+    <i class="fas fa-users"></i> Todos los usuarios
+  </button>
+  <button type="button" class="btn tab-btn-pendientes" [class.btn-warning]="vistaActual()==='pendientes'" [class.btn-outline]="vistaActual()!=='pendientes'" (click)="cambiarVista('pendientes')">
+    <i class="fas fa-user-clock"></i> Pendientes de aprobación
+    @if (usuariosPendientes().length > 0) {
+      <span class="badge badge-red tab-counter">
+        {{ usuariosPendientes().length }}
+      </span>
+    }
+  </button>
+</div>
+
+<!-- ===== VISTA: PENDIENTES ===== -->
+@if (vistaActual() === 'pendientes') {
+  <div class="usuarios-card">
+    @if (usuariosPendientes().length === 0) {
+      <div class="empty pending-empty">
+        <i class="fas fa-check-circle fa-2x pending-empty-icon"></i>
+        <p>No hay usuarios pendientes de aprobación.</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Documento</th>
+              <th>Correo</th>
+              <th>Registrado</th>
+              <th class="actions">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of usuariosPendientes(); track u.id) {
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="avatar-user avatar-gray">{{ getInitials(u.nombreCompleto) }}</div>
+                    <strong>{{ u.nombreCompleto }}</strong>
+                  </div>
+                </td>
+                <td>{{ u.tipoDocumento }} {{ u.numeroDocumento }}</td>
+                <td>{{ u.correoElectronico }}</td>
+                <td class="pending-date">{{ u.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="actions pending-actions">
+                  <button type="button" class="btn btn-success btn-sm" (click)="aprobar(u)" title="Aprobar">
+                    <i class="fas fa-check"></i> Aprobar
+                  </button>
+                  <button type="button" class="btn btn-danger btn-sm" (click)="rechazar(u)" title="Rechazar y eliminar">
+                    <i class="fas fa-times"></i> Rechazar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span class="text-muted footer-note">
+          <i class="fas fa-user-clock footer-note-icon"></i>
+          {{ usuariosPendientes().length }} usuario(s) esperando aprobación · Se eliminan automáticamente si pasan 24 h sin acción.
+        </span>
+      </div>
+    }
+  </div>
+}
+
+<!-- ===== VISTA: TODOS LOS USUARIOS ===== -->
+@if (vistaActual() === 'todos') {
+<div class="usuarios-card">
+  <!-- Toolbar -->
+  <div class="inv-toolbar">
+    <div class="search-input-wrap search-users-input">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Buscar usuario..." />
+    </div>
+    <div class="toolbar-filters">
+      <select [ngModel]="filterRol()" (ngModelChange)="filterRol.set($event)" class="filter-select">
+        <option value="">Todos los roles</option>
+        @for (r of ROLES; track r.value) {
+          <option [value]="r.value">{{ r.label }}</option>
+        }
+      </select>
+      <select [ngModel]="filterEstado()" (ngModelChange)="filterEstado.set($event)" class="filter-select">
+        <option value="">Todos los estados</option>
+        <option value="activo">Activo</option>
+        <option value="inactivo">Inactivo</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-wrap users-loading"><i class="fas fa-spinner fa-spin"></i> Cargando usuarios...</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Documento</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Aprobación</th>
+            <th class="num">Préstamos</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of filteredUsuarios(); track u.id) {
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="avatar-user" [class]="'avatar-' + getRolColor(u.rol)">
+                    {{ getInitials(u.nombreCompleto) }}
+                  </div>
+                  <div>
+                    <strong>{{ u.nombreCompleto }}</strong>
+                    @if (u.esSuperAdmin) {
+                      <span class="super-badge"><i class="fas fa-star"></i> Super Admin</span>
+                    }
+                  </div>
+                </div>
+              </td>
+              <td>{{ u.tipoDocumento }} {{ u.numeroDocumento }}</td>
+              <td>{{ u.correoElectronico }}</td>
+              <td>
+                @if (!u.esSuperAdmin) {
+                  <select class="rol-select" [value]="u.rol" (change)="cambiarRol(u, $event)">
+                    @for (r of ROLES; track r.value) {
+                      <option [value]="r.value">{{ r.label }}</option>
+                    }
+                  </select>
+                } @else {
+                  <span class="badge badge-green">Administrador</span>
+                }
+              </td>
+              <td>
+                <span class="badge" [class]="u.activo ? 'badge-green' : 'badge-red'">
+                  {{ u.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [class]="estadoAprobacionBadgeClass(u.estadoAprobacion)">
+                  {{ estadoAprobacionLabel(u.estadoAprobacion) }}
+                </span>
+              </td>
+              <td class="num">
+                <span class="prestamos-count">{{ getPrestamoCount(u.id) }}</span>
+              </td>
+              <td class="actions">
+                @if (!u.esSuperAdmin) {
+                  <button type="button" class="btn-icon" (click)="openEdit(u)" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  @if (u.activo) {
+                    <button type="button" class="btn-icon danger" (click)="desactivar(u)" title="Desactivar">
+                      <i class="fas fa-user-slash"></i>
+                    </button>
+                    <button type="button" class="btn-icon danger" (click)="eliminar(u)" title="Eliminar">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  } @else {
+                    <button type="button" class="btn-icon success" (click)="activar(u)" title="Activar">
+                      <i class="fas fa-user-check"></i>
+                    </button>
+                  }
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="empty">No se encontraron usuarios</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="text-muted footer-note">
+        <i class="fas fa-users"></i> {{ usuarios().length }} usuarios ·
+        <i class="fas fa-check-circle footer-success-icon"></i> {{ totalActivos }} activos
+      </span>
+    </div>
+  }
+</div>
+}
+
+
+<!-- Modal crear -->
+@if (modalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box users-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-user-plus users-modal-icon"></i>Nuevo usuario</h3>
+        <button type="button" class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <form (ngSubmit)="submitForm()" class="modal-body">
+        <div class="form-group">
+          <label>Nombre completo *</label>
+          <input type="text" [(ngModel)]="form.nombreCompleto" name="nombreCompleto" required minlength="5" maxlength="150" placeholder="Nombre y apellidos completos" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo documento *</label>
+            <select [(ngModel)]="form.tipoDocumento" name="tipoDocumento" required>
+              @for (t of TIPOS_DOC; track t) { <option [value]="t">{{ t }}</option> }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Número documento *</label>
+            <input type="text" [(ngModel)]="form.numeroDocumento" name="numeroDocumento" required minlength="5" maxlength="10" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Correo electrónico *</label>
+          <input type="email" [(ngModel)]="form.correoElectronico" name="correoElectronico" required placeholder="usuario@sena.edu.co" />
+        </div>
+        <div class="form-group">
+          <label>Rol *</label>
+          <select [(ngModel)]="form.rol" name="rol" required>
+            @for (r of ROLES; track r.value) { <option [value]="r.value">{{ r.label }}</option> }
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Programa de formación</label>
+            <input type="text" [(ngModel)]="form.programaFormacion" name="programaFormacion" />
+          </div>
+          <div class="form-group">
+            <label>Número ficha</label>
+            <input type="text" [(ngModel)]="form.numeroFicha" name="numeroFicha" maxlength="10" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" [(ngModel)]="form.telefono" name="telefono" maxlength="20" />
+        </div>
+        <div class="form-group">
+          <label>Contraseña *</label>
+          <div class="password-wrap">
+            <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="form.contrasena" name="contrasena" required minlength="8" class="password-input" />
+            <button type="button" class="password-toggle" (click)="showPassword = !showPassword">
+              <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal editar -->
+@if (modalEditOpen()) {
+  <div class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal-box users-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-user-edit users-modal-icon"></i>Editar usuario</h3>
+        <button type="button" class="btn-close" (click)="closeEditModal()">&times;</button>
+      </div>
+      <form (ngSubmit)="submitEdit()" class="modal-body">
+        <div class="form-group">
+          <label>Nombre completo *</label>
+          <input type="text" [(ngModel)]="editForm.nombreCompleto" name="editNombreCompleto" required minlength="5" maxlength="150" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo documento *</label>
+            <select [(ngModel)]="editForm.tipoDocumento" name="editTipoDocumento" required>
+              @for (t of TIPOS_DOC; track t) { <option [value]="t">{{ t }}</option> }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Número documento *</label>
+            <input type="text" [(ngModel)]="editForm.numeroDocumento" name="editNumeroDocumento" required minlength="5" maxlength="10" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Correo electrónico *</label>
+          <input type="email" [(ngModel)]="editForm.correoElectronico" name="editCorreoElectronico" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Programa de formación</label>
+            <input type="text" [(ngModel)]="editForm.programaFormacion" name="editProgramaFormacion" />
+          </div>
+          <div class="form-group">
+            <label>Número ficha</label>
+            <input type="text" [(ngModel)]="editForm.numeroFicha" name="editNumeroFicha" maxlength="10" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" [(ngModel)]="editForm.numeroTelefono" name="editTelefono" maxlength="20" />
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeEditModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

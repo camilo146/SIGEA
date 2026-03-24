@@ -44,6 +44,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -78,12 +79,12 @@ public class UsuarioControlador {
     // POST /api/v1/usuarios → Crear usuario (solo admin)
     // =========================================================================
     // @PreAuthorize: Spring verifica que el usuario tenga ROLE_ADMINISTRADOR.
-    //   Internamente mira el SecurityContext → el JwtFiltroAutenticacion
-    //   puso ahí el rol extraído del token JWT.
-    //   Si no es admin → 403 Forbidden automático.
+    // Internamente mira el SecurityContext → el JwtFiltroAutenticacion
+    // puso ahí el rol extraído del token JWT.
+    // Si no es admin → 403 Forbidden automático.
     //
     // @Valid: Activa las validaciones de UsuarioCrearDTO (@NotBlank, @Email, etc.)
-    //   Si alguna falla → ManejadorGlobalExcepciones captura y retorna 400.
+    // Si alguna falla → ManejadorGlobalExcepciones captura y retorna 400.
     //
     // @RequestBody: Convierte el JSON del body de la petición al DTO.
     //
@@ -102,7 +103,7 @@ public class UsuarioControlador {
     // GET /api/v1/usuarios → Listar usuarios activos (solo admin)
     // =========================================================================
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UsuarioRespuestaDTO>> listarActivos() {
 
         List<UsuarioRespuestaDTO> usuarios = usuarioServicio.listarActivos();
@@ -110,10 +111,11 @@ public class UsuarioControlador {
     }
 
     // =========================================================================
-    // GET /api/v1/usuarios/todos → Listar TODOS incluidos inactivos (solo admin)
+    // GET /api/v1/usuarios/todos → Listar TODOS (autenticado:
+    // formularios/dropdowns)
     // =========================================================================
     @GetMapping("/todos")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UsuarioRespuestaDTO>> listarTodos() {
 
         List<UsuarioRespuestaDTO> usuarios = usuarioServicio.listarTodos();
@@ -121,14 +123,10 @@ public class UsuarioControlador {
     }
 
     // =========================================================================
-    // GET /api/v1/usuarios/rol/{rol} → Listar por rol (solo admin)
-    // =========================================================================
-    // @PathVariable: Extrae el valor de la URL.
-    //   Ejemplo: GET /usuarios/rol/ADMINISTRADOR → rol = Rol.ADMINISTRADOR
-    //   Spring convierte automáticamente el String "ADMINISTRADOR" al enum Rol.
+    // GET /api/v1/usuarios/rol/{rol} → Listar por rol (autenticado)
     // =========================================================================
     @GetMapping("/rol/{rol}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UsuarioRespuestaDTO>> listarPorRol(
             @PathVariable Rol rol) {
 
@@ -137,10 +135,10 @@ public class UsuarioControlador {
     }
 
     // =========================================================================
-    // GET /api/v1/usuarios/{id} → Buscar por ID (solo admin)
+    // GET /api/v1/usuarios/{id} → Buscar por ID (autenticado)
     // =========================================================================
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsuarioRespuestaDTO> buscarPorId(
             @PathVariable Long id) {
 
@@ -155,9 +153,9 @@ public class UsuarioControlador {
     // puede ver SU PROPIO perfil.
     //
     // ¿Cómo sabe quién es el usuario?
-    //   SecurityContextHolder guarda la información de autenticación.
-    //   El JwtFiltroAutenticacion puso ahí el correo del usuario al validar el JWT.
-    //   Authentication.getName() retorna el "username" = correo electrónico.
+    // SecurityContextHolder guarda la información de autenticación.
+    // El JwtFiltroAutenticacion puso ahí el correo del usuario al validar el JWT.
+    // Authentication.getName() retorna el "username" = correo electrónico.
     // =========================================================================
     @GetMapping("/perfil")
     public ResponseEntity<UsuarioRespuestaDTO> obtenerPerfil() {
@@ -245,6 +243,47 @@ public class UsuarioControlador {
     public ResponseEntity<Void> desbloquearCuenta(@PathVariable Long id) {
 
         usuarioServicio.desbloquearCuenta(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
+    // GET /api/v1/usuarios/pendientes → Usuarios pendientes de aprobación (admin)
+    // =========================================================================
+    @GetMapping("/pendientes")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<List<UsuarioRespuestaDTO>> listarPendientes() {
+        return ResponseEntity.ok(usuarioServicio.listarPendientes());
+    }
+
+    // =========================================================================
+    // PATCH /api/v1/usuarios/{id}/aprobar → Aprobar usuario pendiente (admin)
+    // =========================================================================
+    @PatchMapping("/{id}/aprobar")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<UsuarioRespuestaDTO> aprobar(@PathVariable Long id) {
+        return ResponseEntity.ok(usuarioServicio.aprobar(id));
+    }
+
+    // =========================================================================
+    // DELETE /api/v1/usuarios/{id}/rechazar → Rechazar y eliminar usuario pendiente
+    // (admin)
+    // =========================================================================
+    @DeleteMapping("/{id}/rechazar")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<Void> rechazar(@PathVariable Long id) {
+        usuarioServicio.rechazar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
+    // DELETE /api/v1/usuarios/{id} → Eliminar usuario (solo admin, eliminación
+    // lógica)
+    // =========================================================================
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+
+        usuarioServicio.eliminar(id);
         return ResponseEntity.noContent().build();
     }
 }

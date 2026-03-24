@@ -22,11 +22,22 @@ package co.edu.sena.sigea.common.enums;
 
 public enum Rol {
 
-    // Instructor encargado del ambiente de formación.
-    // Puede: gestionar inventario, usuarios, préstamos, reportes, configuración.
+    // Administrador del sistema / centro.
+    // Puede: gestionar inventario, usuarios, ambientes, préstamos, reportes.
     ADMINISTRADOR,
 
-    // Aprendices, instructores de otros ambientes, empleados del centro.
-    // Puede: consultar equipos, solicitar préstamos, ver su historial.
+    // Instructor encargado de un ambiente de formación.
+    // Puede: gestionar inventario del ambiente, préstamos, reservas.
+    INSTRUCTOR,
+
+    // Aprendices (usuarios estándar).
+    // Puede: consultar equipos, solicitar préstamos, reservas, ver su historial.
+    APRENDIZ,
+
+    // Funcionarios del centro (usuarios estándar).
+    // Puede: consultar equipos, solicitar préstamos, reservas, ver su historial.
+    FUNCIONARIO,
+
+    // Rol genérico para compatibilidad.
     USUARIO_ESTANDAR
 }

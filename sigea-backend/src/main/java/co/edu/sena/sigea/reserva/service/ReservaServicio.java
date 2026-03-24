@@ -28,13 +28,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.sena.sigea.common.enums.EstadoCondicion;
+import co.edu.sena.sigea.common.enums.EstadoPrestamo;
 import co.edu.sena.sigea.common.enums.EstadoReserva;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
 import co.edu.sena.sigea.common.util.FechasUtil;
 import co.edu.sena.sigea.equipo.entity.Equipo;
 import co.edu.sena.sigea.equipo.repository.EquipoRepository;
+import co.edu.sena.sigea.prestamo.entity.DetallePrestamo;
+import co.edu.sena.sigea.prestamo.entity.Prestamo;
+import co.edu.sena.sigea.notificacion.service.NotificacionServicio;
+import co.edu.sena.sigea.prestamo.repository.PrestamoRepository;
 import co.edu.sena.sigea.reserva.dto.ReservaCrearDTO;
+import co.edu.sena.sigea.reserva.dto.ReservaEquipoRecogidoDTO;
 import co.edu.sena.sigea.reserva.dto.ReservaRespuestaDTO;
 import co.edu.sena.sigea.reserva.entity.Reserva;
 import co.edu.sena.sigea.reserva.repository.ReservaRepository;
@@ -56,13 +63,19 @@ public class ReservaServicio {
     private final ReservaRepository reservaRepository;
     private final UsuarioRepository usuarioRepository;
     private final EquipoRepository equipoRepository;
+    private final PrestamoRepository prestamoRepository;
+    private final NotificacionServicio notificacionServicio;
 
     public ReservaServicio(ReservaRepository reservaRepository,
-                           UsuarioRepository usuarioRepository,
-                           EquipoRepository equipoRepository) {
+            UsuarioRepository usuarioRepository,
+            EquipoRepository equipoRepository,
+            PrestamoRepository prestamoRepository,
+            NotificacionServicio notificacionServicio) {
         this.reservaRepository = reservaRepository;
         this.usuarioRepository = usuarioRepository;
         this.equipoRepository = equipoRepository;
+        this.prestamoRepository = prestamoRepository;
+        this.notificacionServicio = notificacionServicio;
     }
 
     // =========================================================================
@@ -104,7 +117,8 @@ public class ReservaServicio {
                     "La fecha y hora de inicio debe ser en el futuro.");
         }
 
-        // RF-RES-04: disponibilidad = cantidadDisponible - cantidad ya reservada en ese periodo.
+        // RF-RES-04: disponibilidad = cantidadDisponible - cantidad ya reservada en ese
+        // periodo.
         List<Reserva> solapadas = reservaRepository.findReservasSolapadas(
                 equipo.getId(), EstadoReserva.ACTIVA, inicio, fin);
         int yaReservado = solapadas.stream().mapToInt(Reserva::getCantidad).sum();
@@ -126,6 +140,11 @@ public class ReservaServicio {
                 .build();
 
         Reserva guardada = reservaRepository.save(reserva);
+        try {
+            notificacionServicio.notificarReservaCreada(guardada);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar notificación de reserva creada: {}", e.getMessage());
+        }
         return mapearReserva(guardada);
     }
 
@@ -160,6 +179,71 @@ public class ReservaServicio {
 
         reserva.setEstado(EstadoReserva.CANCELADA);
         reservaRepository.save(reserva);
+    }
+
+    // =========================================================================
+    // MÉTODO: marcarEquipoRecogido
+    // =========================================================================
+    // El admin confirma que el usuario recogió el equipo en ventanilla.
+    // Se crea un préstamo (ACTIVO) con la hora de devolución indicada, se descuenta
+    // stock y la reserva pasa a estado PRESTADO (queda en préstamos para
+    // devolución).
+    // =========================================================================
+    public ReservaRespuestaDTO marcarEquipoRecogido(Long reservaId, ReservaEquipoRecogidoDTO dto, String correoAdmin) {
+
+        Reserva reserva = buscarEntidadPorId(reservaId);
+        if (reserva.getEstado() != EstadoReserva.ACTIVA) {
+            throw new OperacionNoPermitidaException(
+                    "Solo se puede marcar equipo recogido en reservas ACTIVAS. Estado actual: " + reserva.getEstado());
+        }
+
+        Usuario admin = usuarioRepository.findByCorreoElectronico(correoAdmin)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoAdmin));
+
+        Equipo equipo = reserva.getEquipo();
+        if (equipo.getCantidadDisponible() < reserva.getCantidad()) {
+            throw new OperacionNoPermitidaException(
+                    "Stock insuficiente para '" + equipo.getNombre() + "'. Disponible: "
+                            + equipo.getCantidadDisponible());
+        }
+
+        LocalDateTime ahora = LocalDateTime.now();
+        Prestamo prestamo = Prestamo.builder()
+                .usuarioSolicitante(reserva.getUsuario())
+                .administradorAprueba(admin)
+                .fechaHoraSolicitud(ahora)
+                .fechaHoraAprobacion(ahora)
+                .fechaHoraSalida(ahora)
+                .fechaHoraDevolucionEstimada(dto.getFechaHoraDevolucion())
+                .estado(EstadoPrestamo.ACTIVO)
+                .observacionesGenerales("Préstamo desde reserva #" + reservaId)
+                .extensionesRealizadas(0)
+                .build();
+
+        DetallePrestamo detalle = DetallePrestamo.builder()
+                .prestamo(prestamo)
+                .equipo(equipo)
+                .cantidad(reserva.getCantidad())
+                .estadoEquipoEntrega(EstadoCondicion.BUENO)
+                .devuelto(false)
+                .build();
+        prestamo.getDetalles().add(detalle);
+        prestamo.setReserva(reserva);
+
+        equipo.setCantidadDisponible(equipo.getCantidadDisponible() - reserva.getCantidad());
+        equipoRepository.save(equipo);
+        prestamoRepository.save(prestamo);
+
+        reserva.setEstado(EstadoReserva.PRESTADO);
+        reservaRepository.save(reserva);
+
+        try {
+            notificacionServicio.notificarEquipoRecogido(reserva, dto.getFechaHoraDevolucion());
+        } catch (Exception e) {
+            log.warn("No se pudo enviar notificación de equipo recogido: {}", e.getMessage());
+        }
+
+        return mapearReserva(reserva);
     }
 
     // =========================================================================
@@ -222,6 +306,19 @@ public class ReservaServicio {
         return mapearReserva(buscarEntidadPorId(id));
     }
 
+    /**
+     * Elimina una reserva (solo admin/instructor). No aplica si ya pasó a préstamo
+     * (PRESTADO).
+     */
+    public void eliminar(Long id) {
+        Reserva reserva = buscarEntidadPorId(id);
+        if (reserva.getEstado() == EstadoReserva.PRESTADO) {
+            throw new OperacionNoPermitidaException(
+                    "No se puede eliminar una reserva ya convertida en préstamo.");
+        }
+        reservaRepository.delete(reserva);
+    }
+
     private Reserva buscarEntidadPorId(Long id) {
         return reservaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
@@ -237,6 +334,7 @@ public class ReservaServicio {
                 .equipoId(r.getEquipo().getId())
                 .nombreEquipo(r.getEquipo().getNombre())
                 .codigoEquipo(r.getEquipo().getCodigoUnico())
+                .tipoUso(r.getEquipo().getTipoUso())
                 .cantidad(r.getCantidad())
                 .fechaHoraInicio(r.getFechaHoraInicio())
                 .fechaHoraFin(r.getFechaHoraFin())

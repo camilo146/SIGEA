@@ -38,9 +38,11 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -99,17 +101,22 @@ public class PrestamoControlador {
     }
 
     // =========================================================================
-    // ENDPOINT 2: GET /prestamos → Listar todos los préstamos
-    // =========================================================================
-    // Solo el administrador puede ver TODOS los préstamos del sistema.
-    // Un usuario estándar no debería ver los préstamos de otras personas.
+    // ENDPOINT 2: GET /prestamos → Listar préstamos (admin: todos; otro: los suyos)
     // =========================================================================
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
-    // hasRole('ADMINISTRADOR') → Spring busca en los authorities del usuario
-    // si tiene 'ROLE_ADMINISTRADOR'. El prefijo ROLE_ lo agrega UsuarioDetallesServicio.
-    public ResponseEntity<List<PrestamoRespuestaDTO>> listarTodos() {
-        return ResponseEntity.ok(prestamoServicio.listarTodos());
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<PrestamoRespuestaDTO>> listarTodos(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        boolean isAdmin = userDetails != null && userDetails.getAuthorities() != null
+                && userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .anyMatch(a -> "ROLE_ADMINISTRADOR".equals(a) || "ROLE_INSTRUCTOR".equals(a));
+        if (isAdmin) {
+            return ResponseEntity.ok(prestamoServicio.listarTodos());
+        }
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(prestamoServicio.listarMisPrestamos(correo));
     }
 
     // =========================================================================
@@ -144,7 +151,7 @@ public class PrestamoControlador {
     // al valor del enum EstadoPrestamo.ACTIVO gracias a los convertidores por defecto.
     // =========================================================================
     @GetMapping("/estado/{estado}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<PrestamoRespuestaDTO>> listarPorEstado(
             @PathVariable EstadoPrestamo estado) {
 
@@ -158,7 +165,7 @@ public class PrestamoControlador {
     // Útil para auditar: "¿Cuántos equipos ha pedido Juan?", "¿Los devolvió?"
     // =========================================================================
     @GetMapping("/usuario/{usuarioId}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<PrestamoRespuestaDTO>> listarPorUsuario(
             @PathVariable Long usuarioId) {
 
@@ -172,7 +179,7 @@ public class PrestamoControlador {
     // Retorna 404 si el préstamo no existe (lo lanza el servicio).
     // =========================================================================
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PrestamoRespuestaDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(prestamoServicio.buscarPorId(id));
     }
@@ -189,7 +196,7 @@ public class PrestamoControlador {
     //   En este caso solo cambiamos el estado → PATCH es correcto.
     // =========================================================================
     @PatchMapping("/{id}/aprobar")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<PrestamoRespuestaDTO> aprobar(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -205,7 +212,7 @@ public class PrestamoControlador {
     // El estado pasa a RECHAZADO y no hay impacto en stock.
     // =========================================================================
     @PatchMapping("/{id}/rechazar")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<PrestamoRespuestaDTO> rechazar(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -222,7 +229,7 @@ public class PrestamoControlador {
     // El préstamo pasa de APROBADO → ACTIVO.
     // =========================================================================
     @PatchMapping("/{id}/registrar-salida")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<PrestamoRespuestaDTO> registrarSalida(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -239,12 +246,19 @@ public class PrestamoControlador {
     // Cuando TODOS los detalles están devueltos, el préstamo pasa a DEVUELTO.
     // =========================================================================
     @PatchMapping("/{id}/registrar-devolucion")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<PrestamoRespuestaDTO> registrarDevolucion(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         String correoAdmin = userDetails.getUsername();
         return ResponseEntity.ok(prestamoServicio.registrarDevolucion(id, correoAdmin));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        prestamoServicio.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,6 +1,5 @@
 package co.edu.sena.sigea.usuario.service;
 
-
 //Contiene la logica de gestion de usuarios 
 /*
 Crear Usuarios desde el panel del admin
@@ -14,16 +13,22 @@ Activar/Desactivar usuarios
 Desbloquear cuentas por intentos fallidos 
 */
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.sena.sigea.common.enums.EstadoAprobacion;
 import co.edu.sena.sigea.common.enums.Rol;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoDuplicadoException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
+import co.edu.sena.sigea.ambiente.repository.AmbienteRepository;
+import co.edu.sena.sigea.notificacion.repository.NotificacionRepository;
+import co.edu.sena.sigea.prestamo.repository.PrestamoRepository;
+import co.edu.sena.sigea.reserva.repository.ReservaRepository;
 import co.edu.sena.sigea.usuario.dto.UsuarioActualizadoDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarContrasenaDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarRolDTO;
@@ -32,148 +37,149 @@ import co.edu.sena.sigea.usuario.dto.UsuarioRespuestaDTO;
 import co.edu.sena.sigea.usuario.entity.Usuario;
 import co.edu.sena.sigea.usuario.repository.UsuarioRepository;
 
-
-
 @Service
 public class UsuarioService {
 
-    //Dependecias inyectadas por el constructor
+    // Dependecias inyectadas por el constructor
     private final UsuarioRepository usuarioRepository;
-    private final PasswordEncoder  passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final NotificacionRepository notificacionRepository;
+    private final ReservaRepository reservaRepository;
+    private final PrestamoRepository prestamoRepository;
+    private final AmbienteRepository ambienteRepository;
 
-    // Constructor para inyectar dependencias (inyección por constructor - patrón recomendado)
     public UsuarioService(UsuarioRepository usuarioRepository,
-                          PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            NotificacionRepository notificacionRepository,
+            ReservaRepository reservaRepository,
+            PrestamoRepository prestamoRepository,
+            AmbienteRepository ambienteRepository) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.notificacionRepository = notificacionRepository;
+        this.reservaRepository = reservaRepository;
+        this.prestamoRepository = prestamoRepository;
+        this.ambienteRepository = ambienteRepository;
     }
 
-   //Metoddo para crear un nuevo usuario (solo admin)
-   /*
-   Fujo:
-   verificar que el documento no este duplicado 
-   verificar que el correo no este duplicado
-   Encriptar  contraseña con BCrypt
-    Guardar el nuevo usuario en la base de datos
-    Construir y guiardar la entidad Usuario
-    Retornar un UsuarioRespuestaDTO sin contraseña 
-   */
+    // Metoddo para crear un nuevo usuario (solo admin)
+    /*
+     * Fujo:
+     * verificar que el documento no este duplicado
+     * verificar que el correo no este duplicado
+     * Encriptar contraseña con BCrypt
+     * Guardar el nuevo usuario en la base de datos
+     * Construir y guiardar la entidad Usuario
+     * Retornar un UsuarioRespuestaDTO sin contraseña
+     */
 
-   @Transactional
-   public UsuarioRespuestaDTO crear(UsuarioCrearDTO dto){
+    @Transactional
+    public UsuarioRespuestaDTO crear(UsuarioCrearDTO dto) {
 
-    //verificar documento duplicado 
-    if (usuarioRepository.existsByNumeroDocumento(dto.getNumeroDocumento())){
-        throw new RecursoDuplicadoException(
-            "El numero de documento ya esta registrado: " + dto.getNumeroDocumento()
-        );
+        // verificar documento duplicado
+        if (usuarioRepository.existsByNumeroDocumento(dto.getNumeroDocumento())) {
+            throw new RecursoDuplicadoException(
+                    "El numero de documento ya esta registrado: " + dto.getNumeroDocumento());
+        }
+
+        // Verificar correo duplicado
+        if (dto.getCorreoElectronico() != null
+                && usuarioRepository.existsByCorreoElectronico(dto.getCorreoElectronico())) {
+            throw new RecursoDuplicadoException(
+                    "El correo electronico ya esta registrado: " + dto.getCorreoElectronico());
+        }
+
+        Usuario usuario = Usuario.builder()
+                .nombreCompleto(dto.getNombreCompleto())
+                .tipoDocumento(dto.getTipoDocumento())
+                .numeroDocumento(dto.getNumeroDocumento())
+                .correoElectronico(dto.getCorreoElectronico())
+                .programaFormacion(dto.getProgramaFormacion())
+                .telefono(dto.getTelefono())
+                .ficha(dto.getNumeroFicha())
+                .contrasenaHash(passwordEncoder.encode(dto.getContrasena()))
+                .rol(dto.getRol())
+                .esSuperAdmin(false)
+                .activo(true)
+                .estadoAprobacion(EstadoAprobacion.APROBADO)
+                .intentosFallidos(0)
+                .build();
+
+        Usuario guardado = usuarioRepository.save(usuario);
+        return convertirADTO(guardado);
     }
 
-    // Verificar correo duplicado
-    if (dto.getCorreoElectronico() != null
-            && usuarioRepository.existsByCorreoElectronico(dto.getCorreoElectronico())) {
-        throw new RecursoDuplicadoException(
-                "El correo electronico ya esta registrado: " + dto.getCorreoElectronico());
-    }
+    // Metodo para listar usuarios actiivos
 
-    Usuario usuario = Usuario.builder()
-            .nombreCompleto(dto.getNombreCompleto())
-            .tipoDocumento(dto.getTipoDocumento())
-            .numeroDocumento(dto.getNumeroDocumento())
-            .correoElectronico(dto.getCorreoElectronico())
-            .programaFormacion(dto.getProgramaFormacion())
-            .telefono(dto.getTelefono())
-            .ficha(dto.getNumeroFicha())
-            .contrasenaHash(passwordEncoder.encode(dto.getContrasena()))
-            .rol(dto.getRol())
-            .esSuperAdmin(false)
-            .activo(true)
-            .intentosFallidos(0)
-            .build();
-
-    Usuario guardado = usuarioRepository.save(usuario);
-    return convertirADTO(guardado);
-}
-
-
-   //Metodo para listar usuarios actiivos 
-
-    //Retorna todoss los usuarios con activo = true
+    // Retorna todoss los usuarios con activo = true
     @Transactional(readOnly = true)
-    public List<UsuarioRespuestaDTO> listarActivos(){
+    public List<UsuarioRespuestaDTO> listarActivos() {
         return usuarioRepository.findByActivoTrue().stream()
                 .map(this::convertirADTO)
                 .toList();
     }
 
-    //Metodo para listar TODOS los usuarios (incluye inactivos, solo admin)
+    // Metodo para listar TODOS los usuarios (incluye inactivos, solo admin)
     @Transactional(readOnly = true)
-    public List<UsuarioRespuestaDTO> listarTodos(){
+    public List<UsuarioRespuestaDTO> listarTodos() {
         return usuarioRepository.findAll().stream()
                 .map(this::convertirADTO)
                 .toList();
     }
 
-    //Metodo para listar usuarios por rol 
+    // Metodo para listar usuarios por rol
 
     @Transactional(readOnly = true)
-    public List<UsuarioRespuestaDTO> listarPorRol(Rol rol){
+    public List<UsuarioRespuestaDTO> listarPorRol(Rol rol) {
         return usuarioRepository.findByRolAndActivoTrue(rol).stream()
                 .map(this::convertirADTO)
                 .toList();
-    }   
-    
+    }
 
-    //Metodo para buscar un usuario por ID 
+    // Metodo para buscar un usuario por ID
     @Transactional(readOnly = true)
-    public UsuarioRespuestaDTO buscarPorId(Long id){
+    public UsuarioRespuestaDTO buscarPorId(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
-                    "Usuario no encontrado con ID: " + id
-                ));
+                        "Usuario no encontrado con ID: " + id));
         return convertirADTO(usuario);
     }
 
-    //Metodo obtener perfil propio 
-    //el usuario autenticado obtiene su propia informacion 
+    // Metodo obtener perfil propio
+    // el usuario autenticado obtiene su propia informacion
     @Transactional(readOnly = true)
-    public UsuarioRespuestaDTO obtenerPerfil(String correoElectronico){
+    public UsuarioRespuestaDTO obtenerPerfil(String correoElectronico) {
         Usuario usuario = usuarioRepository.findByCorreoElectronico(correoElectronico)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
-                    "Usuario no encontrado con correo: " + correoElectronico
-                ));
+                        "Usuario no encontrado con correo: " + correoElectronico));
         return convertirADTO(usuario);
     }
 
+    // Metodo para actualiza usuarios (solo actualiza los datos basicos del usuario
+    /*
+     * Buscar el usuario por ID
+     * verificar que el num de documento no este duplicado
+     * verificar que el coreo no este dupliicado
+     * Actualizar los campos
+     * Guardar los cambios en la base de datos
+     */
 
-    //Metodo para actualiza usuarios (solo actualiza los datos basicos del usuario
-    /* 
-    Buscar el usuario por ID
-    verificar que el  num de documento no este duplicado 
-    verificar que el coreo no este dupliicado 
-    Actualizar los campos 
-    Guardar los cambios en la base de datos
-    */
+    @Transactional
+    public UsuarioRespuestaDTO actualizar(long id, UsuarioActualizadoDTO dto) {
 
-    @Transactional 
-    public UsuarioRespuestaDTO actualizar (long  id, UsuarioActualizadoDTO dto ){
-
-        //Buscar usuario existente 
+        // Buscar usuario existente
         Usuario usuario = usuarioRepository.findById(id)
-        .orElseThrow(() -> new RecursoNoEncontradoException(
-            "Usuario no encontrado con ID: " + id
-        ));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado con ID: " + id));
 
-        //verificar documento duplicado
+        // verificar documento duplicado
         usuarioRepository.findByNumeroDocumento(dto.getNumeroDocumento())
-        .ifPresent(otroUsuario -> {
-            if (!otroUsuario.getId().equals(id)){
-                throw new RecursoDuplicadoException(
-                    "El numero de documento ya esta registrado: " + dto.getNumeroDocumento()
-                );
-            }
-        });
-
+                .ifPresent(otroUsuario -> {
+                    if (!otroUsuario.getId().equals(id)) {
+                        throw new RecursoDuplicadoException(
+                                "El numero de documento ya esta registrado: " + dto.getNumeroDocumento());
+                    }
+                });
 
         // Verificar correo duplicado (si cambió)
         if (dto.getCorreoElectronico() != null && !dto.getCorreoElectronico().isBlank()) {
@@ -186,7 +192,7 @@ public class UsuarioService {
                     });
         }
 
-        //Actualizar campos 
+        // Actualizar campos
         usuario.setNombreCompleto(dto.getNombreCompleto());
         usuario.setTipoDocumento(dto.getTipoDocumento());
         usuario.setNumeroDocumento(dto.getNumeroDocumento());
@@ -197,7 +203,6 @@ public class UsuarioService {
 
         Usuario actualizado = usuarioRepository.save(usuario);
 
-
         return convertirADTO(actualizado);
     }
 
@@ -205,7 +210,7 @@ public class UsuarioService {
     // Flujo: buscar por correo → verificar actual → encriptar nueva → guardar
     @Transactional
     public void cambiarContrasena(String correoElectronico,
-                                  UsuarioCambiarContrasenaDTO dto) {
+            UsuarioCambiarContrasenaDTO dto) {
 
         Usuario usuario = usuarioRepository.findByCorreoElectronico(correoElectronico)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
@@ -296,9 +301,87 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
+    // =========================================================================
+    // Listar usuarios con estado PENDIENTE (pendientes de aprobación)
+    // =========================================================================
+    @Transactional(readOnly = true)
+    public List<UsuarioRespuestaDTO> listarPendientes() {
+        return usuarioRepository.findByEstadoAprobacion(EstadoAprobacion.PENDIENTE)
+                .stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
 
-    //Metodo para convertir entidad a DTO (sin contraseña)
-    private UsuarioRespuestaDTO convertirADTO(Usuario usuario){
+    // =========================================================================
+    // Aprobar un usuario pendiente (activa el acceso al sistema)
+    // =========================================================================
+    @Transactional
+    public UsuarioRespuestaDTO aprobar(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado con ID: " + id));
+        if (Boolean.TRUE.equals(usuario.getEsSuperAdmin())) {
+            throw new OperacionNoPermitidaException("No se puede modificar un super administrador.");
+        }
+        if (usuario.getEstadoAprobacion() == EstadoAprobacion.APROBADO) {
+            throw new OperacionNoPermitidaException("El usuario ya está aprobado.");
+        }
+        usuario.setEstadoAprobacion(EstadoAprobacion.APROBADO);
+        return convertirADTO(usuarioRepository.save(usuario));
+    }
+
+    // =========================================================================
+    // Rechazar un usuario pendiente (elimina el registro de la BD)
+    // =========================================================================
+    @Transactional
+    public void rechazar(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado con ID: " + id));
+        if (Boolean.TRUE.equals(usuario.getEsSuperAdmin())) {
+            throw new OperacionNoPermitidaException("No se puede eliminar un super administrador.");
+        }
+        if (usuario.getEstadoAprobacion() != EstadoAprobacion.PENDIENTE) {
+            throw new OperacionNoPermitidaException(
+                    "Solo se pueden rechazar usuarios en estado PENDIENTE.");
+        }
+        // Limpiar dependencias antes de eliminar
+        notificacionRepository.findByUsuarioDestinoId(id).forEach(notificacionRepository::delete);
+        reservaRepository.findByUsuarioId(id).forEach(reservaRepository::delete);
+        ambienteRepository.findByInstructorResponsableId(id).forEach(a -> {
+            a.setInstructorResponsable(null);
+            ambienteRepository.save(a);
+        });
+        usuarioRepository.delete(usuario);
+    }
+
+    // Eliminación permanente de la base de datos. No se puede eliminar super admin.
+    // Si tiene préstamos como solicitante no se puede eliminar. Se borran sus
+    // notificaciones, reservas y se desvincula de ambientes.
+    @Transactional
+    public void eliminar(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado con ID: " + id));
+        if (Boolean.TRUE.equals(usuario.getEsSuperAdmin())) {
+            throw new OperacionNoPermitidaException(
+                    "No se puede eliminar un super administrador.");
+        }
+        if (!prestamoRepository.findByUsuarioSolicitanteId(id).isEmpty()) {
+            throw new OperacionNoPermitidaException(
+                    "No se puede eliminar el usuario: tiene préstamos asociados como solicitante.");
+        }
+        notificacionRepository.findByUsuarioDestinoId(id).forEach(notificacionRepository::delete);
+        reservaRepository.findByUsuarioId(id).forEach(reservaRepository::delete);
+        ambienteRepository.findByInstructorResponsableId(id).forEach(a -> {
+            a.setInstructorResponsable(null);
+            ambienteRepository.save(a);
+        });
+        usuarioRepository.delete(usuario);
+    }
+
+    // Metodo para convertir entidad a DTO (sin contraseña)
+    private UsuarioRespuestaDTO convertirADTO(Usuario usuario) {
         return UsuarioRespuestaDTO.builder()
                 .id(usuario.getId())
                 .nombreCompleto(usuario.getNombreCompleto())
@@ -306,15 +389,16 @@ public class UsuarioService {
                 .numeroDocumento(usuario.getNumeroDocumento())
                 .correoElectronico(usuario.getCorreoElectronico())
                 .telefono(usuario.getTelefono())
-                .programaFormacion(usuario.getProgramaFormacion()) 
+                .programaFormacion(usuario.getProgramaFormacion())
                 .ficha(usuario.getFicha())
                 .rol(usuario.getRol().name())
                 .esSuperAdmin(usuario.getEsSuperAdmin())
                 .activo(usuario.getActivo())
+                .estadoAprobacion(
+                        usuario.getEstadoAprobacion() != null ? usuario.getEstadoAprobacion().name() : "APROBADO")
                 .fechaCreacion(usuario.getFechaCreacion())
                 .fechaActualizacion(usuario.getFechaActualizacion())
                 .build();
     }
 
-    
 }

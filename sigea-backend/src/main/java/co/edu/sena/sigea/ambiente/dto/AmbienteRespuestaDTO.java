@@ -8,11 +8,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter //genera los getters para todos lo campos 
-@Setter //genera los setters para todos los campos
-@NoArgsConstructor//genera un constructor vacio
-@AllArgsConstructor//genera un constructor con todos los campos
-@Builder//genera un builder para facilitar la creacion de objetos
+@Getter // genera los getters para todos lo campos
+@Setter // genera los setters para todos los campos
+@NoArgsConstructor // genera un constructor vacio
+@AllArgsConstructor // genera un constructor con todos los campos
+@Builder // genera un builder para facilitar la creacion de objetos
 public class AmbienteRespuestaDTO {
 
     private long id;
@@ -23,15 +23,17 @@ public class AmbienteRespuestaDTO {
 
     private String descripcion;
 
+    private String direccion;
+
     private Long instructorResponsableId;
 
     private String instructorResponsableNombre;
 
     private Boolean activo;
 
+    private String rutaFoto;
+
     private LocalDateTime fechaCreacion;
 
-    private LocalDateTime fechaActualizacion; 
+    private LocalDateTime fechaActualizacion;
 }
-
-

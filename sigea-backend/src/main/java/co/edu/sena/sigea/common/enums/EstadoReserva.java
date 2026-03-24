@@ -24,5 +24,8 @@ public enum EstadoReserva {
 
     // Pasaron 2 horas sin que el usuario recogiera el equipo (RN-08)
     // El equipo vuelve a estar disponible automáticamente
-    EXPIRADA
+    EXPIRADA,
+
+    // El usuario recogió el equipo en ventanilla; la reserva pasó a préstamo (ACTIVO)
+    PRESTADO
 }

@@ -38,8 +38,8 @@ private String numeroDocumento;
 @Email(message="El correo debe tener un formato valido")
 private String correoElectronico;
 
-//Programa de formacion 
-@Size(min=50, max=100, message="El programa de formacion debe tener entre 50 o mas caracteres")
+//Programa de formacion (opcional)
+@Size(max=200, message="El programa de formacion no puede superar 200 caracteres")
 private String programaFormacion;
 
 //numero de ficha 

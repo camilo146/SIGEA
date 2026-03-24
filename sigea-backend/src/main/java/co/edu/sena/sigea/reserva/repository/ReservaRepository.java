@@ -21,7 +21,11 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
     List<Reserva> findByEquipoIdAndEstado(Long equipoId, EstadoReserva estado);
 
+    long countByEquipoId(Long equipoId);
+
     List<Reserva> findByEstado(EstadoReserva estado);
+
+    long countByEstado(EstadoReserva estado);
 
     // RF-RES-02: Reservas ACTIVAS cuya ventana ya terminó (para expirar automáticamente).
     List<Reserva> findByEstadoAndFechaHoraFinBefore(EstadoReserva estado, LocalDateTime fecha);

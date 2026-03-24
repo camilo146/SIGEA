@@ -1,6 +1,5 @@
 package co.edu.sena.sigea.seguridad.controller;
 
-//Spring web
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,7 +10,9 @@ import org.springframework.web.bind.annotation.RestController;
 import co.edu.sena.sigea.seguridad.dto.LoginDTO;
 import co.edu.sena.sigea.seguridad.dto.LoginRespuestaDTO;
 import co.edu.sena.sigea.seguridad.dto.RegistroDTO;
+import co.edu.sena.sigea.seguridad.dto.VerificarCodigoDTO;
 import co.edu.sena.sigea.seguridad.service.AutenticacionServicio;
+import co.edu.sena.sigea.seguridad.service.VerificacionEmailServicio;
 import jakarta.validation.Valid;
 
 
@@ -25,10 +26,12 @@ public class AuthControlador{
     HTTP y le pasa al servicio y devuelve la respuesta */
 
     private final AutenticacionServicio autenticacionServicio;
+    private final VerificacionEmailServicio verificacionEmailServicio;
 
-    //constructor Spring inyecta el servicio automaticamente
-    public AuthControlador(AutenticacionServicio autenticacionServicio){
+    public AuthControlador(AutenticacionServicio autenticacionServicio,
+                           VerificacionEmailServicio verificacionEmailServicio) {
         this.autenticacionServicio = autenticacionServicio;
+        this.verificacionEmailServicio = verificacionEmailServicio;
     }
 
     //endpoint 
@@ -72,5 +75,15 @@ public class AuthControlador{
         // HttpStatus.CREATED = código 201 (recurso creado exitosamente)
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
-    
+
+    /**
+     * Verificación de email por código de 6 dígitos enviado al correo.
+     * POST /api/v1/auth/verificar-email con body { "correo": "...", "codigo": "123456" }
+     */
+    @PostMapping("/verificar-email")
+    public ResponseEntity<java.util.Map<String, String>> verificarEmailPorCodigo(
+            @Valid @RequestBody VerificarCodigoDTO dto) {
+        String mensaje = verificacionEmailServicio.verificarCodigo(dto.getCorreo(), dto.getCodigo());
+        return ResponseEntity.ok(java.util.Map.of("mensaje", mensaje));
+    }
 }

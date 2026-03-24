@@ -1,0 +1,258 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">Mantenimientos</h2>
+    <p class="page-subtitle">Registro y seguimiento de mantenimientos preventivos y correctivos</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openCrear()">
+      <i class="fas fa-wrench"></i> Nuevo Mantenimiento
+    </button>
+  </div>
+</div>
+
+@if (error() && !modalCrear() && !modalCerrar()) {
+  <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+}
+
+<!-- Stats rápidas -->
+<div class="mant-stats">
+  <div class="mant-stat total">
+    <i class="fas fa-tools"></i>
+    <div><strong>{{ mantenimientos().length }}</strong><span>Total</span></div>
+  </div>
+  <div class="mant-stat activo">
+    <i class="fas fa-spinner"></i>
+    <div><strong>{{ tabCount('en_curso') }}</strong><span>En curso</span></div>
+  </div>
+  <div class="mant-stat preventivo">
+    <i class="fas fa-shield-alt"></i>
+    <div><strong>{{ tabCount('preventivo') }}</strong><span>Preventivo</span></div>
+  </div>
+  <div class="mant-stat correctivo">
+    <i class="fas fa-exclamation-circle"></i>
+    <div><strong>{{ tabCount('correctivo') }}</strong><span>Correctivo</span></div>
+  </div>
+  <div class="mant-stat finalizado">
+    <i class="fas fa-check-circle"></i>
+    <div><strong>{{ tabCount('finalizados') }}</strong><span>Finalizados</span></div>
+  </div>
+</div>
+
+<div class="mant-card">
+  <!-- Tabs -->
+  <div class="tabs-header">
+    @for (tab of TABS; track tab.key) {
+      <button
+        type="button"
+        class="tab-item"
+        [class.active]="activeTab() === tab.key"
+        (click)="setTab(tab.key)"
+      >
+        {{ tab.label }}
+        <span class="tab-count">{{ tabCount(tab.key) }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Búsqueda -->
+  <div class="inv-toolbar">
+    <div class="search-input-wrap" style="flex:1; max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input
+        type="text"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        placeholder="Buscar por equipo, responsable..."
+      />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-wrap" style="padding:2rem">
+      <i class="fas fa-spinner fa-spin"></i> Cargando mantenimientos...
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Equipo</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Responsable</th>
+            <th>Estado</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of filteredMantenimientos(); track m.id) {
+            <tr>
+              <td>
+                <div class="equipo-cell">
+                  <div class="equipo-icon" [class]="m.tipo === 'CORRECTIVO' ? 'correctivo' : 'preventivo'">
+                    <i [class]="m.tipo === 'CORRECTIVO' ? 'fas fa-exclamation-triangle' : 'fas fa-shield-alt'"></i>
+                  </div>
+                  <div>
+                    <strong>{{ m.nombreEquipo }}</strong>
+                    <br><small class="text-muted"><code>{{ m.codigoEquipo }}</code></small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge" [class]="m.tipo === 'CORRECTIVO' ? 'badge-correctivo' : 'badge-preventivo'">
+                  {{ m.tipo }}
+                </span>
+              </td>
+              <td>
+                <span class="desc-cell" [title]="m.descripcion">
+                  {{ m.descripcion | slice:0:50 }}{{ m.descripcion.length > 50 ? '…' : '' }}
+                </span>
+              </td>
+              <td>{{ formatDate(m.fechaInicio) }}</td>
+              <td>{{ formatDate(m.fechaFin) }}</td>
+              <td>{{ m.responsable }}</td>
+              <td>
+                @if (!m.fechaFin) {
+                  <span class="badge badge-en-curso">En curso</span>
+                } @else {
+                  <span class="badge badge-finalizado">Finalizado</span>
+                }
+              </td>
+              <td class="actions">
+                @if (!m.fechaFin) {
+                  <button type="button" class="btn btn-outline btn-xs" (click)="openEditar(m)" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline btn-xs" (click)="openCerrar(m)">
+                    <i class="fas fa-flag-checkered"></i> Cerrar
+                  </button>
+                  <button type="button" class="btn btn-danger btn-xs" (click)="eliminar(m)" title="Eliminar">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                } @else {
+                  <span class="text-muted" style="font-size:0.85rem">—</span>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty">
+                <i class="fas fa-wrench" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
+                No hay mantenimientos en esta sección
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="text-muted" style="font-size:0.85rem">
+        {{ filteredMantenimientos().length }} mantenimiento(s)
+      </span>
+    </div>
+  }
+</div>
+
+<!-- Modal: Nuevo mantenimiento -->
+@if (modalCrear()) {
+  <div class="modal-overlay" (click)="modalCrear.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-wrench" style="color:var(--color-primary);margin-right:.4rem"></i>{{ editingId() ? 'Editar' : 'Nuevo' }} mantenimiento</h3>
+        <button type="button" class="btn-close" (click)="modalCrear.set(false)">&times;</button>
+      </div>
+      <form (ngSubmit)="submitCrear()" class="modal-body">
+        @if (error()) {
+          <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+        }
+        <div class="form-row">
+          <div class="form-group">
+            <label>Equipo *</label>
+            <select [(ngModel)]="form.equipoId" name="equipoId" required>
+              <option [value]="0" disabled>Seleccione equipo</option>
+              @for (e of equipos(); track e.id) {
+                <option [value]="e.id">{{ e.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tipo *</label>
+            <select [(ngModel)]="form.tipo" name="tipo" required>
+              @for (t of TIPOS; track t) {
+                <option [value]="t">{{ t }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción *</label>
+          <textarea [(ngModel)]="form.descripcion" name="descripcion" rows="3" required
+            placeholder="Describe el trabajo a realizar o la falla encontrada..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha inicio *</label>
+            <input type="date" [(ngModel)]="form.fechaInicio" name="fechaInicio" required />
+          </div>
+          <div class="form-group">
+            <label>Responsable *</label>
+            <input type="text" [(ngModel)]="form.responsable" name="responsable" required maxlength="200"
+              placeholder="Nombre del técnico" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observaciones</label>
+          <textarea [(ngModel)]="form.observaciones" name="observaciones" rows="2"
+            placeholder="Notas adicionales (opcional)..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="modalCrear.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Registrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal: Cerrar mantenimiento -->
+@if (modalCerrar() && selectedMantenimiento()) {
+  <div class="modal-overlay" (click)="modalCerrar.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-flag-checkered" style="color:var(--color-success);margin-right:.4rem"></i>Cerrar mantenimiento</h3>
+        <button type="button" class="btn-close" (click)="modalCerrar.set(false)">&times;</button>
+      </div>
+      <form (ngSubmit)="submitCerrar()" class="modal-body">
+        @if (error()) {
+          <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+        }
+        <div class="selected-info">
+          <i class="fas fa-microchip"></i>
+          <div>
+            <strong>{{ selectedMantenimiento()!.nombreEquipo }}</strong>
+            <span>{{ selectedMantenimiento()!.tipo }} · Inicio: {{ formatDate(selectedMantenimiento()!.fechaInicio) }}</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Fecha de finalización *</label>
+          <input type="date" [(ngModel)]="cerrarForm.fechaFin" name="fechaFin" required />
+        </div>
+        <div class="form-group">
+          <label>Resultado / Observaciones</label>
+          <textarea [(ngModel)]="cerrarForm.observaciones" name="observaciones" rows="3"
+            placeholder="Describe el trabajo realizado y el resultado..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="modalCerrar.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-check"></i> Confirmar cierre
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

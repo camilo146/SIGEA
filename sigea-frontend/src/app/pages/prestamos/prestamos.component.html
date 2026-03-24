@@ -1,0 +1,176 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">{{ isAdmin() ? 'Préstamos' : 'Mis Préstamos' }}</h2>
+    <p class="page-subtitle">{{ isAdmin() ? 'Gestión y control de préstamos y devoluciones' : 'Solicitar y consultar el estado de tus préstamos' }}</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openSolicitar()">
+      <i class="fas fa-plus"></i> Nuevo Préstamo
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+}
+
+<!-- Tabs -->
+<div class="tabs-card">
+  <div class="tabs-header">
+    @for (tab of tabs; track tab.key) {
+      <button type="button" class="tab-item" [class.active]="activeTab() === tab.key" (click)="setTab(tab.key)">
+        {{ tab.label }}
+        @if (tab.count !== null && tab.count !== undefined) {
+          <span class="tab-count" [class.count-danger]="tab.key === 'vencidos'" [class.count-warning]="tab.key === 'pendientes'">{{ tab.count }}</span>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Búsqueda -->
+  <div class="table-toolbar">
+    <div class="search-input-wrap" style="max-width:360px">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Buscar préstamo..." />
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  @if (loading()) {
+    <div class="spinner-wrap" style="padding:2rem"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Solicitante</th>
+            <th>Equipos</th>
+            <th>Fecha solicitud</th>
+            <th>Devolución est.</th>
+            <th>Estado</th>
+            @if (isAdmin()) { <th class="actions">Acciones</th> }
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of filteredPrestamos(); track p.id) {
+            <tr>
+              <td><code class="id-code">PR-{{ p.id.toString().padStart(3, '0') }}</code></td>
+              <td>
+                <div class="user-cell">
+                  <div class="avatar sm">{{ (p.nombreUsuarioSolicitante || 'NA').slice(0,2).toUpperCase() }}</div>
+                  <div>
+                    <strong>{{ p.nombreUsuarioSolicitante }}</strong>
+                    <br><small class="text-muted">{{ p.correoUsuarioSolicitante }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                @for (d of (p.detalles || []).slice(0,2); track d.equipoId) {
+                  <span class="equipo-chip">{{ d.nombreEquipo }} ×{{ d.cantidad }} · {{ tipoUsoLabel(d.tipoUso) }}</span>
+                }
+                @if ((p.detalles || []).length > 2) {
+                  <span class="text-muted" style="font-size:0.78rem"> +{{ p.detalles.length - 2 }} más</span>
+                }
+              </td>
+              <td>{{ p.fechaHoraSolicitud | dateFormat }}</td>
+              <td [class.overdue-date]="isOverdue(p)">{{ p.fechaHoraDevolucionEstimada | dateFormat }}</td>
+              <td><span class="badge" [class]="'badge-' + p.estado.toLowerCase()">{{ estadoLabel(p.estado) }}</span></td>
+              @if (isAdmin()) {
+                <td class="actions">
+                  @if (p.estado === 'SOLICITADO') {
+                    <button type="button" class="btn btn-success btn-sm" (click)="aprobar(p)" title="Aprobar">
+                      <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" (click)="rechazar(p)" title="Rechazar">
+                      <i class="fas fa-times"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" (click)="eliminar(p)" title="Eliminar solicitud">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  }
+                  @if (p.estado === 'APROBADO') {
+                    <button type="button" class="btn btn-primary btn-sm" (click)="registrarSalida(p)">
+                      <i class="fas fa-arrow-right"></i> Salida
+                    </button>
+                  }
+                  @if (p.estado === 'ACTIVO' || p.estado === 'EN_MORA') {
+                    <button type="button" class="btn btn-primary btn-sm" (click)="registrarDevolucion(p)">
+                      <i class="fas fa-undo"></i> Devolver
+                    </button>
+                  }
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr><td [attr.colspan]="isAdmin() ? 7 : 6" class="empty">
+              <i class="fas fa-inbox" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
+              No hay préstamos en esta sección
+            </td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (isAdmin()) {
+      <div class="table-footer">
+        <span class="text-muted" style="font-size:0.85rem">
+          {{ filteredPrestamos().length }} resultado(s) ·
+          <strong style="color:var(--color-danger)">{{ stats.mora }}</strong> en mora ·
+          <strong style="color:var(--color-success)">{{ stats.devueltos }}</strong> devueltos este mes
+        </span>
+      </div>
+    }
+  }
+</div>
+
+<!-- Modal nuevo préstamo -->
+@if (modalSolicitar()) {
+  <div class="modal-overlay" (click)="modalSolicitar.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-plus-circle" style="color:var(--color-primary);margin-right:.4rem"></i>Nueva solicitud de préstamo</h3>
+        <button type="button" class="btn-close" (click)="modalSolicitar.set(false)">&times;</button>
+      </div>
+      <form (ngSubmit)="submitSolicitud()" class="modal-body">
+        <div class="form-group">
+          <label>Fecha límite de devolución *</label>
+          <input type="datetime-local" [(ngModel)]="form.fechaHoraDevolucionEstimada" name="fechaDevol" [min]="fechaMinDevolucion()" required />
+        </div>
+        <div class="form-group">
+          <label>Observaciones</label>
+          <textarea [(ngModel)]="form.observacionesGenerales" name="obs" rows="2" placeholder="Ej: Para práctica del viernes..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Agregar equipos al préstamo</label>
+          <div class="add-equipo-row">
+            <select [(ngModel)]="detalleEquipoId" name="equipoId" class="equipo-select">
+              <option value="0" disabled>Seleccione equipo</option>
+              @for (e of equipos(); track e.id) {
+                <option [value]="e.id">{{ e.nombre }} (disp: {{ e.cantidadDisponible }})</option>
+              }
+            </select>
+            <input type="number" [(ngModel)]="detalleCantidad" name="cant" min="1" placeholder="Cant." class="cant-input" />
+            <button type="button" class="btn btn-outline" (click)="agregarDetalle()"><i class="fas fa-plus"></i></button>
+          </div>
+        </div>
+        @if ((form.detalles || []).length) {
+          <div class="detalle-items">
+            @for (d of form.detalles; track $index) {
+              <div class="detalle-chip">
+                <span>{{ getEquipoName(d.equipoId) }} × {{ d.cantidad }}</span>
+                <button type="button" (click)="quitarDetalle($index)"><i class="fas fa-times"></i></button>
+              </div>
+            }
+          </div>
+        }
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="modalSolicitar.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Enviar solicitud
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
