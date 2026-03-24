@@ -1,0 +1,24 @@
+# Variables de entorno (NUNCA subir a Git)
+.env
+*.env
+!.env.example
+
+# Dependencias
+node_modules/
+.venv/
+
+# Builds locales
+dist/
+build/
+target/
+
+# IDE / Sistema operativo
+.idea/
+.vscode/settings.json
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
