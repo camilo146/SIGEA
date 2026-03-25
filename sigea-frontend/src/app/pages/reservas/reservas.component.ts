@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ReservaService } from '../../core/services/reserva.service';
 import { EquipoService } from '../../core/services/equipo.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import type { Reserva, ReservaCrear } from '../../core/models/reserva.model';
 
 type TabKey = 'todas' | 'activas' | 'canceladas' | 'cumplidas';
@@ -21,6 +22,7 @@ export class ReservasComponent implements OnInit {
   private reservaService = inject(ReservaService);
   private equipoService = inject(EquipoService);
   private router = inject(Router);
+  private ui = inject(UiFeedbackService);
 
   reservas = signal<Reserva[]>([]);
   equipos = signal<{ id: number; nombre: string; codigoUnico: string; cantidadDisponible: number }[]>([]);
@@ -31,6 +33,9 @@ export class ReservasComponent implements OnInit {
   fechaHoraDevolucion = signal('');
   activeTab = signal<TabKey>('todas');
   searchTerm = signal('');
+  createSaving = signal(false);
+  pickupSaving = signal(false);
+  actionPending = signal<Record<string, boolean>>({});
 
   isAdmin = this.auth.isAdmin;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
@@ -143,29 +148,43 @@ export class ReservasComponent implements OnInit {
       this.error.set('Complete equipo, cantidad y fecha de inicio.');
       return;
     }
+    this.createSaving.set(true);
     this.reservaService.crear(this.form).subscribe({
       next: () => {
+        this.createSaving.set(false);
         this.modalCrear.set(false);
         this.loadReservas();
+        this.ui.success('La reserva fue creada correctamente.', 'Reservas');
       },
-      error: (err) => this.error.set(err.error?.message ?? 'Error al crear reserva'),
+      error: (err) => {
+        this.createSaving.set(false);
+        const message = err.error?.message ?? 'Error al crear reserva';
+        this.error.set(message);
+        this.ui.error(message, 'Reservas');
+      },
     });
   }
 
-  cancelar(r: Reserva) {
-    if (!confirm(`¿Cancelar la reserva de "${r.nombreEquipo}"?`)) return;
-    this.reservaService.cancelar(r.id).subscribe({
-      next: () => this.loadReservas(),
-      error: (err) => this.error.set(err.error?.message ?? 'Error al cancelar'),
+  async cancelar(r: Reserva) {
+    const confirmed = await this.ui.confirm(`¿Cancelar la reserva de "${r.nombreEquipo}"?`, {
+      title: 'Cancelar reserva',
+      confirmText: 'Cancelar reserva',
+      tone: 'warning',
     });
+    if (!confirmed) return;
+
+    this.runAction('cancel', r.id, () => this.reservaService.cancelar(r.id), `La reserva de ${r.nombreEquipo} fue cancelada.`);
   }
 
-  eliminarReserva(r: Reserva) {
-    if (!confirm(`¿Eliminar la reserva de "${r.nombreEquipo}"? No se puede eliminar si ya se convirtió en préstamo.`)) return;
-    this.reservaService.eliminar(r.id).subscribe({
-      next: () => this.loadReservas(),
-      error: (err) => this.error.set(err.error?.message ?? 'Error al eliminar'),
+  async eliminarReserva(r: Reserva) {
+    const confirmed = await this.ui.confirm(`¿Eliminar la reserva de "${r.nombreEquipo}"? No se puede eliminar si ya se convirtió en préstamo.`, {
+      title: 'Eliminar reserva',
+      confirmText: 'Eliminar',
+      tone: 'danger',
     });
+    if (!confirmed) return;
+
+    this.runAction('delete', r.id, () => this.reservaService.eliminar(r.id), `La reserva de ${r.nombreEquipo} fue eliminada.`);
   }
 
   estadoLabel(estado: string): string {
@@ -201,12 +220,20 @@ export class ReservasComponent implements OnInit {
       this.error.set('Indique la fecha y hora de devolución.');
       return;
     }
+    this.pickupSaving.set(true);
     this.reservaService.marcarEquipoRecogido(r.id, fecha).subscribe({
       next: () => {
+        this.pickupSaving.set(false);
         this.closeEquipoRecogido();
         this.loadReservas();
+        this.ui.success(`La reserva de ${r.nombreEquipo} fue convertida en préstamo.`, 'Reservas');
       },
-      error: (err) => this.error.set(err.error?.message ?? 'Error al registrar equipo recogido'),
+      error: (err) => {
+        this.pickupSaving.set(false);
+        const message = err.error?.message ?? 'Error al registrar equipo recogido';
+        this.error.set(message);
+        this.ui.error(message, 'Reservas');
+      },
     });
   }
 
@@ -222,5 +249,37 @@ export class ReservasComponent implements OnInit {
   getInitials(nombre: string | undefined): string {
     if (!nombre) return 'NA';
     return nombre.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+  }
+
+  isActionPending(action: string, id: number): boolean {
+    return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, successMessage: string) {
+    const key = `${action}-${id}`;
+    if (this.actionPending()[key]) return;
+
+    this.actionPending.update((state) => ({ ...state, [key]: true }));
+    request().subscribe({
+      next: () => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        this.loadReservas();
+        this.ui.success(successMessage, 'Reservas');
+      },
+      error: (err) => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        const message = err.error?.message ?? 'No fue posible completar la acción.';
+        this.error.set(message);
+        this.ui.error(message, 'Reservas');
+      },
+    });
   }
 }

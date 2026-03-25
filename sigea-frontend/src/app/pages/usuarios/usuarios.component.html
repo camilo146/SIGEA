@@ -60,11 +60,19 @@
                 <td>{{ u.correoElectronico }}</td>
                 <td class="pending-date">{{ u.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
                 <td class="actions pending-actions">
-                  <button type="button" class="btn btn-success btn-sm" (click)="aprobar(u)" title="Aprobar">
-                    <i class="fas fa-check"></i> Aprobar
+                  <button type="button" class="btn btn-success btn-sm" (click)="aprobar(u)" title="Aprobar" aria-label="Aprobar usuario" [disabled]="isActionPending('approve', u.id)">
+                    @if (isActionPending('approve', u.id)) {
+                      <i class="fas fa-spinner fa-spin"></i> Procesando...
+                    } @else {
+                      <i class="fas fa-check"></i> Aprobar
+                    }
                   </button>
-                  <button type="button" class="btn btn-danger btn-sm" (click)="rechazar(u)" title="Rechazar y eliminar">
-                    <i class="fas fa-times"></i> Rechazar
+                  <button type="button" class="btn btn-danger btn-sm" (click)="rechazar(u)" title="Rechazar y eliminar" aria-label="Rechazar usuario" [disabled]="isActionPending('reject', u.id)">
+                    @if (isActionPending('reject', u.id)) {
+                      <i class="fas fa-spinner fa-spin"></i> Procesando...
+                    } @else {
+                      <i class="fas fa-times"></i> Rechazar
+                    }
                   </button>
                 </td>
               </tr>
@@ -167,19 +175,31 @@
               </td>
               <td class="actions">
                 @if (!u.esSuperAdmin) {
-                  <button type="button" class="btn-icon" (click)="openEdit(u)" title="Editar">
+                  <button type="button" class="btn-icon" (click)="openEdit(u)" title="Editar" aria-label="Editar usuario">
                     <i class="fas fa-edit"></i>
                   </button>
                   @if (u.activo) {
-                    <button type="button" class="btn-icon danger" (click)="desactivar(u)" title="Desactivar">
-                      <i class="fas fa-user-slash"></i>
+                    <button type="button" class="btn-icon danger" (click)="desactivar(u)" title="Desactivar" aria-label="Desactivar usuario" [disabled]="isActionPending('deactivate', u.id)">
+                      @if (isActionPending('deactivate', u.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-user-slash"></i>
+                      }
                     </button>
-                    <button type="button" class="btn-icon danger" (click)="eliminar(u)" title="Eliminar">
-                      <i class="fas fa-trash-alt"></i>
+                    <button type="button" class="btn-icon danger" (click)="eliminar(u)" title="Eliminar" aria-label="Eliminar usuario" [disabled]="isActionPending('delete', u.id)">
+                      @if (isActionPending('delete', u.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-trash-alt"></i>
+                      }
                     </button>
                   } @else {
-                    <button type="button" class="btn-icon success" (click)="activar(u)" title="Activar">
-                      <i class="fas fa-user-check"></i>
+                    <button type="button" class="btn-icon success" (click)="activar(u)" title="Activar" aria-label="Activar usuario" [disabled]="isActionPending('activate', u.id)">
+                      @if (isActionPending('activate', u.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-user-check"></i>
+                      }
                     </button>
                   }
                 }
@@ -262,7 +282,13 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="createSaving()">
+            @if (createSaving()) {
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              <i class="fas fa-save"></i> Guardar
+            }
+          </button>
         </div>
       </form>
     </div>
@@ -314,7 +340,13 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeEditModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar cambios</button>
+          <button type="submit" class="btn btn-primary" [disabled]="editSaving()">
+            @if (editSaving()) {
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              <i class="fas fa-save"></i> Guardar cambios
+            }
+          </button>
         </div>
       </form>
     </div>

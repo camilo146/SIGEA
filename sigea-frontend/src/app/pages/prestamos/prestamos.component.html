@@ -79,24 +79,44 @@
               @if (isAdmin()) {
                 <td class="actions">
                   @if (p.estado === 'SOLICITADO') {
-                    <button type="button" class="btn btn-success btn-sm" (click)="aprobar(p)" title="Aprobar">
-                      <i class="fas fa-check"></i>
+                    <button type="button" class="btn btn-success btn-sm" (click)="aprobar(p)" title="Aprobar" aria-label="Aprobar préstamo" [disabled]="isActionPending('approve', p.id)">
+                      @if (isActionPending('approve', p.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-check"></i>
+                      }
                     </button>
-                    <button type="button" class="btn btn-danger btn-sm" (click)="rechazar(p)" title="Rechazar">
-                      <i class="fas fa-times"></i>
+                    <button type="button" class="btn btn-danger btn-sm" (click)="rechazar(p)" title="Rechazar" aria-label="Rechazar préstamo" [disabled]="isActionPending('reject', p.id)">
+                      @if (isActionPending('reject', p.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-times"></i>
+                      }
                     </button>
-                    <button type="button" class="btn btn-outline btn-sm" (click)="eliminar(p)" title="Eliminar solicitud">
-                      <i class="fas fa-trash-alt"></i>
+                    <button type="button" class="btn btn-outline btn-sm" (click)="eliminar(p)" title="Eliminar solicitud" aria-label="Eliminar solicitud de préstamo" [disabled]="isActionPending('delete', p.id)">
+                      @if (isActionPending('delete', p.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-trash-alt"></i>
+                      }
                     </button>
                   }
                   @if (p.estado === 'APROBADO') {
-                    <button type="button" class="btn btn-primary btn-sm" (click)="registrarSalida(p)">
-                      <i class="fas fa-arrow-right"></i> Salida
+                    <button type="button" class="btn btn-primary btn-sm" (click)="registrarSalida(p)" [disabled]="isActionPending('checkout', p.id)">
+                      @if (isActionPending('checkout', p.id)) {
+                        <i class="fas fa-spinner fa-spin"></i> Procesando...
+                      } @else {
+                        <i class="fas fa-arrow-right"></i> Salida
+                      }
                     </button>
                   }
                   @if (p.estado === 'ACTIVO' || p.estado === 'EN_MORA') {
-                    <button type="button" class="btn btn-primary btn-sm" (click)="registrarDevolucion(p)">
-                      <i class="fas fa-undo"></i> Devolver
+                    <button type="button" class="btn btn-primary btn-sm" (click)="registrarDevolucion(p)" [disabled]="isActionPending('return', p.id)">
+                      @if (isActionPending('return', p.id)) {
+                        <i class="fas fa-spinner fa-spin"></i> Procesando...
+                      } @else {
+                        <i class="fas fa-undo"></i> Devolver
+                      }
                     </button>
                   }
                 </td>
@@ -166,8 +186,12 @@
         }
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="modalSolicitar.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-paper-plane"></i> Enviar solicitud
+          <button type="submit" class="btn btn-primary" [disabled]="submitSaving()">
+            @if (submitSaving()) {
+              <i class="fas fa-spinner fa-spin"></i> Enviando...
+            } @else {
+              <i class="fas fa-paper-plane"></i> Enviar solicitud
+            }
           </button>
         </div>
       </form>

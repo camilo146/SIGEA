@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { AmbienteService } from '../../core/services/ambiente.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { EquipoService } from '../../core/services/equipo.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { environment } from '../../../environments/environment';
 import type { Ambiente, AmbienteCrear } from '../../core/models/ambiente.model';
 import type { Equipo } from '../../core/models/equipo.model';
@@ -21,6 +22,7 @@ export class AmbientesComponent implements OnInit {
   private ambienteService = inject(AmbienteService);
   private usuarioService = inject(UsuarioService);
   private equipoService = inject(EquipoService);
+  private ui = inject(UiFeedbackService);
 
   ambientes = signal<Ambiente[]>([]);
   usuarios = signal<{ id: number; nombreCompleto: string; rol: string }[]>([]);
@@ -33,6 +35,8 @@ export class AmbientesComponent implements OnInit {
   equiposAmbiente = signal<Equipo[]>([]);
   ambienteEquiposNombre = signal('');
   loadingEquipos = signal(false);
+  formSaving = signal(false);
+  actionPending = signal<Record<string, boolean>>({});
   /** Ambiente seleccionado para la card de detalle (al hacer clic en Ver equipos / fila). */
   selectedAmbiente = signal<Ambiente | null>(null);
   fotoArchivo: File | null = null;
@@ -122,6 +126,7 @@ export class AmbientesComponent implements OnInit {
     this.modalOpen.set(false);
     this.editingId.set(null);
     this.fotoArchivo = null;
+    this.formSaving.set(false);
   }
 
   onFotoSelected(event: Event) {
@@ -156,26 +161,36 @@ export class AmbientesComponent implements OnInit {
         ? this.ambienteService.actualizar(id, this.form)
         : this.ambienteService.crear(payload, this.fotoArchivo!);
 
+    this.formSaving.set(true);
     obs.subscribe({
       next: () => {
+        this.formSaving.set(false);
         this.closeModal();
         this.loadAmbientes();
+        this.ui.success(`La ubicación "${this.form.nombre}" fue guardada.`, 'Ubicaciones');
       },
-      error: (err) => this.error.set(err.error?.message ?? 'Error al guardar'),
+      error: (err) => {
+        this.formSaving.set(false);
+        const message = err.error?.message ?? 'Error al guardar';
+        this.error.set(message);
+        this.ui.error(message, 'Ubicaciones');
+      },
     });
   }
 
   activar(a: Ambiente) {
-    this.ambienteService
-      .activar(a.id)
-      .subscribe({ next: () => this.loadAmbientes(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+    this.runAction('activate', a.id, () => this.ambienteService.activar(a.id), `La ubicación "${a.nombre}" fue activada.`);
   }
 
-  desactivar(a: Ambiente) {
-    if (!confirm(`¿Desactivar el ambiente "${a.nombre}"?`)) return;
-    this.ambienteService
-      .desactivar(a.id)
-      .subscribe({ next: () => this.loadAmbientes(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+  async desactivar(a: Ambiente) {
+    const confirmed = await this.ui.confirm(`¿Desactivar el ambiente "${a.nombre}"?`, {
+      title: 'Desactivar ubicación',
+      confirmText: 'Desactivar',
+      tone: 'warning',
+    });
+    if (!confirmed) return;
+
+    this.runAction('deactivate', a.id, () => this.ambienteService.desactivar(a.id), `La ubicación "${a.nombre}" fue desactivada.`);
   }
 
   get totalActivos() {
@@ -230,5 +245,37 @@ export class AmbientesComponent implements OnInit {
     if (ruta.startsWith('uploads/')) return `${environment.apiUrl}/${ruta}`;
     const path = ruta.startsWith('/') ? ruta.slice(1) : ruta;
     return `${environment.apiUrl}/uploads/${path}`;
+  }
+
+  isActionPending(action: string, id: number): boolean {
+    return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, successMessage: string) {
+    const key = `${action}-${id}`;
+    if (this.actionPending()[key]) return;
+
+    this.actionPending.update((state) => ({ ...state, [key]: true }));
+    request().subscribe({
+      next: () => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        this.loadAmbientes();
+        this.ui.success(successMessage, 'Ubicaciones');
+      },
+      error: (e) => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        const message = e.error?.message ?? 'No fue posible completar la acción.';
+        this.error.set(message);
+        this.ui.error(message, 'Ubicaciones');
+      },
+    });
   }
 }

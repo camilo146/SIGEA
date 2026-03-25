@@ -96,17 +96,25 @@
               <td class="actions">
                 @if (r.estado === 'ACTIVA') {
                   @if (isAdmin()) {
-                    <button type="button" class="btn btn-primary btn-xs" (click)="openEquipoRecogido(r)">
+                    <button type="button" class="btn btn-primary btn-xs" (click)="openEquipoRecogido(r)" title="Registrar equipo recogido" aria-label="Registrar equipo recogido">
                       <i class="fas fa-hand-holding"></i> Equipo recogido
                     </button>
                   }
-                  <button type="button" class="btn btn-danger btn-xs" (click)="cancelar(r)">
-                    <i class="fas fa-times"></i> Cancelar
+                  <button type="button" class="btn btn-danger btn-xs" (click)="cancelar(r)" title="Cancelar reserva" aria-label="Cancelar reserva" [disabled]="isActionPending('cancel', r.id)">
+                    @if (isActionPending('cancel', r.id)) {
+                      <i class="fas fa-spinner fa-spin"></i> Procesando...
+                    } @else {
+                      <i class="fas fa-times"></i> Cancelar
+                    }
                   </button>
                 }
                 @if (isAdminOrInstructor() && r.estado !== 'PRESTADO') {
-                  <button type="button" class="btn btn-outline btn-xs" (click)="eliminarReserva(r)" title="Eliminar">
-                    <i class="fas fa-trash-alt"></i>
+                  <button type="button" class="btn btn-outline btn-xs" (click)="eliminarReserva(r)" title="Eliminar" aria-label="Eliminar reserva" [disabled]="isActionPending('delete', r.id)">
+                    @if (isActionPending('delete', r.id)) {
+                      <i class="fas fa-spinner fa-spin"></i>
+                    } @else {
+                      <i class="fas fa-trash-alt"></i>
+                    }
                   </button>
                 }
               </td>
@@ -184,8 +192,12 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="modalCrear.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-check"></i> Confirmar reserva
+          <button type="submit" class="btn btn-primary" [disabled]="createSaving()">
+            @if (createSaving()) {
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              <i class="fas fa-check"></i> Confirmar reserva
+            }
           </button>
         </div>
       </form>
@@ -226,8 +238,12 @@
         </p>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeEquipoRecogido()">Cancelar</button>
-          <button type="button" class="btn btn-primary" (click)="submitEquipoRecogido()">
-            <i class="fas fa-check"></i> Registrar
+          <button type="button" class="btn btn-primary" (click)="submitEquipoRecogido()" [disabled]="pickupSaving()">
+            @if (pickupSaving()) {
+              <i class="fas fa-spinner fa-spin"></i> Registrando...
+            } @else {
+              <i class="fas fa-check"></i> Registrar
+            }
           </button>
         </div>
       </div>

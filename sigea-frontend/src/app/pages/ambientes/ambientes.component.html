@@ -99,21 +99,29 @@
                 </span>
               </td>
               <td>
-                <button type="button" class="btn btn-sm btn-outline" (click)="openEquipos(a)" title="Ver herramientas asignadas">
+                <button type="button" class="btn btn-sm btn-outline" (click)="openEquipos(a)" title="Ver herramientas asignadas" aria-label="Ver equipos de la ubicación">
                   <i class="fas fa-tools"></i> Ver equipos
                 </button>
               </td>
               <td class="actions">
-                <button type="button" class="btn-icon" (click)="openEdit(a)" title="Editar">
+                <button type="button" class="btn-icon" (click)="openEdit(a)" title="Editar" aria-label="Editar ubicación">
                   <i class="fas fa-edit"></i>
                 </button>
                 @if (a.activo) {
-                  <button type="button" class="btn-icon danger" (click)="desactivar(a)" title="Desactivar">
-                    <i class="fas fa-ban"></i>
+                  <button type="button" class="btn-icon danger" (click)="desactivar(a)" title="Desactivar" aria-label="Desactivar ubicación" [disabled]="isActionPending('deactivate', a.id)">
+                    @if (isActionPending('deactivate', a.id)) {
+                      <i class="fas fa-spinner fa-spin"></i>
+                    } @else {
+                      <i class="fas fa-ban"></i>
+                    }
                   </button>
                 } @else {
-                  <button type="button" class="btn-icon success" (click)="activar(a)" title="Activar">
-                    <i class="fas fa-check"></i>
+                  <button type="button" class="btn-icon success" (click)="activar(a)" title="Activar" aria-label="Activar ubicación" [disabled]="isActionPending('activate', a.id)">
+                    @if (isActionPending('activate', a.id)) {
+                      <i class="fas fa-spinner fa-spin"></i>
+                    } @else {
+                      <i class="fas fa-check"></i>
+                    }
                   </button>
                 }
               </td>
@@ -216,8 +224,12 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Guardar
+          <button type="submit" class="btn btn-primary" [disabled]="formSaving()">
+            @if (formSaving()) {
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              <i class="fas fa-save"></i> Guardar
+            }
           </button>
         </div>
       </form>

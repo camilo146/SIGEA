@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MantenimientoService } from '../../core/services/mantenimiento.service';
 import { EquipoService } from '../../core/services/equipo.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import type { Mantenimiento, MantenimientoCrear, MantenimientoCerrar } from '../../core/models/mantenimiento.model';
 
 type TabKey = 'todos' | 'en_curso' | 'preventivo' | 'correctivo' | 'finalizados';
@@ -17,6 +18,7 @@ type TabKey = 'todos' | 'en_curso' | 'preventivo' | 'correctivo' | 'finalizados'
 export class MantenimientosComponent implements OnInit {
   private mantenimientoService = inject(MantenimientoService);
   private equipoService = inject(EquipoService);
+  private ui = inject(UiFeedbackService);
 
   mantenimientos = signal<Mantenimiento[]>([]);
   equipos = signal<{ id: number; nombre: string; codigoUnico: string }[]>([]);
@@ -28,6 +30,9 @@ export class MantenimientosComponent implements OnInit {
   selectedMantenimiento = signal<Mantenimiento | null>(null);
   activeTab = signal<TabKey>('todos');
   searchTerm = signal('');
+  savingForm = signal(false);
+  closingForm = signal(false);
+  actionPending = signal<Record<string, boolean>>({});
 
   form: MantenimientoCrear = {
     equipoId: 0,
@@ -146,22 +151,33 @@ export class MantenimientosComponent implements OnInit {
     const obs = id != null
       ? this.mantenimientoService.actualizar(id, this.form)
       : this.mantenimientoService.crear(this.form);
+    this.savingForm.set(true);
     obs.subscribe({
       next: () => {
+        this.savingForm.set(false);
         this.modalCrear.set(false);
         this.editingId.set(null);
         this.loadMantenimientos();
+        this.ui.success(`El mantenimiento de ${this.equipos().find((equipo) => equipo.id === this.form.equipoId)?.nombre ?? 'equipo'} fue guardado.`, 'Mantenimientos');
       },
-      error: (err) => this.error.set(err.error?.message ?? (id != null ? 'Error al actualizar' : 'Error al crear')),
+      error: (err) => {
+        this.savingForm.set(false);
+        const message = err.error?.message ?? (id != null ? 'Error al actualizar' : 'Error al crear');
+        this.error.set(message);
+        this.ui.error(message, 'Mantenimientos');
+      },
     });
   }
 
-  eliminar(m: Mantenimiento) {
-    if (!confirm(`¿Eliminar el mantenimiento de "${m.nombreEquipo}"? Solo se puede eliminar si no está cerrado.`)) return;
-    this.mantenimientoService.eliminar(m.id).subscribe({
-      next: () => this.loadMantenimientos(),
-      error: (err) => this.error.set(err.error?.message ?? 'Error al eliminar'),
+  async eliminar(m: Mantenimiento) {
+    const confirmed = await this.ui.confirm(`¿Eliminar el mantenimiento de "${m.nombreEquipo}"? Solo se puede eliminar si no está cerrado.`, {
+      title: 'Eliminar mantenimiento',
+      confirmText: 'Eliminar',
+      tone: 'danger',
     });
+    if (!confirmed) return;
+
+    this.runAction('delete', m.id, () => this.mantenimientoService.eliminar(m.id), `El mantenimiento de ${m.nombreEquipo} fue eliminado.`);
   }
 
   openCerrar(m: Mantenimiento) {
@@ -174,18 +190,58 @@ export class MantenimientosComponent implements OnInit {
   submitCerrar() {
     const m = this.selectedMantenimiento();
     if (!m || !this.cerrarForm.fechaFin) return;
+    this.closingForm.set(true);
     this.mantenimientoService.cerrar(m.id, this.cerrarForm).subscribe({
       next: () => {
+        this.closingForm.set(false);
         this.modalCerrar.set(false);
         this.selectedMantenimiento.set(null);
         this.loadMantenimientos();
+        this.ui.success(`El mantenimiento de ${m.nombreEquipo} fue cerrado.`, 'Mantenimientos');
       },
-      error: (err) => this.error.set(err.error?.message ?? 'Error al cerrar'),
+      error: (err) => {
+        this.closingForm.set(false);
+        const message = err.error?.message ?? 'Error al cerrar';
+        this.error.set(message);
+        this.ui.error(message, 'Mantenimientos');
+      },
     });
   }
 
   formatDate(s: string | undefined): string {
     if (!s) return '—';
     return new Date(s).toLocaleDateString('es-CO');
+  }
+
+  isActionPending(action: string, id: number): boolean {
+    return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, successMessage: string) {
+    const key = `${action}-${id}`;
+    if (this.actionPending()[key]) return;
+
+    this.actionPending.update((state) => ({ ...state, [key]: true }));
+    request().subscribe({
+      next: () => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        this.loadMantenimientos();
+        this.ui.success(successMessage, 'Mantenimientos');
+      },
+      error: (err) => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        const message = err.error?.message ?? 'No fue posible completar la acción.';
+        this.error.set(message);
+        this.ui.error(message, 'Mantenimientos');
+      },
+    });
   }
 }

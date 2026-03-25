@@ -122,14 +122,18 @@
               </td>
               <td class="actions">
                 @if (!m.fechaFin) {
-                  <button type="button" class="btn btn-outline btn-xs" (click)="openEditar(m)" title="Editar">
+                  <button type="button" class="btn btn-outline btn-xs" (click)="openEditar(m)" title="Editar" aria-label="Editar mantenimiento">
                     <i class="fas fa-edit"></i>
                   </button>
                   <button type="button" class="btn btn-outline btn-xs" (click)="openCerrar(m)">
                     <i class="fas fa-flag-checkered"></i> Cerrar
                   </button>
-                  <button type="button" class="btn btn-danger btn-xs" (click)="eliminar(m)" title="Eliminar">
-                    <i class="fas fa-trash-alt"></i>
+                  <button type="button" class="btn btn-danger btn-xs" (click)="eliminar(m)" title="Eliminar" aria-label="Eliminar mantenimiento" [disabled]="isActionPending('delete', m.id)">
+                    @if (isActionPending('delete', m.id)) {
+                      <i class="fas fa-spinner fa-spin"></i>
+                    } @else {
+                      <i class="fas fa-trash-alt"></i>
+                    }
                   </button>
                 } @else {
                   <span class="text-muted" style="font-size:0.85rem">—</span>
@@ -209,8 +213,12 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="modalCrear.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Registrar
+          <button type="submit" class="btn btn-primary" [disabled]="savingForm()">
+            @if (savingForm()) {
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              <i class="fas fa-save"></i> Registrar
+            }
           </button>
         </div>
       </form>
@@ -248,8 +256,12 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="modalCerrar.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-success">
-            <i class="fas fa-check"></i> Confirmar cierre
+          <button type="submit" class="btn btn-success" [disabled]="closingForm()">
+            @if (closingForm()) {
+              <i class="fas fa-spinner fa-spin"></i> Cerrando...
+            } @else {
+              <i class="fas fa-check"></i> Confirmar cierre
+            }
           </button>
         </div>
       </form>

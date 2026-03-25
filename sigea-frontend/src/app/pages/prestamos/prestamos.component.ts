@@ -6,6 +6,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
 import { PrestamoService } from '../../core/services/prestamo.service';
 import { EquipoService } from '../../core/services/equipo.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import type { Prestamo, PrestamoCrear } from '../../core/models/prestamo.model';
 
 @Pipe({ name: 'dateFormat', standalone: true })
@@ -30,6 +31,7 @@ export class PrestamosComponent implements OnInit {
   private prestamoService = inject(PrestamoService);
   private equipoService = inject(EquipoService);
   private router = inject(Router);
+  private ui = inject(UiFeedbackService);
 
   prestamos = signal<Prestamo[]>([]);
   equipos = signal<{ id: number; nombre: string; codigoUnico: string; cantidadDisponible: number }[]>([]);
@@ -38,6 +40,8 @@ export class PrestamosComponent implements OnInit {
   modalSolicitar = signal(false);
   activeTab = signal<TabKey>('todos');
   searchTerm = signal('');
+  submitSaving = signal(false);
+  actionPending = signal<Record<string, boolean>>({});
 
   isAdmin = this.auth.isAdmin;
 
@@ -162,32 +166,52 @@ export class PrestamosComponent implements OnInit {
       this.error.set('Seleccione fecha de devolución y al menos un equipo.');
       return;
     }
+    this.submitSaving.set(true);
     this.prestamoService.solicitar(this.form).subscribe({
-      next: () => { this.modalSolicitar.set(false); this.loadPrestamos(); },
-      error: (err) => this.error.set(err.error?.message ?? 'Error al solicitar'),
+      next: () => {
+        this.submitSaving.set(false);
+        this.modalSolicitar.set(false);
+        this.loadPrestamos();
+        this.ui.success('La solicitud de préstamo fue enviada.', 'Préstamos');
+      },
+      error: (err) => {
+        this.submitSaving.set(false);
+        const message = err.error?.message ?? 'Error al solicitar';
+        this.error.set(message);
+        this.ui.error(message, 'Préstamos');
+      },
     });
   }
 
   aprobar(p: Prestamo) {
-    this.prestamoService.aprobar(p.id).subscribe({ next: () => this.loadPrestamos(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+    this.runAction('approve', p.id, () => this.prestamoService.aprobar(p.id), `El préstamo PR-${p.id.toString().padStart(3, '0')} fue aprobado.`);
   }
-  rechazar(p: Prestamo) {
-    if (!confirm('¿Rechazar esta solicitud?')) return;
-    this.prestamoService.rechazar(p.id).subscribe({ next: () => this.loadPrestamos(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+  async rechazar(p: Prestamo) {
+    const confirmed = await this.ui.confirm('¿Rechazar esta solicitud?', {
+      title: 'Rechazar solicitud',
+      confirmText: 'Rechazar',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.runAction('reject', p.id, () => this.prestamoService.rechazar(p.id), `La solicitud PR-${p.id.toString().padStart(3, '0')} fue rechazada.`);
   }
   registrarSalida(p: Prestamo) {
-    this.prestamoService.registrarSalida(p.id).subscribe({ next: () => this.loadPrestamos(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+    this.runAction('checkout', p.id, () => this.prestamoService.registrarSalida(p.id), `Se registró la salida del préstamo PR-${p.id.toString().padStart(3, '0')}.`);
   }
   registrarDevolucion(p: Prestamo) {
-    this.prestamoService.registrarDevolucion(p.id).subscribe({ next: () => this.loadPrestamos(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+    this.runAction('return', p.id, () => this.prestamoService.registrarDevolucion(p.id), `Se registró la devolución del préstamo PR-${p.id.toString().padStart(3, '0')}.`);
   }
 
-  eliminar(p: Prestamo) {
-    if (!confirm('¿Eliminar esta solicitud de préstamo? Solo se puede eliminar solicitudes en estado SOLICITADO.')) return;
-    this.prestamoService.eliminar(p.id).subscribe({
-      next: () => this.loadPrestamos(),
-      error: (e) => this.error.set(e.error?.message ?? 'Error al eliminar'),
+  async eliminar(p: Prestamo) {
+    const confirmed = await this.ui.confirm('¿Eliminar esta solicitud de préstamo? Solo se puede eliminar solicitudes en estado SOLICITADO.', {
+      title: 'Eliminar solicitud',
+      confirmText: 'Eliminar',
+      tone: 'danger',
     });
+    if (!confirmed) return;
+
+    this.runAction('delete', p.id, () => this.prestamoService.eliminar(p.id), `La solicitud PR-${p.id.toString().padStart(3, '0')} fue eliminada.`);
   }
 
   estadoLabel(estado: string): string {
@@ -205,5 +229,37 @@ export class PrestamosComponent implements OnInit {
   isOverdue(p: Prestamo): boolean {
     if (p.estado === 'DEVUELTO') return false;
     return p.fechaHoraDevolucionEstimada ? new Date(p.fechaHoraDevolucionEstimada) < new Date() : false;
+  }
+
+  isActionPending(action: string, id: number): boolean {
+    return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, successMessage: string) {
+    const key = `${action}-${id}`;
+    if (this.actionPending()[key]) return;
+
+    this.actionPending.update((state) => ({ ...state, [key]: true }));
+    request().subscribe({
+      next: () => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        this.loadPrestamos();
+        this.ui.success(successMessage, 'Préstamos');
+      },
+      error: (e) => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        const message = e.error?.message ?? 'No fue posible completar la acción.';
+        this.error.set(message);
+        this.ui.error(message, 'Préstamos');
+      },
+    });
   }
 }

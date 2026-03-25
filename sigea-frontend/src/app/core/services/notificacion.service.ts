@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { forkJoin, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type { Notificacion } from '../models/notificacion.model';
 
@@ -24,5 +24,9 @@ export class NotificacionService {
 
   marcarLeida(id: number): Observable<void> {
     return this.http.patch<void>(`${this.apiUrl}/${id}/marcar-leida`, {});
+  }
+
+  marcarTodasLeidas(ids: number[]): Observable<void[]> {
+    return forkJoin(ids.map((id) => this.marcarLeida(id)));
   }
 }

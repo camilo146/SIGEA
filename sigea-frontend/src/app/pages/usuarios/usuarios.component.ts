@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { PrestamoService } from '../../core/services/prestamo.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import type { Usuario, UsuarioCrear } from '../../core/models/usuario.model';
 
 type VistaUsuarios = 'todos' | 'pendientes';
@@ -17,6 +18,7 @@ type VistaUsuarios = 'todos' | 'pendientes';
 export class UsuariosComponent implements OnInit {
   private usuarioService = inject(UsuarioService);
   private prestamoService = inject(PrestamoService);
+  private ui = inject(UiFeedbackService);
 
   usuarios = signal<Usuario[]>([]);
   usuariosPendientes = signal<Usuario[]>([]);
@@ -27,6 +29,9 @@ export class UsuariosComponent implements OnInit {
   modalOpen = signal(false);
   modalEditOpen = signal(false);
   editingUser = signal<Usuario | null>(null);
+  createSaving = signal(false);
+  editSaving = signal(false);
+  actionPending = signal<Record<string, boolean>>({});
   filterRol = signal('');
   filterEstado = signal('');
   searchTerm = signal('');
@@ -93,20 +98,31 @@ export class UsuariosComponent implements OnInit {
     this.error.set('');
   }
 
-  aprobar(u: Usuario) {
-    if (!confirm(`¿Aprobar el registro de ${u.nombreCompleto}? Podrá iniciar sesión con el rol asignado.`)) return;
-    this.usuarioService.aprobar(u.id).subscribe({
-      next: () => { this.loadUsuarios(); this.loadPendientes(); },
-      error: (e) => this.error.set(e.error?.message ?? 'Error al aprobar usuario'),
+  async aprobar(u: Usuario) {
+    const confirmed = await this.ui.confirm(`¿Aprobar el registro de ${u.nombreCompleto}? Podrá iniciar sesión con el rol asignado.`, {
+      title: 'Aprobar usuario',
+      confirmText: 'Aprobar',
+      tone: 'success',
     });
+    if (!confirmed) return;
+
+    this.runAction('approve', u.id, () => this.usuarioService.aprobar(u.id), () => {
+      this.loadUsuarios();
+      this.loadPendientes();
+    }, `El usuario ${u.nombreCompleto} fue aprobado.`);
   }
 
-  rechazar(u: Usuario) {
-    if (!confirm(`¿Rechazar y eliminar el registro de ${u.nombreCompleto}? Esta acción es irreversible.`)) return;
-    this.usuarioService.rechazar(u.id).subscribe({
-      next: () => { this.loadPendientes(); },
-      error: (e) => this.error.set(e.error?.message ?? 'Error al rechazar usuario'),
+  async rechazar(u: Usuario) {
+    const confirmed = await this.ui.confirm(`¿Rechazar y eliminar el registro de ${u.nombreCompleto}? Esta acción es irreversible.`, {
+      title: 'Rechazar usuario',
+      confirmText: 'Rechazar',
+      tone: 'danger',
     });
+    if (!confirmed) return;
+
+    this.runAction('reject', u.id, () => this.usuarioService.rechazar(u.id), () => {
+      this.loadPendientes();
+    }, `El registro de ${u.nombreCompleto} fue rechazado.`);
   }
 
   private loadPrestamosCounts(usuarios: Usuario[]) {
@@ -128,16 +144,27 @@ export class UsuariosComponent implements OnInit {
     this.modalOpen.set(true);
   }
 
-  closeModal() { this.modalOpen.set(false); this.error.set(''); }
+  closeModal() { this.modalOpen.set(false); this.error.set(''); this.createSaving.set(false); }
 
   submitForm() {
     if (!this.form.nombreCompleto?.trim() || !this.form.correoElectronico?.trim() || !this.form.contrasena || this.form.contrasena.length < 8) {
       this.error.set('Nombre, correo y contraseña (mín. 8 caracteres) son obligatorios.');
       return;
     }
+    this.createSaving.set(true);
     this.usuarioService.crear(this.form).subscribe({
-      next: () => { this.closeModal(); this.loadUsuarios(); },
-      error: (err) => this.error.set(err.error?.message ?? 'Error al crear usuario'),
+      next: () => {
+        this.createSaving.set(false);
+        this.closeModal();
+        this.loadUsuarios();
+        this.ui.success(`El usuario ${this.form.nombreCompleto} fue registrado.`, 'Usuarios');
+      },
+      error: (err) => {
+        this.createSaving.set(false);
+        const message = err.error?.message ?? 'Error al crear usuario';
+        this.error.set(message);
+        this.ui.error(message, 'Usuarios');
+      },
     });
   }
 
@@ -164,12 +191,18 @@ export class UsuariosComponent implements OnInit {
   }
 
   activar(u: Usuario) {
-    this.usuarioService.activar(u.id).subscribe({ next: () => this.loadUsuarios(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+    this.runAction('activate', u.id, () => this.usuarioService.activar(u.id), () => this.loadUsuarios(), `El usuario ${u.nombreCompleto} fue activado.`);
   }
 
-  desactivar(u: Usuario) {
-    if (!confirm(`¿Desactivar a ${u.nombreCompleto}?`)) return;
-    this.usuarioService.desactivar(u.id).subscribe({ next: () => this.loadUsuarios(), error: (e) => this.error.set(e.error?.message ?? 'Error') });
+  async desactivar(u: Usuario) {
+    const confirmed = await this.ui.confirm(`¿Desactivar a ${u.nombreCompleto}?`, {
+      title: 'Desactivar usuario',
+      confirmText: 'Desactivar',
+      tone: 'warning',
+    });
+    if (!confirmed) return;
+
+    this.runAction('deactivate', u.id, () => this.usuarioService.desactivar(u.id), () => this.loadUsuarios(), `El usuario ${u.nombreCompleto} fue desactivado.`);
   }
 
   openEdit(u: Usuario) {
@@ -192,6 +225,7 @@ export class UsuariosComponent implements OnInit {
     this.modalEditOpen.set(false);
     this.editingUser.set(null);
     this.error.set('');
+    this.editSaving.set(false);
   }
 
   submitEdit() {
@@ -206,18 +240,32 @@ export class UsuariosComponent implements OnInit {
       programaFormacion: this.editForm.programaFormacion ?? '',
       numeroFicha: this.editForm.numeroFicha ?? this.editForm.ficha ?? '',
     };
+    this.editSaving.set(true);
     this.usuarioService.actualizar(u.id, payload).subscribe({
-      next: () => { this.closeEditModal(); this.loadUsuarios(); },
-      error: (e) => this.error.set(e.error?.message ?? 'Error al actualizar'),
+      next: () => {
+        this.editSaving.set(false);
+        this.closeEditModal();
+        this.loadUsuarios();
+        this.ui.success(`Los datos de ${u.nombreCompleto} fueron actualizados.`, 'Usuarios');
+      },
+      error: (e) => {
+        this.editSaving.set(false);
+        const message = e.error?.message ?? 'Error al actualizar';
+        this.error.set(message);
+        this.ui.error(message, 'Usuarios');
+      },
     });
   }
 
-  eliminar(u: Usuario) {
-    if (!confirm(`¿Eliminar (desactivar) a ${u.nombreCompleto}? No podrá iniciar sesión.`)) return;
-    this.usuarioService.eliminar(u.id).subscribe({
-      next: () => this.loadUsuarios(),
-      error: (e) => this.error.set(e.error?.message ?? 'Error al eliminar'),
+  async eliminar(u: Usuario) {
+    const confirmed = await this.ui.confirm(`¿Eliminar (desactivar) a ${u.nombreCompleto}? No podrá iniciar sesión.`, {
+      title: 'Eliminar usuario',
+      confirmText: 'Eliminar',
+      tone: 'danger',
     });
+    if (!confirmed) return;
+
+    this.runAction('delete', u.id, () => this.usuarioService.eliminar(u.id), () => this.loadUsuarios(), `El usuario ${u.nombreCompleto} fue desactivado.`);
   }
 
   getInitials(nombre: string): string {
@@ -243,4 +291,36 @@ export class UsuariosComponent implements OnInit {
 
   get totalActivos() { return this.usuarios().filter((u) => u.activo).length; }
   get totalMora() { return 0; }
+
+  isActionPending(action: string, id: number): boolean {
+    return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, onSuccess: () => void, successMessage: string) {
+    const key = `${action}-${id}`;
+    if (this.actionPending()[key]) return;
+
+    this.actionPending.update((state) => ({ ...state, [key]: true }));
+    request().subscribe({
+      next: () => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        onSuccess();
+        this.ui.success(successMessage, 'Usuarios');
+      },
+      error: (e) => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        const message = e.error?.message ?? 'No fue posible completar la acción.';
+        this.error.set(message);
+        this.ui.error(message, 'Usuarios');
+      },
+    });
+  }
 }

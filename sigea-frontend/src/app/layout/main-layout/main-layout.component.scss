@@ -110,6 +110,10 @@
   gap: 0.25rem;
 }
 
+.header-popover {
+  position: relative;
+}
+
 .theme-toggle {
   width: 38px;
   height: 38px;
@@ -171,6 +175,7 @@
   margin-left: 0.25rem;
   border: 1.5px solid transparent;
   transition: background var(--duration-fast), border-color var(--duration-fast);
+  background: transparent;
   &:hover { background: var(--bg-hover); border-color: var(--border-color); }
 }
 
@@ -200,9 +205,9 @@
 /* ---- Dropdowns ---- */
 .notification-panel,
 .user-dropdown {
-  position: fixed;
-  top: calc(var(--header-height) + 6px);
-  right: 1rem;
+  position: absolute;
+  top: calc(100% + 0.65rem);
+  right: 0;
   min-width: 330px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -225,12 +230,145 @@
   justify-content: space-between;
   align-items: center;
   h3 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+
+  p {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  &.compact {
+    gap: 1rem;
+  }
 }
 
 .notif-list {
   padding: 0.5rem 0.75rem;
   max-height: 360px;
   overflow-y: auto;
+
+  &.compact {
+    max-height: 480px;
+    padding: 0.4rem;
+  }
+}
+
+.notif-link-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.notification-panel {
+  width: min(420px, calc(100vw - 1.5rem));
+}
+
+.notif-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.notif-footer-btn {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  padding: 0.72rem 1rem;
+  border-radius: var(--border-radius-lg);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+
+  &:hover {
+    background: color-mix(in srgb, var(--bg-hover) 70%, var(--bg-card) 30%);
+    border-color: var(--color-primary);
+  }
+}
+
+.notification-empty-state {
+  min-height: 220px;
+}
+
+.notif-item.compact {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--border-radius-lg);
+  padding: 0.8rem 0.9rem;
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 0.8rem;
+  align-items: start;
+  text-align: left;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+
+  &:hover {
+    background: var(--bg-hover);
+  }
+
+  &.unread {
+    background: color-mix(in srgb, var(--color-primary-light) 40%, var(--bg-card) 60%);
+    border-left: 3px solid var(--color-primary);
+    border-color: color-mix(in srgb, var(--color-primary) 18%, transparent 82%);
+  }
+}
+
+.notif-dot {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  margin-top: 0.05rem;
+
+  &.tone-success { background: rgba(34, 197, 94, 0.12); color: var(--color-success); }
+  &.tone-info { background: rgba(59, 130, 246, 0.12); color: var(--color-info); }
+  &.tone-warning { background: rgba(245, 158, 11, 0.12); color: var(--color-warning); }
+  &.tone-danger { background: rgba(239, 68, 68, 0.12); color: var(--color-danger); }
+}
+
+.notif-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+
+  strong {
+    font-size: 0.86rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.notif-message {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-time {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  align-self: end;
 }
 
 .dropdown-header {
@@ -263,6 +401,20 @@
   &:hover { background: var(--bg-hover); }
   &.danger { color: var(--color-danger); }
   i { width: 18px; text-align: center; }
+}
+
+@media (max-width: 640px) {
+  .notification-panel,
+  .user-dropdown {
+    position: fixed;
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+
+  .user-menu {
+    padding-right: 0.4rem;
+  }
 }
 
 /* ============================================================

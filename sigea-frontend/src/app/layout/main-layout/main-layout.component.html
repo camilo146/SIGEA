@@ -19,65 +19,104 @@
     <button type="button" class="theme-toggle" (click)="toggleTheme()" title="Cambiar tema">
       <i class="fas" [ngClass]="darkMode() ? 'fa-sun' : 'fa-moon'"></i>
     </button>
-    <button type="button" class="notification-icon" (click)="toggleNotifications()" title="Notificaciones">
-      <i class="fas fa-bell"></i>
-      @if (contadorNoLeidas() > 0) {
-        <span class="header-badge">{{ contadorNoLeidas() }}</span>
+    <div class="header-popover notifications-popover">
+      <button type="button" class="notification-icon" (click)="toggleNotifications($event)" title="Notificaciones" aria-label="Abrir notificaciones">
+        <i class="fas fa-bell"></i>
+        @if (contadorNoLeidas() > 0) {
+          <span class="header-badge">{{ contadorNoLeidas() }}</span>
+        }
+      </button>
+
+      @if (notificationOpen()) {
+        <div class="notification-panel" id="notificationPanel">
+          <div class="notif-header compact">
+            <div>
+              <h3>Notificaciones</h3>
+              <p>{{ contadorNoLeidas() }} pendientes</p>
+            </div>
+            <button type="button" class="notif-link-btn" (click)="marcarTodasComoLeidas()" [disabled]="markAllLoading()">
+              @if (markAllLoading()) {
+                <i class="fas fa-spinner fa-spin"></i>
+              }
+              Marcar todas como leídas
+            </button>
+          </div>
+
+          <div class="notif-list compact">
+            @if (notificationsLoading()) {
+              <div class="empty-state notification-empty-state">
+                <i class="fas fa-spinner fa-spin empty-icon"></i>
+                <p>Cargando notificaciones...</p>
+              </div>
+            } @else if (notificaciones().length) {
+              @for (n of notificaciones(); track n.id) {
+                <button
+                  type="button"
+                  class="notif-item compact"
+                  [class.unread]="!n.leida"
+                  (click)="marcarLeida(n)"
+                >
+                  <span class="notif-dot" [class]="'tone-' + getNotificationTone(n.tipoNotificacion)">
+                    <i class="fas" [ngClass]="getNotificationIcon(n.tipoNotificacion)"></i>
+                  </span>
+                  <span class="notif-copy">
+                    <strong>{{ n.titulo || 'Notificación' }}</strong>
+                    <span class="notif-message">{{ n.mensaje }}</span>
+                  </span>
+                  <span class="notif-time">{{ relativeTime(n.fechaEnvio || n.fechaCreacion) }}</span>
+                </button>
+              }
+            } @else {
+              <div class="empty-state notification-empty-state">
+                <i class="fas fa-bell-slash empty-icon"></i>
+                <h4>Sin notificaciones nuevas</h4>
+                <p>No tienes pendientes en este momento.</p>
+              </div>
+            }
+          </div>
+
+          <div class="notif-footer">
+            <button type="button" class="notif-footer-btn" (click)="verTodasNotificaciones()">
+              Ver todas las notificaciones
+            </button>
+          </div>
+        </div>
       }
-    </button>
-    <div class="user-menu" (click)="toggleUserMenu()">
-      <div class="user-avatar">{{ (user()?.nombreCompleto ?? 'NA').slice(0, 2).toUpperCase() }}</div>
-      <div class="user-info-header">
-        <span class="user-name-header">{{ user()?.nombreCompleto ?? 'Usuario' }}</span>
-        <span class="user-role-header">{{ getRolLabel(user()?.rol) }}</span>
-      </div>
-      <i class="fas fa-chevron-down" style="font-size:0.7rem; color:var(--text-muted)"></i>
+    </div>
+
+    <div class="header-popover user-popover">
+      <button type="button" class="user-menu" (click)="toggleUserMenu($event)" aria-label="Abrir menú de usuario">
+        <div class="user-avatar">{{ (user()?.nombreCompleto ?? 'NA').slice(0, 2).toUpperCase() }}</div>
+        <div class="user-info-header">
+          <span class="user-name-header">{{ user()?.nombreCompleto ?? 'Usuario' }}</span>
+          <span class="user-role-header">{{ getRolLabel(user()?.rol) }}</span>
+        </div>
+        <i class="fas fa-chevron-down" style="font-size:0.7rem; color:var(--text-muted)"></i>
+      </button>
+
+      @if (userMenuOpen()) {
+        <div class="user-dropdown" id="userDropdown">
+          <div class="dropdown-header">
+            <div class="user-avatar large">{{ (user()?.nombreCompleto ?? 'NA').slice(0, 2).toUpperCase() }}</div>
+            <div>
+              <strong>{{ user()?.nombreCompleto }}</strong>
+              <p>{{ user()?.correoElectronico }}</p>
+              <p style="color:var(--color-primary); font-weight:600; font-size:0.8rem;">{{ getRolLabel(user()?.rol) }}</p>
+            </div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item"><i class="fas fa-user-edit"></i> Mi Perfil</a>
+          <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Configuración</a>
+          <a href="#" class="dropdown-item"><i class="fas fa-question-circle"></i> Ayuda</a>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item danger" (click)="logout()">
+            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+          </button>
+        </div>
+      }
     </div>
   </div>
 </header>
-
-<!-- Panel notificaciones -->
-@if (notificationOpen()) {
-  <div class="notification-panel" id="notificationPanel">
-    <div class="notif-header">
-      <h3><i class="fas fa-bell" style="margin-right:0.4rem; color:var(--color-primary)"></i>Notificaciones</h3>
-      <span style="font-size:0.8rem; color:var(--text-muted)">{{ contadorNoLeidas() }} nuevas</span>
-    </div>
-    <div class="notif-list">
-      @for (n of notificaciones(); track n.id) {
-        <div class="notif-item" [class.unread]="!n.leida" (click)="n.leida || marcarLeida(n)">
-          <strong>{{ n.titulo || 'Notificación' }}</strong>
-          <p>{{ n.mensaje }}</p>
-          <small>{{ n.fechaEnvio ? (n.fechaEnvio | date:'dd/MM/yyyy HH:mm') : '' }}</small>
-        </div>
-      } @empty {
-        <p class="text-muted" style="text-align:center; padding:1.5rem 0">No hay notificaciones</p>
-      }
-    </div>
-  </div>
-}
-
-<!-- Dropdown usuario -->
-@if (userMenuOpen()) {
-  <div class="user-dropdown" id="userDropdown">
-    <div class="dropdown-header">
-      <div class="user-avatar large">{{ (user()?.nombreCompleto ?? 'NA').slice(0, 2).toUpperCase() }}</div>
-      <div>
-        <strong>{{ user()?.nombreCompleto }}</strong>
-        <p>{{ user()?.correoElectronico }}</p>
-        <p style="color:var(--color-primary); font-weight:600; font-size:0.8rem;">{{ getRolLabel(user()?.rol) }}</p>
-      </div>
-    </div>
-    <div class="dropdown-divider"></div>
-    <a href="#" class="dropdown-item"><i class="fas fa-user-edit"></i> Mi Perfil</a>
-    <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Configuración</a>
-    <a href="#" class="dropdown-item"><i class="fas fa-question-circle"></i> Ayuda</a>
-    <div class="dropdown-divider"></div>
-    <button type="button" class="dropdown-item danger" (click)="logout()">
-      <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-    </button>
-  </div>
-}
 
 <div class="main-container" (click)="closeDropdowns()">
   <aside class="sidebar" [class.collapsed]="!sidebarOpen()" id="sidebar">

@@ -7,6 +7,7 @@ import { CategoriaService } from '../../core/services/categoria.service';
 import { AmbienteService } from '../../core/services/ambiente.service';
 import { ReporteService } from '../../core/services/reporte.service';
 import { AuthService } from '../../core/services/auth.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { environment } from '../../../environments/environment';
 import type { Equipo, EquipoCrear, TipoUsoEquipo } from '../../core/models/equipo.model';
 import type { Categoria } from '../../core/models/categoria.model';
@@ -26,6 +27,7 @@ export class InventarioComponent implements OnInit {
   private reporteService = inject(ReporteService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private ui = inject(UiFeedbackService);
 
   equipos = signal<Equipo[]>([]);
   categorias = signal<Categoria[]>([]);
@@ -34,6 +36,8 @@ export class InventarioComponent implements OnInit {
   error = signal('');
   modalOpen = signal(false);
   editingId = signal<number | null>(null);
+  savingForm = signal(false);
+  actionPending = signal<Record<string, boolean>>({});
 
   filterCategoria = signal<number | ''>('');
   filterEstado = signal<string>('');
@@ -120,7 +124,7 @@ export class InventarioComponent implements OnInit {
     this.modalOpen.set(true);
   }
 
-  closeModal() { this.modalOpen.set(false); this.editingId.set(null); this.fotoArchivo = null; this.error.set(''); }
+  closeModal() { this.modalOpen.set(false); this.editingId.set(null); this.fotoArchivo = null; this.error.set(''); this.savingForm.set(false); }
 
   onFotoSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -140,20 +144,46 @@ export class InventarioComponent implements OnInit {
       this.error.set('Debe adjuntar al menos una foto del equipo (JPG, PNG).');
       return;
     }
+    this.savingForm.set(true);
     if (esCrear) {
       this.equipoService.crear(this.form).subscribe({
         next: (nuevo) => {
           this.equipoService.subirFoto(nuevo.id, this.fotoArchivo!).subscribe({
-            next: () => { this.closeModal(); this.loadEquipos(); },
-            error: (err) => this.error.set(err.error?.message ?? 'Error al subir la foto'),
+            next: () => {
+              this.savingForm.set(false);
+              this.closeModal();
+              this.loadEquipos();
+              this.ui.success(`El equipo "${nuevo.nombre}" fue registrado correctamente.`, 'Inventario');
+            },
+            error: (err) => {
+              this.savingForm.set(false);
+              const message = err.error?.message ?? 'Error al subir la foto';
+              this.error.set(message);
+              this.ui.error(message, 'Inventario');
+            },
           });
         },
-        error: (err) => this.error.set(err.error?.message ?? 'Error'),
+        error: (err) => {
+          this.savingForm.set(false);
+          const message = err.error?.message ?? 'Error';
+          this.error.set(message);
+          this.ui.error(message, 'Inventario');
+        },
       });
     } else {
       this.equipoService.actualizar(id!, this.form).subscribe({
-        next: () => { this.closeModal(); this.loadEquipos(); },
-        error: (err) => this.error.set(err.error?.message ?? 'Error'),
+        next: () => {
+          this.savingForm.set(false);
+          this.closeModal();
+          this.loadEquipos();
+          this.ui.success(`El equipo "${this.form.nombre}" fue actualizado.`, 'Inventario');
+        },
+        error: (err) => {
+          this.savingForm.set(false);
+          const message = err.error?.message ?? 'Error';
+          this.error.set(message);
+          this.ui.error(message, 'Inventario');
+        },
       });
     }
   }
@@ -169,21 +199,30 @@ export class InventarioComponent implements OnInit {
     this.reporteService.reporteInventario(formato, undefined, cat === '' ? undefined : cat, est || undefined);
   }
 
-  darDeBaja(e: Equipo) {
-    if (!confirm(`¿Dar de baja el equipo "${e.nombre}"?`)) return;
-    this.equipoService.darDeBaja(e.id).subscribe({ next: () => this.loadEquipos(), error: (err) => this.error.set(err.error?.message ?? 'Error') });
+  async darDeBaja(e: Equipo) {
+    const confirmed = await this.ui.confirm(`¿Dar de baja el equipo "${e.nombre}"?`, {
+      title: 'Dar de baja equipo',
+      confirmText: 'Dar de baja',
+      tone: 'warning',
+    });
+    if (!confirmed) return;
+
+    this.runAction('deactivate', e.id, () => this.equipoService.darDeBaja(e.id), `El equipo "${e.nombre}" fue dado de baja.`);
   }
 
   activar(e: Equipo) {
-    this.equipoService.activar(e.id).subscribe({ next: () => this.loadEquipos(), error: (err) => this.error.set(err.error?.message ?? 'Error') });
+    this.runAction('activate', e.id, () => this.equipoService.activar(e.id), `El equipo "${e.nombre}" fue activado.`);
   }
 
-  eliminarEquipo(e: Equipo) {
-    if (!confirm(`¿Eliminar permanentemente el equipo "${e.nombre}"? No podrá deshacerse.`)) return;
-    this.equipoService.eliminar(e.id).subscribe({
-      next: () => this.loadEquipos(),
-      error: (err) => this.error.set(err.error?.message ?? 'Error al eliminar'),
+  async eliminarEquipo(e: Equipo) {
+    const confirmed = await this.ui.confirm(`¿Eliminar permanentemente el equipo "${e.nombre}"? No podrá deshacerse.`, {
+      title: 'Eliminar equipo',
+      confirmText: 'Eliminar',
+      tone: 'danger',
     });
+    if (!confirmed) return;
+
+    this.runAction('delete', e.id, () => this.equipoService.eliminar(e.id), `El equipo "${e.nombre}" fue eliminado.`);
   }
 
   estadoLabel(estado: string): string {
@@ -220,16 +259,51 @@ export class InventarioComponent implements OnInit {
   }
 
   /** Recuperar un equipo que fue transferido a otro inventario. */
-  recuperarEquipo(e: Equipo) {
-    if (!confirm(`¿Recuperar el equipo "${e.nombre}" a tu inventario?`)) return;
-    this.equipoService.recuperarEquipo(e.id).subscribe({
-      next: () => this.loadEquipos(),
-      error: (err) => this.error.set(err.error?.message ?? 'Error al recuperar equipo'),
+  async recuperarEquipo(e: Equipo) {
+    const confirmed = await this.ui.confirm(`¿Recuperar el equipo "${e.nombre}" a tu inventario?`, {
+      title: 'Recuperar equipo',
+      confirmText: 'Recuperar',
+      tone: 'success',
     });
+    if (!confirmed) return;
+
+    this.runAction('recover', e.id, () => this.equipoService.recuperarEquipo(e.id), `El equipo "${e.nombre}" volvió a tu inventario.`);
   }
 
   /** true si el equipo fue transferido (está en otro inventario distinto al propietario). */
   estaTransferido(e: Equipo): boolean {
     return !!e.propietarioId && !!e.inventarioActualInstructorId && e.propietarioId !== e.inventarioActualInstructorId;
+  }
+
+  isActionPending(action: string, id: number): boolean {
+    return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, successMessage: string) {
+    const key = `${action}-${id}`;
+    if (this.actionPending()[key]) return;
+
+    this.actionPending.update((state) => ({ ...state, [key]: true }));
+    request().subscribe({
+      next: () => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        this.loadEquipos();
+        this.ui.success(successMessage, 'Inventario');
+      },
+      error: (err) => {
+        this.actionPending.update((state) => {
+          const next = { ...state };
+          delete next[key];
+          return next;
+        });
+        const message = err.error?.message ?? 'No fue posible completar la acción.';
+        this.error.set(message);
+        this.ui.error(message, 'Inventario');
+      },
+    });
   }
 }

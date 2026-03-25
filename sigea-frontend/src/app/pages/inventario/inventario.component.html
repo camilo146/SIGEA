@@ -116,24 +116,40 @@
               </td>
               <td class="actions">
                 @if (isAdminOrInstructor()) {
-                  <button type="button" class="btn-icon" (click)="openEdit(e)" title="Editar">
+                  <button type="button" class="btn-icon" (click)="openEdit(e)" title="Editar" aria-label="Editar equipo">
                     <i class="fas fa-edit"></i>
                   </button>
                   @if (e.activo) {
-                    <button type="button" class="btn-icon danger" (click)="darDeBaja(e)" title="Dar de baja">
-                      <i class="fas fa-ban"></i>
+                    <button type="button" class="btn-icon danger" (click)="darDeBaja(e)" title="Dar de baja" aria-label="Dar de baja equipo" [disabled]="isActionPending('deactivate', e.id)">
+                      @if (isActionPending('deactivate', e.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-ban"></i>
+                      }
                     </button>
                   } @else {
-                    <button type="button" class="btn-icon success" (click)="activar(e)" title="Activar">
-                      <i class="fas fa-check"></i>
+                    <button type="button" class="btn-icon success" (click)="activar(e)" title="Activar" aria-label="Activar equipo" [disabled]="isActionPending('activate', e.id)">
+                      @if (isActionPending('activate', e.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-check"></i>
+                      }
                     </button>
                   }
-                  <button type="button" class="btn-icon danger" (click)="eliminarEquipo(e)" title="Eliminar">
-                    <i class="fas fa-trash-alt"></i>
+                  <button type="button" class="btn-icon danger" (click)="eliminarEquipo(e)" title="Eliminar" aria-label="Eliminar equipo" [disabled]="isActionPending('delete', e.id)">
+                    @if (isActionPending('delete', e.id)) {
+                      <i class="fas fa-spinner fa-spin"></i>
+                    } @else {
+                      <i class="fas fa-trash-alt"></i>
+                    }
                   </button>
                   @if (estaTransferido(e)) {
-                    <button type="button" class="btn-icon" (click)="recuperarEquipo(e)" title="Recuperar a mi inventario" style="color:var(--color-primary)">
-                      <i class="fas fa-undo"></i>
+                    <button type="button" class="btn-icon" (click)="recuperarEquipo(e)" title="Recuperar a mi inventario" aria-label="Recuperar equipo a mi inventario" style="color:var(--color-primary)" [disabled]="isActionPending('recover', e.id)">
+                      @if (isActionPending('recover', e.id)) {
+                        <i class="fas fa-spinner fa-spin"></i>
+                      } @else {
+                        <i class="fas fa-undo"></i>
+                      }
                     </button>
                   }
                 } @else if (e.activo && e.cantidadDisponible > 0) {
@@ -273,8 +289,12 @@
         }
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> Guardar
+          <button type="submit" class="btn btn-primary" [disabled]="savingForm()">
+            @if (savingForm()) {
+              <i class="fas fa-spinner fa-spin btn-spinner"></i> Guardando...
+            } @else {
+              <i class="fas fa-save"></i> Guardar
+            }
           </button>
         </div>
       </form>
