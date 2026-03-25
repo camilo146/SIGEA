@@ -6,7 +6,7 @@
 - **CPU**: 2 núcleos
 - **RAM**: 4 GB
 - **Disco**: 20 GB SSD
-- **SO**: Ubuntu 20.04 LTS o superior (Linux)
+- **SO**: Rocky Linux 8/9 (recomendado) o Ubuntu 20.04+ (Linux)
 
 ### Software Requerido
 - **Docker**: 24.0+
@@ -25,24 +25,29 @@
 ssh usuario@ip_del_servidor
 ```
 
-#### 1.2 Actualizar el Sistema
+#### 1.2 Actualizar el Sistema (Rocky Linux)
 ```bash
-sudo apt update && sudo apt upgrade -y
+sudo dnf update -y
 ```
 
 #### 1.3 Instalar Dependencias Básicas
 ```bash
-sudo apt install -y curl wget git vim htop
+sudo dnf install -y curl wget git vim htop
 ```
 
-#### 1.4 Instalar Docker
+#### 1.4 Instalar Docker (Rocky Linux)
 ```bash
 # Remover versiones anteriores si existen
-sudo apt remove -y docker docker-engine docker.io containerd runc
+sudo dnf remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman-docker runc
 
-# Instalar Docker usando el script oficial
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+# Habilitar utilidades de repositorio
+sudo dnf install -y dnf-plugins-core
+
+# Agregar repositorio oficial de Docker
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# Instalar Docker Engine + Compose plugin
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Iniciar y habilitar Docker
 sudo systemctl enable docker
@@ -52,14 +57,9 @@ sudo systemctl start docker
 docker --version
 ```
 
-#### 1.5 Instalar Docker Compose (Plugin)
+#### 1.5 Verificar Docker Compose (Plugin)
 ```bash
-# El plugin viene incluido con Docker reciente, verificar
 docker compose version
-
-# Si no está disponible, instalar manualmente
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
 ```
 
 #### 1.6 Configurar Usuario para Docker (Opcional pero recomendado)
@@ -82,8 +82,7 @@ sudo ufw allow ssh
 # Permitir puertos de la aplicación
 sudo ufw allow 80
 sudo ufw allow 443
-sudo ufw allow 8080  # Backend
-sudo ufw allow 8083  # Frontend
+sudo ufw allow 4043  # Frontend
 
 # Verificar estado
 sudo ufw status
@@ -113,7 +112,7 @@ MARIADB_PASSWORD=tu_password_segura_db
 MARIADB_ROOT_PASSWORD=tu_root_password_segura
 
 # Spring Boot
-SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota
+SPRING_DATASOURCE_URL=jdbc:mariadb://db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota
 SPRING_DATASOURCE_USERNAME=sigea_user
 SPRING_DATASOURCE_PASSWORD=tu_password_segura_db
 SPRING_PROFILES_ACTIVE=prod
@@ -131,7 +130,10 @@ SIGEA_SMTP_AUTH=true
 SIGEA_SMTP_STARTTLS=true
 
 # URLs de la Aplicación
-SIGEA_APP_URL=https://tu-dominio-sena.edu.co
+SIGEA_APP_URL=https://tu-dominio-sena.edu.co:4043
+
+# Frontend publicado en el host
+FRONTEND_PORT=4043
 
 # Configuración de Archivos
 SIGEA_UPLOADS_PATH=/app/uploads
@@ -174,14 +176,16 @@ docker compose ps
 # Ver logs de cada servicio
 docker compose logs backend
 docker compose logs frontend
-docker compose logs mariadb
+docker compose logs db
 ```
 
 #### 3.4 Probar Conexiones
 ```bash
-# Desde el servidor, probar conectividad interna
-curl http://localhost:8080/api/v1/auth/health
-curl http://localhost:8083
+# Probar frontend publicado
+curl -I http://localhost:4043
+
+# Probar backend desde red interna de Docker
+docker compose exec frontend wget -qO- http://backend:8080/actuator/health || true
 ```
 
 ### Paso 4: Configuración de Producción
@@ -189,7 +193,7 @@ curl http://localhost:8083
 #### 4.1 Configurar Nginx como Reverse Proxy (Recomendado)
 ```bash
 # Instalar Nginx
-sudo apt install -y nginx
+sudo dnf install -y nginx
 
 # Crear configuración para SIGEA
 sudo nano /etc/nginx/sites-available/sigea
@@ -213,29 +217,13 @@ server {
     ssl_certificate /etc/letsencrypt/live/tu-dominio-sena.edu.co/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/tu-dominio-sena.edu.co/privkey.pem;
 
-    # Frontend
+    # Frontend (incluye /api hacia backend por proxy interno del contenedor frontend)
     location / {
-        proxy_pass http://localhost:8083;
+        proxy_pass http://localhost:4043;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Backend API
-    location /api/ {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Swagger
-    location /swagger-ui/ {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 ```
@@ -258,7 +246,7 @@ sudo systemctl enable nginx
 #### 4.2 Obtener Certificado SSL (Let's Encrypt)
 ```bash
 # Instalar Certbot
-sudo apt install -y certbot python3-certbot-nginx
+sudo dnf install -y certbot python3-certbot-nginx
 
 # Obtener certificado
 sudo certbot --nginx -d tu-dominio-sena.edu.co
@@ -295,7 +283,7 @@ Contenido:
 ```bash
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-docker exec sigea-mariadb mysqldump -u root -p"$MARIADB_ROOT_PASSWORD" sigea_db > backup_$DATE.sql
+docker exec sigea-db mysqldump -u root -p"$MARIADB_ROOT_PASSWORD" sigea_db > backup_$DATE.sql
 echo "Backup creado: backup_$DATE.sql"
 ```
 
@@ -323,8 +311,7 @@ docker compose ps
 #### 6.1 Puerto ya en uso
 ```bash
 # Ver qué proceso usa el puerto
-sudo lsof -i :8080
-sudo lsof -i :8083
+sudo lsof -i :4043
 
 # Matar proceso si es necesario
 sudo kill -9 PID
@@ -332,8 +319,8 @@ sudo kill -9 PID
 
 #### 6.2 Error de conexión a DB
 ```bash
-# Ver logs de MariaDB
-docker compose logs mariadb
+# Ver logs de base de datos
+docker compose logs db
 
 # Verificar variables de entorno
 docker compose exec backend env | grep DB

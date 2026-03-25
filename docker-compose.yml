@@ -41,9 +41,7 @@ services:
       SIGEA_SMTP_PASSWORD: ${SIGEA_SMTP_PASSWORD:-password-smtp}
       SIGEA_SMTP_AUTH: ${SIGEA_SMTP_AUTH:-true}
       SIGEA_SMTP_STARTTLS: ${SIGEA_SMTP_STARTTLS:-true}
-      SIGEA_APP_URL: ${SIGEA_APP_URL:-http://localhost:${FRONTEND_PORT:-8083}}
-    ports:
-      - "8080:8080"
+      SIGEA_APP_URL: ${SIGEA_APP_URL:-http://localhost:${FRONTEND_PORT:-4043}}
     volumes:
       - sigea_uploads_data:/app/uploads
 
@@ -56,7 +54,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-8083}:80"
+      - "${FRONTEND_PORT:-4043}:80"
 
 volumes:
   sigea_db_data:

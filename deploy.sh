@@ -12,6 +12,7 @@ set -euo pipefail
 REPO_URL="https://github.com/camilo146/SIGEA.git"
 APP_DIR="/opt/sigea"
 ACTION="${1:-install}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 info()    { echo -e "${GREEN}[SIGEA]${NC} $1"; }
@@ -20,7 +21,7 @@ error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 # ── Verificar Docker ────────────────────────────────────────────────────────────
 command -v docker >/dev/null 2>&1 || error "Docker no está instalado."
-docker compose version >/dev/null 2>&1 || error "Docker Compose plugin no encontrado. Instálalo con: sudo apt install docker-compose-plugin"
+docker compose version >/dev/null 2>&1 || error "Docker Compose plugin no encontrado. Instálalo con tu gestor de paquetes (Ubuntu/Debian: apt, Rocky/RHEL: dnf)."
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INSTALACIÓN (primera vez)
@@ -29,19 +30,25 @@ if [ "$ACTION" = "install" ]; then
 
   info "Instalando SIGEA en $APP_DIR ..."
 
-  # Crear directorio
-  sudo mkdir -p "$APP_DIR"
-  sudo chown "$USER:$USER" "$APP_DIR"
-
-  # Clonar repositorio
+  # Si ya se clonó el repo (flujo recomendado), usarlo sin salir.
   if [ -d "$APP_DIR/.git" ]; then
-    warning "El directorio ya existe. Usa 'bash deploy.sh update' para actualizar."
-    exit 0
+    info "Repositorio detectado en $APP_DIR. Continuando instalación en directorio existente..."
+    cd "$APP_DIR"
+  elif [ -d "$SCRIPT_DIR/.git" ] && [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+    warning "No se encontró repo en $APP_DIR; se usará el repositorio actual: $SCRIPT_DIR"
+    APP_DIR="$SCRIPT_DIR"
+    cd "$APP_DIR"
+  else
+    # Crear directorio y clonar solo si no existe repo en ruta estándar ni en directorio actual.
+    sudo mkdir -p "$APP_DIR"
+    sudo chown "$USER:$USER" "$APP_DIR"
+
+    info "Clonando repositorio..."
+    git clone "$REPO_URL" "$APP_DIR"
+    cd "$APP_DIR"
   fi
 
-  info "Clonando repositorio..."
-  git clone "$REPO_URL" "$APP_DIR"
-  cd "$APP_DIR"
+  [ -f "docker-compose.yml" ] || error "No se encontró docker-compose.yml en $APP_DIR"
 
   # Crear .env si no existe
   if [ ! -f ".env" ]; then
@@ -52,6 +59,11 @@ if [ "$ACTION" = "install" ]; then
     echo ""
     read -r -p "¿Editaste el .env y estás listo para continuar? (s/N): " confirm
     [[ "$confirm" =~ ^[sS]$ ]] || { warning "Abortado. Edita el .env y ejecuta: bash deploy.sh update"; exit 0; }
+  fi
+
+  # Advertencia de seguridad: APP_URL debe usar HTTPS en producción
+  if grep -Eq '^SIGEA_APP_URL=http://' .env; then
+    warning "SIGEA_APP_URL usa http://. Para proteger credenciales en tránsito, usa HTTPS (https://...)."
   fi
 
   # Construir y levantar
@@ -65,18 +77,25 @@ if [ "$ACTION" = "install" ]; then
 
   echo ""
   info "✓ SIGEA instalado correctamente."
-  info "  Frontend: http://$(hostname -I | awk '{print $1}'):${FRONTEND_PORT:-8083}"
-  info "  Backend:  http://$(hostname -I | awk '{print $1}'):8080"
+  info "  Frontend: http://$(hostname -I | awk '{print $1}'):${FRONTEND_PORT:-4043}"
+  info "  Backend:  servicio interno (no expuesto públicamente)"
   echo ""
   info "Credenciales por defecto: admin@sigea.edu.co / Admin2026*"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACTUALIZACIÓN
 # ══════════════════════════════════════════════════════════════════════════════
-elif [ "$ACTION" = "update" ]; then
+elif [ "$ACTION" = "update" ]; then 
 
-  [ -d "$APP_DIR/.git" ] || error "SIGEA no está instalado en $APP_DIR. Ejecuta: bash deploy.sh"
-  cd "$APP_DIR"
+  if [ -d "$APP_DIR/.git" ]; then
+    cd "$APP_DIR"
+  elif [ -d "$SCRIPT_DIR/.git" ] && [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+    warning "No se encontró instalación en $APP_DIR; se usará el repositorio actual: $SCRIPT_DIR"
+    APP_DIR="$SCRIPT_DIR"
+    cd "$APP_DIR"
+  else
+    error "SIGEA no está instalado en $APP_DIR. Ejecuta: bash deploy.sh"
+  fi
 
   info "Actualizando SIGEA..."
 
