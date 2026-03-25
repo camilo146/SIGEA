@@ -4,6 +4,7 @@ package co.edu.sena.sigea.seguridad.config;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -32,6 +33,10 @@ import jakarta.servlet.http.HttpServletRequest;
 public class SecurityConfig {
     //Inyectamos el filtro de autenticacion JWT para que se ejecute en cada peticion HTTP
     private final JwtFiltroAutenticacion jwtFiltroAutenticacion;
+
+    /** URL del frontend/app en producción (ej: http://192.168.4.250:4043). Se agrega a CORS. */
+    @Value("${sigea.app.url:http://localhost:8082}")
+    private String appUrl;
 
     // Constructor para inyectar el filtro de autenticacion JWT
     public SecurityConfig(JwtFiltroAutenticacion jwtFiltroAutenticacion){
@@ -90,8 +95,10 @@ public class SecurityConfig {
         // Configuración de CORS para permitir solicitudes desde el frontend (ng serve puede usar cualquier puerto)
         public CorsConfigurationSource corsConfigurationSource(){
             CorsConfiguration configuration = new CorsConfiguration();
+            // Incluye localhost (desarrollo) + la URL real del servidor (producción, ej: http://192.168.4.250:4043)
             configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*", "http://127.0.0.1:*", "http://localhost:4200", "http://localhost:58648"
+                "http://localhost:*", "http://127.0.0.1:*", "http://localhost:4200", "http://localhost:58648",
+                appUrl
             ));
             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
             configuration.setAllowedHeaders(List.of("*"));
