@@ -111,9 +111,9 @@ export class LoginComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         const msg = err.error?.message ?? '';
-        if (msg.includes('verificar tu correo') || msg.includes('código de 6 dígitos')) {
-          this.error = msg;
-        } else if (msg.toLowerCase().includes('pendiente de aprobación')) {
+        // Si el backend envía un mensaje de negocio, mostrarlo tal cual
+        // (ej: pendiente de aprobación, cuenta bloqueada, correo no verificado).
+        if (msg) {
           this.error = msg;
         } else if (err.status === 401 || err.status === 403 || err.status === 400) {
           this.error = 'Correo o contraseña incorrectos.';
