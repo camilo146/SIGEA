@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.sena.sigea.common.enums.EstadoAprobacion;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
-import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
 import co.edu.sena.sigea.seguridad.dto.LoginDTO;
 import co.edu.sena.sigea.seguridad.dto.LoginRespuestaDTO;
 import co.edu.sena.sigea.seguridad.dto.RegistroDTO;
@@ -81,11 +80,11 @@ public class AutenticacionServicio {
     public LoginRespuestaDTO login(LoginDTO loginDTO) {
 
         // Buscar el usuario por correo
-        // si no existe lanzar RecursoNoEncontradoException (404)
+        // si no existe responder como credenciales invalidas para evitar enumeracion de cuentas
         Usuario usuario = usuarioRepository.findByCorreoElectronico(
                 loginDTO.getCorreoElectronico())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Usuario no encontrado con correo: " + loginDTO.getCorreoElectronico()));
+            .orElseThrow(() -> new OperacionNoPermitidaException(
+                "Credenciales inválidas"));
 
         // Verificar si la cuenta esta activa
 
