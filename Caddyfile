@@ -1,0 +1,14 @@
+{
+  email {$ACME_EMAIL}
+}
+
+# Dominio público de SIGEA (obligatorio para TLS válido de Let's Encrypt)
+{$SIGEA_DOMAIN} {
+  encode gzip zstd
+  reverse_proxy frontend:80
+}
+
+# Ayuda mínima en HTTP si entran por IP o sin dominio
+:80 {
+  respond "SIGEA proxy activo. Configura SIGEA_DOMAIN y accede por https://{env.SIGEA_DOMAIN}" 200
+}

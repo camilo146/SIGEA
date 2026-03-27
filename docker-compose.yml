@@ -86,15 +86,36 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    ports:
-      - "${FRONTEND_PORT:-443}:80"
     networks:
       sigea-net:
         ipv4_address: 172.28.10.12
 
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: sigea-caddy
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SIGEA_DOMAIN: ${SIGEA_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - sigea_caddy_data:/data
+      - sigea_caddy_config:/config
+    networks:
+      sigea-net:
+        ipv4_address: 172.28.10.13
+
 volumes:
   sigea_db_data:
   sigea_uploads_data:
+  sigea_caddy_data:
+  sigea_caddy_config:
 
 networks:
   sigea-net:

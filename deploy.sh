@@ -24,14 +24,13 @@ warning() { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 frontend_url() {
-  local host port
+  local host domain
   host="$(hostname -I | awk '{print $1}')"
-  port="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
-  port="${port:-443}"
-  if [ "$port" = "443" ]; then
-    echo "https://$host"
+  domain="$(grep -E '^SIGEA_DOMAIN=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
+  if [ -n "$domain" ]; then
+    echo "https://$domain"
   else
-    echo "https://$host:$port"
+    echo "https://$host"
   fi
 }
 
@@ -82,8 +81,12 @@ if [ "$ACTION" = "install" ]; then
     warning "SIGEA_APP_URL usa http://. Para proteger credenciales en tránsito, usa HTTPS (https://...)."
   fi
 
-  if grep -Eq '^FRONTEND_PORT=4043$' .env; then
-    warning "FRONTEND_PORT está en 4043. Para despliegue público recomendado usa 443."
+  if ! grep -Eq '^SIGEA_DOMAIN=' .env; then
+    warning "SIGEA_DOMAIN no está definido. HTTPS con certificado válido requiere un dominio público."
+  fi
+
+  if ! grep -Eq '^ACME_EMAIL=' .env; then
+    warning "ACME_EMAIL no está definido. Let's Encrypt requiere correo para emitir/renovar certificados."
   fi
 
   # Construir y levantar
