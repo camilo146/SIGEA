@@ -32,6 +32,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    links:
+      - db:db
+      - db:sigea-db
     environment:
       TZ: ${TZ:-America/Bogota}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://sigea-db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
