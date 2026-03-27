@@ -10,6 +10,8 @@ ENV NPM_CONFIG_PRODUCTION=false
 COPY package*.json ./
 RUN npm ci --include=dev
 
+RUN npm install -g @angular/cli
+
 COPY . .
 RUN npm run build
 
