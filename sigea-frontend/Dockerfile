@@ -3,13 +3,15 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# Forzar instalación de devDependencies durante el build del frontend.
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
+
 COPY package*.json ./
-# En algunos servidores NODE_ENV puede quedar en production y omitir devDependencies.
-# Forzamos include=dev para que exista @angular/cli (comando ng) durante el build.
 RUN npm ci --include=dev
 
 COPY . .
-RUN npm run build
+RUN npx ng build
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/nginx.conf
