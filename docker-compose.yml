@@ -15,6 +15,7 @@ services:
       - sigea_db_data:/var/lib/mysql
     networks:
       sigea-net:
+        ipv4_address: 172.28.10.10
         aliases:
           - db
     healthcheck:
@@ -37,7 +38,7 @@ services:
       - db:sigea-db
     environment:
       TZ: ${TZ:-America/Bogota}
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://sigea-db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://172.28.10.10:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-sigea_user}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-sigea_password_2026}
       SIGEA_UPLOADS_PATH: ${SIGEA_UPLOADS_PATH:-/app/uploads}
@@ -73,7 +74,8 @@ services:
     volumes:
       - sigea_uploads_data:/app/uploads
     networks:
-      - sigea-net
+      sigea-net:
+        ipv4_address: 172.28.10.11
 
   frontend:
     build:
@@ -87,7 +89,8 @@ services:
     ports:
       - "${FRONTEND_PORT:-443}:80"
     networks:
-      - sigea-net
+      sigea-net:
+        ipv4_address: 172.28.10.12
 
 volumes:
   sigea_db_data:
@@ -96,3 +99,7 @@ volumes:
 networks:
   sigea-net:
     name: sigea-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.10.0/24
