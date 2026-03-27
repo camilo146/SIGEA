@@ -2,14 +2,14 @@
 -- Crear usuario con rol ALIMENTADOR_EQUIPOS en SIGEA.
 -- Ejecutar directamente en la base de datos MariaDB del servidor.
 --
--- Contraseña temporal: alimentador2026
+-- Contraseña temporal: password
 -- (Cámbiala desde la app después de entrar.)
 --
 -- Ajusta nombre, documento, correo y teléfono si lo necesitas.
 -- ============================================================
 
 -- Cómo ejecutar desde el servidor (Docker):
---   docker exec -i sigea-db mariadb -u sigea_user -psigea_password_2026 sigea_db < crear-usuario-alimentador.sql
+--   sudo docker exec -i sigea-db mariadb -uroot -pTU_ROOT_PASSWORD sigea_db < scripts/crear-usuario-alimentador.sql
 --
 -- O conectarte directamente y pegar el INSERT debajo.
 -- ============================================================
@@ -49,7 +49,20 @@ INSERT INTO usuario (
     NULL,
     NOW(),
     NOW()
-);
+)
+ON DUPLICATE KEY UPDATE
+    nombre_completo = VALUES(nombre_completo),
+    telefono = VALUES(telefono),
+    programa_formacion = VALUES(programa_formacion),
+    ficha = VALUES(ficha),
+    contrasena_hash = VALUES(contrasena_hash),
+    rol = 'ALIMENTADOR_EQUIPOS',
+    es_super_admin = 0,
+    activo = 1,
+    estado_aprobacion = 'APROBADO',
+    intentos_fallidos = 0,
+    cuenta_bloqueada_hasta = NULL,
+    fecha_actualizacion = NOW();
 
 -- ============================================================
 -- NOTAS IMPORTANTES:
@@ -57,7 +70,7 @@ INSERT INTO usuario (
 -- 1. Si el correo 'alimentador@sigea.local' ya existe, cambia el
 --    correo y el numero_documento por valores únicos.
 --
--- 2. Contraseña del hash: "alimentador2026"
+-- 2. Contraseña del hash: "password"
 --    Para usar otra contraseña, genera un hash BCrypt strength 10
 --    con cualquiera de estos métodos:
 --

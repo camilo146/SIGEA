@@ -1,10 +1,13 @@
--- Crear un segundo usuario administrador en SIGEA.
--- Ejecutar en la base de datos que usa la aplicación (MariaDB/MySQL).
+-- ============================================================================
+-- Crear/actualizar usuario ADMINISTRADOR en SIGEA (idempotente).
+-- ============================================================================
+-- Ejecución recomendada en servidor Docker:
+--   sudo docker exec -i sigea-db mariadb -uroot -pTU_ROOT_PASSWORD sigea_db < scripts/crear-usuario-admin.sql
 --
--- Contraseña temporal: password
--- (Cámbiala desde la app después de entrar.)
---
--- Ajusta nombre, documento, correo y teléfono si lo necesitas.
+-- Credenciales por defecto:
+--   correo: admin2@sigea.local
+--   contraseña: password
+-- ============================================================================
 
 INSERT INTO usuario (
     nombre_completo,
@@ -18,6 +21,7 @@ INSERT INTO usuario (
     rol,
     es_super_admin,
     activo,
+    estado_aprobacion,
     intentos_fallidos,
     cuenta_bloqueada_hasta,
     fecha_creacion,
@@ -34,12 +38,26 @@ INSERT INTO usuario (
     'ADMINISTRADOR',
     0,
     1,
+    'APROBADO',
     0,
     NULL,
     NOW(),
     NOW()
-);
+)
+ON DUPLICATE KEY UPDATE
+    nombre_completo = VALUES(nombre_completo),
+    telefono = VALUES(telefono),
+    programa_formacion = VALUES(programa_formacion),
+    ficha = VALUES(ficha),
+    contrasena_hash = VALUES(contrasena_hash),
+    rol = 'ADMINISTRADOR',
+    es_super_admin = VALUES(es_super_admin),
+    activo = 1,
+    estado_aprobacion = 'APROBADO',
+    intentos_fallidos = 0,
+    cuenta_bloqueada_hasta = NULL,
+    fecha_actualizacion = NOW();
 
--- Si el correo ya existe, cambia 'admin2@sigea.local' por otro único.
--- Contraseña del hash anterior: "password" (cámbiala al entrar).
--- Para otra contraseña, genera un hash BCrypt (strength 10) y reemplaza contrasena_hash.
+-- Verificación rápida:
+-- SELECT id, nombre_completo, correo_electronico, rol, activo, estado_aprobacion
+-- FROM usuario WHERE correo_electronico = 'admin2@sigea.local';
