@@ -49,6 +49,8 @@ export class AmbientesComponent implements OnInit {
   modalCrearSubOpen = signal(false);
   formSubSaving = signal(false);
   formSub: AmbienteCrear = { nombre: '', idInstructorResponsable: null };
+  /** Sub-ubicación seleccionada en el panel de detalle (null = mostrar todos los equipos). */
+  selectedSubUbicacion = signal<SubUbicacionResumen | null>(null);
 
   form: AmbienteCrear = {
     nombre: '',
@@ -59,13 +61,23 @@ export class AmbientesComponent implements OnInit {
 
   filteredAmbientes = computed(() => {
     const q = this.searchTerm().toLowerCase();
-    if (!q) return this.ambientes();
-    return this.ambientes().filter(
+    // Solo mostrar ubicaciones raíz (sin padre): las sub-ubicaciones se ven dentro de la card
+    const padres = this.ambientes().filter((a) => !a.padreId);
+    if (!q) return padres;
+    return padres.filter(
       (a) =>
         a.nombre.toLowerCase().includes(q) ||
         (a.ubicacion ?? '').toLowerCase().includes(q) ||
         a.instructorResponsableNombre.toLowerCase().includes(q)
     );
+  });
+
+  /** Equipos de la card filtrados por la sub-ubicación seleccionada. */
+  equiposFiltradosPorSub = computed(() => {
+    const sub = this.selectedSubUbicacion();
+    const equipos = this.equiposAmbiente();
+    if (!sub) return equipos;
+    return equipos.filter((e) => e.subUbicacionId === sub.id);
   });
 
   /** Usuarios aptos como responsables: instructores y administradores */
@@ -213,10 +225,12 @@ export class AmbientesComponent implements OnInit {
 
   openEquipos(a: Ambiente) {
     this.selectedAmbiente.set(a);
+    this.selectedSubUbicacion.set(null);
     this.ambienteEquiposNombre.set(a.nombre);
     this.modalEquiposOpen.set(true);
     this.loadingEquipos.set(true);
     this.equiposAmbiente.set([]);
+    this.subUbicaciones.set([]);
     this.equipoService.listarPorAmbiente(a.id).subscribe({
       next: (list) => {
         this.equiposAmbiente.set(list);
@@ -227,11 +241,22 @@ export class AmbientesComponent implements OnInit {
         this.equiposAmbiente.set([]);
       },
     });
+    // Cargar sub-ubicaciones del ambiente para mostrarlas en la card
+    this.ambienteService.listarSubUbicaciones(a.id).subscribe({
+      next: (list) => this.subUbicaciones.set(list),
+      error: () => {},
+    });
   }
 
   closeEquiposModal() {
     this.modalEquiposOpen.set(false);
     this.selectedAmbiente.set(null);
+    this.selectedSubUbicacion.set(null);
+    this.subUbicaciones.set([]);
+  }
+
+  selectSubUbicacion(sub: SubUbicacionResumen | null) {
+    this.selectedSubUbicacion.set(sub);
   }
 
   /** URL de la foto del ambiente (opcional). */

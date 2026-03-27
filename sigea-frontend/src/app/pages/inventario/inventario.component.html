@@ -250,13 +250,25 @@
           </div>
           <div class="form-group">
             <label>Ubicación *</label>
-            <select [(ngModel)]="form.ambienteId" name="ambienteId" required>
+            <select [ngModel]="form.ambienteId" (ngModelChange)="onAmbienteChanged($event)" name="ambienteId" required>
               @for (a of ambientes(); track a.id) {
                 <option [value]="a.id">{{ a.nombre }}</option>
               }
             </select>
           </div>
         </div>
+        @if (subUbicacionesAmbiente().length > 0) {
+          <div class="form-group">
+            <label>Sub-ubicación <small class="text-muted">(opcional)</small></label>
+            <select [(ngModel)]="form.subUbicacionId" name="subUbicacionId">
+              <option [ngValue]="null">— Sin sub-ubicación —</option>
+              @for (s of subUbicacionesAmbiente(); track s.id) {
+                <option [ngValue]="s.id">{{ s.nombre }} · {{ getNombreAmbiente(form.ambienteId) }}</option>
+              }
+            </select>
+            <small class="text-muted">Área específica dentro de la ubicación seleccionada.</small>
+          </div>
+        }
         <div class="form-row">
           <div class="form-group">
             <label>Cantidad total *</label>

@@ -12,6 +12,7 @@ import { environment } from '../../../environments/environment';
 import type { Equipo, EquipoCrear, TipoUsoEquipo } from '../../core/models/equipo.model';
 import type { Categoria } from '../../core/models/categoria.model';
 import type { Ambiente } from '../../core/models/ambiente.model';
+import type { SubUbicacionResumen } from '../../core/models/ambiente.model';
 
 @Component({
   selector: 'app-inventario',
@@ -55,7 +56,10 @@ export class InventarioComponent implements OnInit {
   /** Archivo de foto seleccionado al crear (obligatorio). */
   fotoArchivo: File | null = null;
 
-  form: EquipoCrear = { nombre: '', descripcion: '', codigoUnico: '', categoriaId: 0, ambienteId: 0, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+  /** Sub-ubicaciones disponibles según la ubicación seleccionada en el formulario. */
+  subUbicacionesAmbiente = signal<SubUbicacionResumen[]>([]);
+
+  form: EquipoCrear = { nombre: '', descripcion: '', codigoUnico: '', categoriaId: 0, ambienteId: 0, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
 
   readonly TIPOS_USO: Array<{ value: TipoUsoEquipo; label: string }> = [
     { value: 'NO_CONSUMIBLE', label: 'No consumible' },
@@ -114,17 +118,50 @@ export class InventarioComponent implements OnInit {
   openCreate() {
     this.editingId.set(null);
     this.fotoArchivo = null;
-    this.form = { nombre: '', descripcion: '', codigoUnico: '', categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: this.ambientes()[0]?.id ?? 0, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+    const defaultAmbienteId = this.ambientes()[0]?.id ?? 0;
+    this.form = { nombre: '', descripcion: '', codigoUnico: '', categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: defaultAmbienteId, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+    this.subUbicacionesAmbiente.set([]);
+    if (defaultAmbienteId) {
+      this.ambienteService.listarSubUbicaciones(defaultAmbienteId).subscribe({
+        next: (list) => this.subUbicacionesAmbiente.set(list),
+        error: () => {},
+      });
+    }
     this.modalOpen.set(true);
   }
 
   openEdit(e: Equipo) {
     this.editingId.set(e.id);
-    this.form = { nombre: e.nombre, descripcion: e.descripcion ?? '', codigoUnico: e.codigoUnico, categoriaId: e.categoriaId, ambienteId: e.ambienteId, cantidadTotal: e.cantidadTotal, tipoUso: e.tipoUso ?? 'NO_CONSUMIBLE', umbralMinimo: e.umbralMinimo };
+    this.form = { nombre: e.nombre, descripcion: e.descripcion ?? '', codigoUnico: e.codigoUnico, categoriaId: e.categoriaId, ambienteId: e.ambienteId, subUbicacionId: e.subUbicacionId ?? null, cantidadTotal: e.cantidadTotal, tipoUso: e.tipoUso ?? 'NO_CONSUMIBLE', umbralMinimo: e.umbralMinimo };
+    this.subUbicacionesAmbiente.set([]);
+    if (e.ambienteId) {
+      this.ambienteService.listarSubUbicaciones(e.ambienteId).subscribe({
+        next: (list) => this.subUbicacionesAmbiente.set(list),
+        error: () => {},
+      });
+    }
     this.modalOpen.set(true);
   }
 
-  closeModal() { this.modalOpen.set(false); this.editingId.set(null); this.fotoArchivo = null; this.error.set(''); this.savingForm.set(false); }
+  closeModal() { this.modalOpen.set(false); this.editingId.set(null); this.fotoArchivo = null; this.error.set(''); this.savingForm.set(false); this.subUbicacionesAmbiente.set([]); }
+
+  /** Cuando se cambia la ubicación en el formulario, recarga las sub-ubicaciones y limpia la selección anterior. */
+  onAmbienteChanged(id: number | string) {
+    this.form.ambienteId = +id;
+    this.form.subUbicacionId = null;
+    this.subUbicacionesAmbiente.set([]);
+    if (+id) {
+      this.ambienteService.listarSubUbicaciones(+id).subscribe({
+        next: (list) => this.subUbicacionesAmbiente.set(list),
+        error: () => {},
+      });
+    }
+  }
+
+  /** Nombre de la ubicación seleccionada actualmente en el formulario. */
+  getNombreAmbiente(id: number): string {
+    return this.ambientes().find((a) => a.id === +id)?.nombre ?? '';
+  }
 
   onFotoSelected(event: Event) {
     const input = event.target as HTMLInputElement;

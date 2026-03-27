@@ -39,6 +39,7 @@ export interface EquipoCrear {
   codigoUnico: string;
   categoriaId: number;
   ambienteId: number;
+  subUbicacionId?: number | null;
   propietarioId?: number;
   cantidadTotal: number;
   tipoUso: TipoUsoEquipo;

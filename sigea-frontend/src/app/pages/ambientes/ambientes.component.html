@@ -264,21 +264,49 @@
           <p><strong>Responsable:</strong> {{ amb.instructorResponsableNombre }}</p>
           <p><strong>Estado:</strong> <span class="badge" [class]="amb.activo ? 'badge-green' : 'badge-red'">{{ amb.activo ? 'Activo' : 'Inactivo' }}</span></p>
         </div>
-        <h4 style="margin:0.75rem 0 0.4rem; font-size:1rem">Equipos en esta ubicación</h4>
+        @if (subUbicaciones().length > 0) {
+          <div class="sub-ub-section">
+            <strong class="sub-ub-label"><i class="fas fa-sitemap"></i> Sub-ubicaciones:</strong>
+            <div class="sub-ub-pills">
+              <button type="button" class="sub-ub-pill" [class.active]="!selectedSubUbicacion()" (click)="selectSubUbicacion(null)">
+                <i class="fas fa-th"></i> Todas
+              </button>
+              @for (sub of subUbicaciones(); track sub.id) {
+                <button type="button" class="sub-ub-pill" [class.active]="selectedSubUbicacion()?.id === sub.id" (click)="selectSubUbicacion(sub)">
+                  <i class="fas fa-map-pin"></i> {{ sub.nombre }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+        <h4 class="card-section-title">
+          <i class="fas fa-tools"></i>
+          @if (selectedSubUbicacion()) {
+            Equipos en "{{ selectedSubUbicacion()!.nombre }}"
+            <small class="text-muted" style="font-weight:400; font-size:0.8rem"> · dentro de {{ amb.nombre }}</small>
+          } @else {
+            Todos los equipos de esta ubicación
+          }
+        </h4>
         @if (loadingEquipos()) {
           <p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando equipos...</p>
-        } @else if (equiposAmbiente().length === 0) {
+        } @else if (equiposFiltradosPorSub().length === 0) {
           <p class="text-muted">No hay equipos asignados a esta ubicación.</p>
         } @else {
           <ul class="equipos-list equipos-list-card">
-            @for (e of equiposAmbiente(); track e.id) {
+            @for (e of equiposFiltradosPorSub(); track e.id) {
               <li>
                 @if (getEquipoFotoUrl(e)) {
                   <img [src]="getEquipoFotoUrl(e)" alt="" class="equipo-thumb-sm" />
                 } @else {
                   <span class="equipo-thumb-sm placeholder"><i class="fas fa-image"></i></span>
                 }
-                <span><strong>{{ e.nombre }}</strong> <code>{{ e.codigoUnico }}</code> · {{ e.cantidadDisponible }}/{{ e.cantidadTotal }}</span>
+                <span>
+                  <strong>{{ e.nombre }}</strong> <code>{{ e.codigoUnico }}</code> · {{ e.cantidadDisponible }}/{{ e.cantidadTotal }}
+                  @if (e.subUbicacionNombre) {
+                    <small class="text-muted"> · <i class="fas fa-map-pin"></i> {{ e.subUbicacionNombre }}</small>
+                  }
+                </span>
                 <span class="badge badge-sm" [class]="e.estado === 'EN_MANTENIMIENTO' ? 'badge-orange' : 'badge-green'">{{ e.estado === 'EN_MANTENIMIENTO' ? 'En mantenimiento' : 'Activo' }}</span>
               </li>
             }
