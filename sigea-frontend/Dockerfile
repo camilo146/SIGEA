@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm ci --include=dev
 
 COPY . .
-RUN npx ng build
+RUN npm run build
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/nginx.conf
