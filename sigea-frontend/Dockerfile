@@ -10,10 +10,10 @@ ENV NPM_CONFIG_PRODUCTION=false
 COPY package*.json ./
 RUN npm ci --include=dev
 
-RUN npm install -g @angular/cli
+RUN npm install
 
 COPY . .
-RUN npm run build
+RUN ./node_modules/.bin/ng build --configuration=production --output-path=dist/sigea-frontend/browser
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/nginx.conf
