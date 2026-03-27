@@ -99,7 +99,8 @@ public class SecurityConfig {
 
     @Bean
     // Configuración de CORS. appUrl soporta múltiples orígenes separados por coma
-    // para producción (ej: http://192.168.4.250:4043,https://sigea.web-virtual.com:4043).
+    // para producción (ej:
+    // http://192.168.4.250:4043,https://sigea.web-virtual.com:4043).
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 

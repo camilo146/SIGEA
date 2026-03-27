@@ -119,8 +119,10 @@ public class EquipoServicio {
                 if (dto.getSubUbicacionId() != null) {
                         subUbicacion = ambienteRepository.findById(dto.getSubUbicacionId())
                                         .orElseThrow(() -> new RecursoNoEncontradoException(
-                                                        "Sub-ubicacion no encontrada con ID: " + dto.getSubUbicacionId()));
-                        if (subUbicacion.getPadre() == null || !subUbicacion.getPadre().getId().equals(ambiente.getId())) {
+                                                        "Sub-ubicacion no encontrada con ID: "
+                                                                        + dto.getSubUbicacionId()));
+                        if (subUbicacion.getPadre() == null
+                                        || !subUbicacion.getPadre().getId().equals(ambiente.getId())) {
                                 throw new OperacionNoPermitidaException(
                                                 "La sub-ubicacion indicada no pertenece al ambiente seleccionado.");
                         }
@@ -325,7 +327,6 @@ public class EquipoServicio {
                 return convertirADTO(actualizado);
         }
 
-        @Transactional
         @Transactional(isolation = Isolation.READ_COMMITTED)
         public EquipoRespuestaDTO asignarSubUbicacion(Long equipoId, Long subUbicacionId, String correoUsuario) {
                 Equipo equipo = equipoRepository.findById(equipoId)

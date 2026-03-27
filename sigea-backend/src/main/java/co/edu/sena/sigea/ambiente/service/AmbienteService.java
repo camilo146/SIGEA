@@ -370,7 +370,10 @@ public class AmbienteService {
                 .toList();
     }
 
-    /** Asignar un equipo ya existente a una sub-ubicación. La lógica está en EquipoServicio. */
+    /**
+     * Asignar un equipo ya existente a una sub-ubicación. La lógica está en
+     * EquipoServicio.
+     */
     private AmbienteCrearDTO copiarConPadre(AmbienteCrearDTO dto, Long padreId) {
         AmbienteCrearDTO copia = new AmbienteCrearDTO();
         copia.setNombre(dto.getNombre());

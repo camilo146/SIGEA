@@ -234,7 +234,8 @@ public class EquipoControlador {
     /**
      * PATCH /api/v1/equipos/{id}/sub-ubicacion/{subUbicacionId}
      * Asigna un equipo a una sub-ubicación dentro de su ambiente principal.
-     * Para eliminar la sub-ubicación, usar DELETE /api/v1/equipos/{id}/sub-ubicacion
+     * Para eliminar la sub-ubicación, usar DELETE
+     * /api/v1/equipos/{id}/sub-ubicacion
      */
     @PatchMapping("/{id}/sub-ubicacion/{subUbicacionId}")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
@@ -250,7 +251,8 @@ public class EquipoControlador {
 
     /**
      * DELETE /api/v1/equipos/{id}/sub-ubicacion
-     * Quita la sub-ubicación asignada al equipo (lo deja solo en el ambiente principal).
+     * Quita la sub-ubicación asignada al equipo (lo deja solo en el ambiente
+     * principal).
      */
     @DeleteMapping("/{id}/sub-ubicacion")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")

@@ -37,7 +37,7 @@ public class AmbienteRespuestaDTO {
     private String padreNombre;
 
     /**
-     * Sub-ubicaciones hijas de esta ubicación. 
+     * Sub-ubicaciones hijas de esta ubicación.
      * Se incluye solo en consultas de detalle/listado jerarquizado.
      */
     private List<SubUbicacionResumenDTO> subUbicaciones;
