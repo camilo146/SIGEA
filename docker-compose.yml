@@ -34,7 +34,7 @@ services:
         condition: service_healthy
     environment:
       TZ: ${TZ:-America/Bogota}
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://sigea-db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-sigea_user}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-sigea_password_2026}
       SIGEA_UPLOADS_PATH: ${SIGEA_UPLOADS_PATH:-/app/uploads}
