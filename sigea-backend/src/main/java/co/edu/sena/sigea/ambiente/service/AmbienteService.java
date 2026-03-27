@@ -11,11 +11,13 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import co.edu.sena.sigea.ambiente.dto.AmbienteCrearDTO;
 import co.edu.sena.sigea.ambiente.dto.AmbienteRespuestaDTO;
+import co.edu.sena.sigea.ambiente.dto.SubUbicacionResumenDTO;
 import co.edu.sena.sigea.ambiente.entity.Ambiente;
 import co.edu.sena.sigea.ambiente.repository.AmbienteRepository;
 import co.edu.sena.sigea.common.enums.Rol;
@@ -42,20 +44,21 @@ public class AmbienteService {
         this.usuarioRepository = usuarioRepository;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
 
     /**
-     * Crea un ambiente. Si correoInstructor no es null y el usuario es INSTRUCTOR,
-     * se asigna como responsable.
+     * Crea un ambiente (JSON, sin foto). Si correoUsuario corresponde a un
+     * INSTRUCTOR, se asigna como responsable. Para ADMIN o ALIMENTADOR_EQUIPOS
+     * se requiere idInstructorResponsable. Acepta padreId para sub-ubicaciones.
      */
-    public AmbienteRespuestaDTO crear(AmbienteCrearDTO dto, String correoInstructor) {
+    public AmbienteRespuestaDTO crear(AmbienteCrearDTO dto, String correoUsuario) {
         if (ambienteRepository.existsByNombre(dto.getNombre())) {
             throw new RecursoDuplicadoException(
                     "Ya existe un ambiente con el nombre: " + dto.getNombre());
         }
         Usuario instructor;
-        if (correoInstructor != null && !correoInstructor.isBlank()) {
-            Usuario actual = usuarioRepository.findByCorreoElectronico(correoInstructor).orElse(null);
+        if (correoUsuario != null && !correoUsuario.isBlank()) {
+            Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
             if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
                 instructor = actual;
             } else {
@@ -74,19 +77,33 @@ public class AmbienteService {
                     .orElseThrow(() -> new RecursoNoEncontradoException(
                             "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
         }
+
+        // Soporte de sub-ubicaciones: resolver el padre si se indica
+        Ambiente padre = null;
+        if (dto.getPadreId() != null) {
+            padre = ambienteRepository.findById(dto.getPadreId())
+                    .orElseThrow(() -> new RecursoNoEncontradoException(
+                            "Ambiente padre no encontrado con ID: " + dto.getPadreId()));
+            if (!padre.getActivo()) {
+                throw new OperacionNoPermitidaException(
+                        "El ambiente padre está inactivo. No se puede crear una sub-ubicación en él.");
+            }
+        }
+
         Ambiente ambiente = Ambiente.builder()
                 .nombre(dto.getNombre())
                 .ubicacion(dto.getUbicacion())
                 .descripcion(dto.getDescripcion())
                 .direccion(dto.getDireccion())
                 .instructorResponsable(instructor)
+                .padre(padre)
                 .activo(true)
                 .build();
         Ambiente guardado = ambienteRepository.save(ambiente);
         return convertirADTO(guardado);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AmbienteRespuestaDTO crearConFoto(AmbienteCrearDTO dto, MultipartFile archivo, String correoInstructor)
             throws IOException {
         if (archivo == null || archivo.isEmpty()) {
@@ -146,12 +163,24 @@ public class AmbienteService {
         String rutaParaBD = "/uploads/ambientes/" + nombreEnServidor;
 
         try {
+            // Soporte de sub-ubicaciones en crearConFoto
+            Ambiente padre = null;
+            if (dto.getPadreId() != null) {
+                padre = ambienteRepository.findById(dto.getPadreId())
+                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                "Ambiente padre no encontrado con ID: " + dto.getPadreId()));
+                if (!padre.getActivo()) {
+                    throw new OperacionNoPermitidaException(
+                            "El ambiente padre está inactivo. No se puede crear una sub-ubicación en él.");
+                }
+            }
             Ambiente ambiente = Ambiente.builder()
                     .nombre(dto.getNombre())
                     .ubicacion(dto.getUbicacion())
                     .descripcion(dto.getDescripcion())
                     .direccion(dto.getDireccion())
                     .instructorResponsable(instructor)
+                    .padre(padre)
                     .activo(true)
                     .rutaFoto(rutaParaBD)
                     .build();
@@ -282,6 +311,18 @@ public class AmbienteService {
 
     // Metodo privado para convertir una entidad Ambiente a un DTO de respuesta
     private AmbienteRespuestaDTO convertirADTO(Ambiente ambiente) {
+        List<SubUbicacionResumenDTO> subUbicacionesDTO = ambiente.getSubUbicaciones() == null
+                ? List.of()
+                : ambiente.getSubUbicaciones().stream()
+                        .map(sub -> SubUbicacionResumenDTO.builder()
+                                .id(sub.getId())
+                                .nombre(sub.getNombre())
+                                .ubicacion(sub.getUbicacion())
+                                .descripcion(sub.getDescripcion())
+                                .activo(sub.getActivo())
+                                .build())
+                        .toList();
+
         return AmbienteRespuestaDTO.builder()
                 .id(ambiente.getId())
                 .nombre(ambiente.getNombre())
@@ -296,10 +337,48 @@ public class AmbienteService {
                         ambiente.getInstructorResponsable() != null
                                 ? ambiente.getInstructorResponsable().getNombreCompleto()
                                 : null)
+                .padreId(ambiente.getPadre() != null ? ambiente.getPadre().getId() : null)
+                .padreNombre(ambiente.getPadre() != null ? ambiente.getPadre().getNombre() : null)
+                .subUbicaciones(subUbicacionesDTO)
                 .activo(ambiente.getActivo())
                 .rutaFoto(ambiente.getRutaFoto())
                 .fechaCreacion(ambiente.getFechaCreacion())
                 .fechaActualizacion(ambiente.getFechaActualizacion())
                 .build();
+    }
+
+    // =========================================================================
+    // SUB-UBICACIONES
+    // =========================================================================
+
+    /** Crear una sub-ubicación hija de un ambiente padre. */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AmbienteRespuestaDTO crearSubUbicacion(Long padreId, AmbienteCrearDTO dto, String correoUsuario) {
+        dto = copiarConPadre(dto, padreId);
+        return crear(dto, correoUsuario);
+    }
+
+    /** Listar sub-ubicaciones de un ambiente padre dado. */
+    @Transactional(readOnly = true)
+    public List<AmbienteRespuestaDTO> listarSubUbicaciones(Long padreId) {
+        if (!ambienteRepository.existsById(padreId)) {
+            throw new RecursoNoEncontradoException("Ambiente padre no encontrado con ID: " + padreId);
+        }
+        return ambienteRepository.findByPadreId(padreId)
+                .stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
+
+    /** Asignar un equipo ya existente a una sub-ubicación. La lógica está en EquipoServicio. */
+    private AmbienteCrearDTO copiarConPadre(AmbienteCrearDTO dto, Long padreId) {
+        AmbienteCrearDTO copia = new AmbienteCrearDTO();
+        copia.setNombre(dto.getNombre());
+        copia.setUbicacion(dto.getUbicacion());
+        copia.setDescripcion(dto.getDescripcion());
+        copia.setDireccion(dto.getDireccion());
+        copia.setIdInstructorResponsable(dto.getIdInstructorResponsable());
+        copia.setPadreId(padreId);
+        return copia;
     }
 }

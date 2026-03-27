@@ -40,7 +40,7 @@ public class EquipoControlador {
 
     // POST /api/v1/equipos
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<EquipoRespuestaDTO> crear(
             @Valid @RequestBody EquipoCrearDTO dto,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -229,5 +229,37 @@ public class EquipoControlador {
         String correo = userDetails != null ? userDetails.getUsername() : null;
         equipoServicio.eliminar(id, correo);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * PATCH /api/v1/equipos/{id}/sub-ubicacion/{subUbicacionId}
+     * Asigna un equipo a una sub-ubicación dentro de su ambiente principal.
+     * Para eliminar la sub-ubicación, usar DELETE /api/v1/equipos/{id}/sub-ubicacion
+     */
+    @PatchMapping("/{id}/sub-ubicacion/{subUbicacionId}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<EquipoRespuestaDTO> asignarSubUbicacion(
+            @PathVariable Long id,
+            @PathVariable Long subUbicacionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        EquipoRespuestaDTO respuesta = equipoServicio.asignarSubUbicacion(id, subUbicacionId, correo);
+        return ResponseEntity.ok(respuesta);
+    }
+
+    /**
+     * DELETE /api/v1/equipos/{id}/sub-ubicacion
+     * Quita la sub-ubicación asignada al equipo (lo deja solo en el ambiente principal).
+     */
+    @DeleteMapping("/{id}/sub-ubicacion")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<EquipoRespuestaDTO> quitarSubUbicacion(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String correo = userDetails != null ? userDetails.getUsername() : null;
+        EquipoRespuestaDTO respuesta = equipoServicio.asignarSubUbicacion(id, null, correo);
+        return ResponseEntity.ok(respuesta);
     }
 }

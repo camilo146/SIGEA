@@ -1,6 +1,7 @@
 package co.edu.sena.sigea.ambiente.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,11 +9,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter // genera los getters para todos lo campos
-@Setter // genera los setters para todos los campos
-@NoArgsConstructor // genera un constructor vacio
-@AllArgsConstructor // genera un constructor con todos los campos
-@Builder // genera un builder para facilitar la creacion de objetos
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AmbienteRespuestaDTO {
 
     private long id;
@@ -28,6 +29,18 @@ public class AmbienteRespuestaDTO {
     private Long instructorResponsableId;
 
     private String instructorResponsableNombre;
+
+    /** ID del ambiente padre (null si es una ubicación raíz). */
+    private Long padreId;
+
+    /** Nombre del ambiente padre (null si es una ubicación raíz). */
+    private String padreNombre;
+
+    /**
+     * Sub-ubicaciones hijas de esta ubicación. 
+     * Se incluye solo en consultas de detalle/listado jerarquizado.
+     */
+    private List<SubUbicacionResumenDTO> subUbicaciones;
 
     private Boolean activo;
 

@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -80,7 +81,7 @@ public class EquipoServicio {
                 this.rutaUploads = rutaUploads;
         }
 
-        @Transactional
+        @Transactional(isolation = Isolation.READ_COMMITTED)
         public EquipoRespuestaDTO crear(EquipoCrearDTO dto, String correoUsuario) {
 
                 Usuario usuarioActual = obtenerUsuarioActual(correoUsuario);
@@ -113,12 +114,25 @@ public class EquipoServicio {
                                         "No se puede asignar el equipo a un ambiente inactivo");
                 }
 
+                // Sub-ubicación opcional: debe pertenecer al ambiente principal indicado
+                Ambiente subUbicacion = null;
+                if (dto.getSubUbicacionId() != null) {
+                        subUbicacion = ambienteRepository.findById(dto.getSubUbicacionId())
+                                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                        "Sub-ubicacion no encontrada con ID: " + dto.getSubUbicacionId()));
+                        if (subUbicacion.getPadre() == null || !subUbicacion.getPadre().getId().equals(ambiente.getId())) {
+                                throw new OperacionNoPermitidaException(
+                                                "La sub-ubicacion indicada no pertenece al ambiente seleccionado.");
+                        }
+                }
+
                 Equipo equipo = Equipo.builder()
                                 .nombre(dto.getNombre())
                                 .descripcion(dto.getDescripcion())
                                 .codigoUnico(codigoUnico)
                                 .categoria(categoria)
                                 .ambiente(ambiente)
+                                .subUbicacion(subUbicacion)
                                 .propietario(propietario)
                                 .inventarioActualInstructor(propietario)
                                 .estado(EstadoEquipo.ACTIVO)
@@ -312,6 +326,28 @@ public class EquipoServicio {
         }
 
         @Transactional
+        @Transactional(isolation = Isolation.READ_COMMITTED)
+        public EquipoRespuestaDTO asignarSubUbicacion(Long equipoId, Long subUbicacionId, String correoUsuario) {
+                Equipo equipo = equipoRepository.findById(equipoId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", equipoId));
+                validarPermisoGestion(equipo, correoUsuario);
+
+                if (subUbicacionId == null) {
+                        equipo.setSubUbicacion(null);
+                } else {
+                        Ambiente subUbicacion = ambienteRepository.findById(subUbicacionId)
+                                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                        "Sub-ubicación no encontrada con ID: " + subUbicacionId));
+                        if (subUbicacion.getPadre() == null ||
+                                        !subUbicacion.getPadre().getId().equals(equipo.getAmbiente().getId())) {
+                                throw new OperacionNoPermitidaException(
+                                                "La sub-ubicación no pertenece al ambiente principal del equipo.");
+                        }
+                        equipo.setSubUbicacion(subUbicacion);
+                }
+                return convertirADTO(equipoRepository.save(equipo));
+        }
+
         public EquipoRespuestaDTO cambiarEstado(Long id, EstadoEquipo nuevoEstado, String correoUsuario) {
 
                 Equipo equipo = equipoRepository.findById(id)
@@ -518,6 +554,12 @@ public class EquipoServicio {
                                 .ambienteNombre(equipo.getAmbiente() != null
                                                 ? equipo.getAmbiente().getNombre()
                                                 : null)
+                                .subUbicacionId(equipo.getSubUbicacion() != null
+                                                ? equipo.getSubUbicacion().getId()
+                                                : null)
+                                .subUbicacionNombre(equipo.getSubUbicacion() != null
+                                                ? equipo.getSubUbicacion().getNombre()
+                                                : null)
                                 .propietarioId(equipo.getPropietario() != null
                                                 ? equipo.getPropietario().getId()
                                                 : null)
@@ -573,7 +615,25 @@ public class EquipoServicio {
                         return propietario;
                 }
 
-                throw new OperacionNoPermitidaException("Solo administradores o instructores pueden crear equipos.");
+                // ALIMENTADOR_EQUIPOS: debe indicar el instructor propietario explícitamente
+                if (usuarioActual.getRol() == Rol.ALIMENTADOR_EQUIPOS) {
+                        if (dto.getPropietarioId() == null) {
+                                throw new OperacionNoPermitidaException(
+                                                "Debes indicar el propietario del equipo (propietarioId) al crearlo.");
+                        }
+                        Usuario propietario = usuarioRepository.findById(dto.getPropietarioId())
+                                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                        "Instructor propietario no encontrado con ID: "
+                                                                        + dto.getPropietarioId()));
+                        if (propietario.getRol() != Rol.INSTRUCTOR) {
+                                throw new OperacionNoPermitidaException(
+                                                "El propietario del equipo debe tener rol INSTRUCTOR.");
+                        }
+                        return propietario;
+                }
+
+                throw new OperacionNoPermitidaException(
+                                "Solo administradores, instructores o alimentadores de equipos pueden crear equipos.");
         }
 
         private Usuario obtenerUsuarioActual(String correoUsuario) {

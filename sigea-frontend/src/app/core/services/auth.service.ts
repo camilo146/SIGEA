@@ -17,10 +17,16 @@ export class AuthService {
   user = computed(() => this.currentUser());
   isAdmin = computed(() => this.currentUser()?.rol === 'ADMINISTRADOR');
   isInstructor = computed(() => this.currentUser()?.rol === 'INSTRUCTOR');
+  isAlimentadorEquipos = computed(() => this.currentUser()?.rol === 'ALIMENTADOR_EQUIPOS');
   /** true si es ADMIN o INSTRUCTOR (acceso a ambientes, reportes, etc., pero no a usuarios) */
   isAdminOrInstructor = computed(() => {
     const r = this.currentUser()?.rol;
     return r === 'ADMINISTRADOR' || r === 'INSTRUCTOR';
+  });
+  /** true para cualquier rol con acceso operativo (puede crear equipos/ambientes) */
+  isOperativo = computed(() => {
+    const r = this.currentUser()?.rol;
+    return r === 'ADMINISTRADOR' || r === 'INSTRUCTOR' || r === 'ALIMENTADOR_EQUIPOS';
   });
 
   constructor(

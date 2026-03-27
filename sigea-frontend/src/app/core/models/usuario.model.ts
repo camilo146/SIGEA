@@ -1,4 +1,4 @@
-export type Rol = 'ADMINISTRADOR' | 'INSTRUCTOR' | 'APRENDIZ' | 'FUNCIONARIO' | 'USUARIO_ESTANDAR';
+export type Rol = 'ADMINISTRADOR' | 'INSTRUCTOR' | 'ALIMENTADOR_EQUIPOS' | 'APRENDIZ' | 'FUNCIONARIO' | 'USUARIO_ESTANDAR';
 export type TipoDocumento = 'CC' | 'TI' | 'CE' | 'PP' | 'PEP';
 export type EstadoAprobacion = 'PENDIENTE' | 'APROBADO';
 

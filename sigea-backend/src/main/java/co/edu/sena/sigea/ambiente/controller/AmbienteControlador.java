@@ -50,6 +50,52 @@ public class AmbienteControlador {
         return new ResponseEntity<>(respuesta, HttpStatus.CREATED);
     }
 
+    /**
+     * Crear ambiente sin foto (JSON). Disponible para ALIMENTADOR_EQUIPOS, ADMIN e
+     * INSTRUCTOR.
+     */
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
+    public ResponseEntity<AmbienteRespuestaDTO> crearSinFoto(
+            @Valid @RequestBody AmbienteCrearDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        AmbienteRespuestaDTO respuesta = ambienteService.crear(
+                dto,
+                userDetails != null ? userDetails.getUsername() : null);
+        return new ResponseEntity<>(respuesta, HttpStatus.CREATED);
+    }
+
+    /**
+     * Crear sub-ubicación de un ambiente padre (JSON).
+     * POST /api/v1/ambientes/{padreId}/sub-ubicaciones
+     */
+    @PostMapping(value = "/{padreId}/sub-ubicaciones", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
+    public ResponseEntity<AmbienteRespuestaDTO> crearSubUbicacion(
+            @PathVariable Long padreId,
+            @Valid @RequestBody AmbienteCrearDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        AmbienteRespuestaDTO respuesta = ambienteService.crearSubUbicacion(
+                padreId,
+                dto,
+                userDetails != null ? userDetails.getUsername() : null);
+        return new ResponseEntity<>(respuesta, HttpStatus.CREATED);
+    }
+
+    /**
+     * Listar sub-ubicaciones de un ambiente padre.
+     * GET /api/v1/ambientes/{padreId}/sub-ubicaciones
+     */
+    @GetMapping("/{padreId}/sub-ubicaciones")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<AmbienteRespuestaDTO>> listarSubUbicaciones(
+            @PathVariable Long padreId) {
+
+        return ResponseEntity.ok(ambienteService.listarSubUbicaciones(padreId));
+    }
+
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<AmbienteRespuestaDTO>> listarActivos() {

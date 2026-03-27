@@ -1,0 +1,145 @@
+<div class="alimentador-container">
+  <header class="alimentador-header">
+    <h1>Panel Alimentador de Equipos</h1>
+    <button class="btn-logout" (click)="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <div class="tabs">
+    <button
+      class="tab-btn"
+      [class.active]="tabActiva() === 'equipo'"
+      (click)="seleccionarTab('equipo')">
+      Registrar Equipo
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="tabActiva() === 'ambiente'"
+      (click)="seleccionarTab('ambiente')">
+      Crear Ambiente
+    </button>
+  </div>
+
+  <!-- Mensajes de retroalimentación -->
+  <div *ngIf="mensajeExito()" class="alerta exito">{{ mensajeExito() }}</div>
+  <div *ngIf="mensajeError()" class="alerta error">{{ mensajeError() }}</div>
+
+  <!-- ======== FORMULARIO EQUIPO ======== -->
+  <form
+    *ngIf="tabActiva() === 'equipo'"
+    [formGroup]="equipoForm"
+    (ngSubmit)="crearEquipo()"
+    class="form-card">
+
+    <h2>Nuevo Equipo</h2>
+
+    <div class="campo">
+      <label>Nombre *</label>
+      <input formControlName="nombre" placeholder="Ej: Portátil HP EliteBook" />
+      <span class="error-msg" *ngIf="equipoForm.get('nombre')?.invalid && equipoForm.get('nombre')?.touched">
+        El nombre es obligatorio (mínimo 3 caracteres).
+      </span>
+    </div>
+
+    <div class="campo">
+      <label>Descripción</label>
+      <textarea formControlName="descripcion" rows="2" placeholder="Descripción opcional"></textarea>
+    </div>
+
+    <div class="campo">
+      <label>Código único *</label>
+      <input formControlName="codigoUnico" placeholder="Ej: HP-ELITE-001" />
+    </div>
+
+    <div class="campo">
+      <label>Ambiente *</label>
+      <select formControlName="ambienteId">
+        <option [value]="null" disabled>Seleccione un ambiente</option>
+        <option *ngFor="let a of ambientes()" [value]="a.id">{{ a.nombre }}</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label>Instructor propietario *</label>
+      <select formControlName="propietarioId">
+        <option [value]="null" disabled>Seleccione un instructor</option>
+        <option *ngFor="let u of instructores()" [value]="u.id">{{ u.nombreCompleto }}</option>
+      </select>
+    </div>
+
+    <div class="fila-dos">
+      <div class="campo">
+        <label>Cantidad total *</label>
+        <input type="number" formControlName="cantidadTotal" min="1" />
+      </div>
+      <div class="campo">
+        <label>Umbral mínimo *</label>
+        <input type="number" formControlName="umbralMinimo" min="0" />
+      </div>
+    </div>
+
+    <div class="campo">
+      <label>Tipo de uso *</label>
+      <select formControlName="tipoUso">
+        <option value="NO_CONSUMIBLE">No consumible</option>
+        <option value="CONSUMIBLE">Consumible</option>
+      </select>
+    </div>
+
+    <button
+      type="submit"
+      class="btn-primario"
+      [disabled]="equipoForm.invalid || cargando()">
+      <span *ngIf="!cargando()">Registrar equipo</span>
+      <span *ngIf="cargando()">Guardando…</span>
+    </button>
+  </form>
+
+  <!-- ======== FORMULARIO AMBIENTE ======== -->
+  <form
+    *ngIf="tabActiva() === 'ambiente'"
+    [formGroup]="ambienteForm"
+    (ngSubmit)="crearAmbiente()"
+    class="form-card">
+
+    <h2>Nuevo Ambiente</h2>
+
+    <div class="campo">
+      <label>Nombre *</label>
+      <input formControlName="nombre" placeholder="Ej: Laboratorio de Sistemas" />
+      <span class="error-msg" *ngIf="ambienteForm.get('nombre')?.invalid && ambienteForm.get('nombre')?.touched">
+        El nombre es obligatorio (mínimo 3 caracteres).
+      </span>
+    </div>
+
+    <div class="campo">
+      <label>Ubicación</label>
+      <input formControlName="ubicacion" placeholder="Ej: Bloque A, piso 2" />
+    </div>
+
+    <div class="campo">
+      <label>Descripción</label>
+      <textarea formControlName="descripcion" rows="2"></textarea>
+    </div>
+
+    <div class="campo">
+      <label>Dirección</label>
+      <input formControlName="direccion" placeholder="Dirección del lugar" />
+    </div>
+
+    <div class="campo">
+      <label>Instructor responsable *</label>
+      <select formControlName="idInstructorResponsable">
+        <option [value]="null" disabled>Seleccione un instructor</option>
+        <option *ngFor="let u of instructores()" [value]="u.id">{{ u.nombreCompleto }}</option>
+      </select>
+    </div>
+
+    <button
+      type="submit"
+      class="btn-primario"
+      [disabled]="ambienteForm.invalid || cargando()">
+      <span *ngIf="!cargando()">Crear ambiente</span>
+      <span *ngIf="cargando()">Guardando…</span>
+    </button>
+  </form>
+</div>

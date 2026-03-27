@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { adminOrInstructorGuard } from './core/guards/admin-or-instructor.guard';
+import { alimentadorGuard } from './core/guards/alimentador.guard';
 import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 
 export const routes: Routes = [
@@ -64,6 +65,11 @@ export const routes: Routes = [
         path: 'mantenimientos',
         loadComponent: () => import('./pages/mantenimientos/mantenimientos.component').then(m => m.MantenimientosComponent),
         canActivate: [adminOrInstructorGuard],
+      },
+      {
+        path: 'alimentador',
+        loadComponent: () => import('./pages/alimentador/alimentador.component').then(m => m.AlimentadorComponent),
+        canActivate: [alimentadorGuard],
       },
     ],
   },

@@ -7,7 +7,7 @@ import { UsuarioService } from '../../core/services/usuario.service';
 import { EquipoService } from '../../core/services/equipo.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { environment } from '../../../environments/environment';
-import type { Ambiente, AmbienteCrear } from '../../core/models/ambiente.model';
+import type { Ambiente, AmbienteCrear, SubUbicacionResumen } from '../../core/models/ambiente.model';
 import type { Equipo } from '../../core/models/equipo.model';
 
 @Component({
@@ -40,6 +40,15 @@ export class AmbientesComponent implements OnInit {
   /** Ambiente seleccionado para la card de detalle (al hacer clic en Ver equipos / fila). */
   selectedAmbiente = signal<Ambiente | null>(null);
   fotoArchivo: File | null = null;
+
+  // Sub-ubicaciones
+  modalSubUbicacionesOpen = signal(false);
+  ambientePadreSeleccionado = signal<Ambiente | null>(null);
+  subUbicaciones = signal<SubUbicacionResumen[]>([]);
+  loadingSubUbicaciones = signal(false);
+  modalCrearSubOpen = signal(false);
+  formSubSaving = signal(false);
+  formSub: AmbienteCrear = { nombre: '', idInstructorResponsable: null };
 
   form: AmbienteCrear = {
     nombre: '',
@@ -275,6 +284,67 @@ export class AmbientesComponent implements OnInit {
         const message = e.error?.message ?? 'No fue posible completar la acción.';
         this.error.set(message);
         this.ui.error(message, 'Ubicaciones');
+      },
+    });
+  }
+
+  // -------- Sub-ubicaciones --------
+
+  openSubUbicaciones(padre: Ambiente) {
+    this.ambientePadreSeleccionado.set(padre);
+    this.modalSubUbicacionesOpen.set(true);
+    this.loadSubUbicaciones(padre.id);
+  }
+
+  closeSubUbicaciones() {
+    this.modalSubUbicacionesOpen.set(false);
+    this.ambientePadreSeleccionado.set(null);
+    this.subUbicaciones.set([]);
+  }
+
+  private loadSubUbicaciones(padreId: number) {
+    this.loadingSubUbicaciones.set(true);
+    this.ambienteService.listarSubUbicaciones(padreId).subscribe({
+      next: (list) => {
+        this.subUbicaciones.set(list);
+        this.loadingSubUbicaciones.set(false);
+      },
+      error: () => this.loadingSubUbicaciones.set(false),
+    });
+  }
+
+  openCrearSubUbicacion() {
+    const padre = this.ambientePadreSeleccionado();
+    this.formSub = {
+      nombre: '',
+      ubicacion: '',
+      descripcion: '',
+      idInstructorResponsable: padre?.instructorResponsableId ?? null,
+    };
+    this.modalCrearSubOpen.set(true);
+  }
+
+  closeCrearSubUbicacion() {
+    this.modalCrearSubOpen.set(false);
+    this.formSubSaving.set(false);
+  }
+
+  submitSubUbicacion() {
+    const padre = this.ambientePadreSeleccionado();
+    if (!padre || !this.formSub.nombre?.trim()) return;
+    this.formSubSaving.set(true);
+    this.ambienteService.crearSubUbicacion(padre.id, this.formSub).subscribe({
+      next: () => {
+        this.formSubSaving.set(false);
+        this.closeCrearSubUbicacion();
+        this.loadSubUbicaciones(padre.id);
+        this.ui.success(`Sub-ubicación "${this.formSub.nombre}" creada.`, 'Ubicaciones');
+      },
+      error: (err) => {
+        this.formSubSaving.set(false);
+        const msg = err.error?.mensaje ?? 'Error al crear la sub-ubicación.';
+        this.error.set(msg);
+        this.ui.error(msg, 'Ubicaciones');
       },
     });
   }

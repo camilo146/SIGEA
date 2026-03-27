@@ -29,6 +29,12 @@ public class AmbienteCrearDTO {
     private String direccion;
 
     /**
+     * Identificador del ambiente padre. Si se proporciona, esta ubicación
+     * se crea como sub-ubicación del ambiente padre indicado.
+     */
+    private Long padreId;
+
+    /**
      * Obligatorio para ADMIN; si es INSTRUCTOR puede ser null y se asigna él mismo.
      */
     private Long idInstructorResponsable;

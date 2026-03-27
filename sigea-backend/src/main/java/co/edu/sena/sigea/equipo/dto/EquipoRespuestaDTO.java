@@ -34,6 +34,12 @@ public class EquipoRespuestaDTO {
 
     private String ambienteNombre;
 
+    /** ID de la sub-ubicación asignada (null si no aplica). */
+    private Long subUbicacionId;
+
+    /** Nombre de la sub-ubicación asignada (null si no aplica). */
+    private String subUbicacionNombre;
+
     private Long propietarioId;
 
     private String propietarioNombre;

@@ -80,11 +80,12 @@ public class AutenticacionServicio {
     public LoginRespuestaDTO login(LoginDTO loginDTO) {
 
         // Buscar el usuario por correo
-        // si no existe responder como credenciales invalidas para evitar enumeracion de cuentas
+        // si no existe responder como credenciales invalidas para evitar enumeracion de
+        // cuentas
         Usuario usuario = usuarioRepository.findByCorreoElectronico(
                 loginDTO.getCorreoElectronico())
-            .orElseThrow(() -> new OperacionNoPermitidaException(
-                "Credenciales inválidas"));
+                .orElseThrow(() -> new OperacionNoPermitidaException(
+                        "Credenciales inválidas"));
 
         // Verificar si la cuenta esta activa
 

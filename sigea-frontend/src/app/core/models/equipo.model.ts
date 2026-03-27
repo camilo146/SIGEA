@@ -16,6 +16,8 @@ export interface Equipo {
   categoriaNombre: string;
   ambienteId: number;
   ambienteNombre: string;
+  subUbicacionId?: number;
+  subUbicacionNombre?: string;
   propietarioId?: number;
   propietarioNombre?: string;
   inventarioActualInstructorId?: number;

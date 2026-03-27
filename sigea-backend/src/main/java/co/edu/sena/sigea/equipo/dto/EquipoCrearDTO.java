@@ -36,6 +36,12 @@ public class EquipoCrearDTO {
     @NotNull(message = "La ubicacion del equipo es obligatoria")
     private Long ambienteId;
 
+    /**
+     * Sub-ubicación dentro del ambiente (opcional). Debe pertenecer al ambiente
+     * indicado en ambienteId.
+     */
+    private Long subUbicacionId;
+
     /** Solo para ADMINISTRADOR: asigna el instructor dueño original del equipo. */
     private Long propietarioId;
 

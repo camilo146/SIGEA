@@ -27,7 +27,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -101,6 +105,24 @@ public class Ambiente extends EntidadBase {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_responsable_id")
     private Usuario instructorResponsable;
+
+    // =========================================================================
+    // CAMPO: padre
+    // =========================================================================
+    // Sub-ubicaciones: referencia al ambiente padre. NULL = ubicación raíz.
+    // Ej: "Laboratorio Piso 2" puede tener sub-ubicaciones "Mesa 1", "Rack A", etc.
+    // =========================================================================
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "padre_id")
+    private Ambiente padre;
+
+    // =========================================================================
+    // CAMPO: subUbicaciones
+    // =========================================================================
+    // Lista de sub-ubicaciones hijas. Lazy para no cargar innecesariamente.
+    // =========================================================================
+    @OneToMany(mappedBy = "padre", fetch = FetchType.LAZY)
+    private List<Ambiente> subUbicaciones = new ArrayList<>();
 
     // =========================================================================
     // CAMPO: activo

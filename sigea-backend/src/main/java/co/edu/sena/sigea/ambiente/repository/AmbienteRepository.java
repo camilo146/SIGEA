@@ -18,4 +18,10 @@ public interface AmbienteRepository extends JpaRepository<Ambiente, Long> {
     List<Ambiente> findByActivoTrue();
 
     List<Ambiente> findByInstructorResponsableId(Long instructorId);
+
+    /** Devuelve todas las sub-ubicaciones (hijas) del ambiente padre dado. */
+    List<Ambiente> findByPadreId(Long padreId);
+
+    /** Verifica si existen sub-ubicaciones activas para un padre dado. */
+    boolean existsByPadreIdAndActivoTrue(Long padreId);
 }

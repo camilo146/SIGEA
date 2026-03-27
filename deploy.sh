@@ -40,7 +40,7 @@ if [ "$ACTION" = "install" ]; then
     cd "$APP_DIR"
   else
     # Crear directorio y clonar solo si no existe repo en ruta estándar ni en directorio actual.
-    sudo mkdir -p "$APP_DIR"
+    sudo mkdir -p "$APP_DIR"  
     sudo chown "$USER:$USER" "$APP_DIR"
 
     info "Clonando repositorio..."

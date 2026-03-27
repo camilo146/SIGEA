@@ -102,6 +102,9 @@
                 <button type="button" class="btn btn-sm btn-outline" (click)="openEquipos(a)" title="Ver herramientas asignadas" aria-label="Ver equipos de la ubicación">
                   <i class="fas fa-tools"></i> Ver equipos
                 </button>
+                <button type="button" class="btn btn-sm btn-outline" style="margin-left:0.3rem" (click)="openSubUbicaciones(a)" title="Gestionar sub-ubicaciones" aria-label="Ver sub-ubicaciones">
+                  <i class="fas fa-sitemap"></i> Sub-ubicaciones
+                </button>
               </td>
               <td class="actions">
                 <button type="button" class="btn-icon" (click)="openEdit(a)" title="Editar" aria-label="Editar ubicación">
@@ -282,6 +285,79 @@
           </ul>
         }
       </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Sub-ubicaciones -->
+@if (modalSubUbicacionesOpen()) {
+  <div class="modal-overlay" (click)="closeSubUbicaciones()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-sitemap" style="color:var(--color-primary);margin-right:.4rem"></i>
+          Sub-ubicaciones de "{{ ambientePadreSeleccionado()?.nombre }}"
+        </h3>
+        <button type="button" class="btn-close" (click)="closeSubUbicaciones()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <button type="button" class="btn btn-primary" style="margin-bottom:1rem" (click)="openCrearSubUbicacion()">
+          <i class="fas fa-plus"></i> Nueva sub-ubicación
+        </button>
+        @if (loadingSubUbicaciones()) {
+          <p><i class="fas fa-spinner fa-spin"></i> Cargando...</p>
+        } @else if (subUbicaciones().length === 0) {
+          <p class="text-muted">Este ambiente no tiene sub-ubicaciones aún.</p>
+        } @else {
+          <ul class="equipo-list">
+            @for (sub of subUbicaciones(); track sub.id) {
+              <li class="equipo-list-item">
+                <i class="fas fa-map-pin" style="color:var(--color-primary)"></i>
+                <span>
+                  <strong>{{ sub.nombre }}</strong>
+                  @if (sub.ubicacion) { <small class="text-muted"> · {{ sub.ubicacion }}</small> }
+                </span>
+                <span class="badge" [class]="sub.activo ? 'badge-green' : 'badge-red'">
+                  {{ sub.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Crear Sub-ubicación -->
+@if (modalCrearSubOpen()) {
+  <div class="modal-overlay" (click)="closeCrearSubUbicacion()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-plus-circle" style="color:var(--color-primary);margin-right:.4rem"></i> Nueva sub-ubicación</h3>
+        <button type="button" class="btn-close" (click)="closeCrearSubUbicacion()">&times;</button>
+      </div>
+      <form (ngSubmit)="submitSubUbicacion()" class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input class="form-input" [(ngModel)]="formSub.nombre" name="subNombre" placeholder="Ej: Zona A" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ubicación</label>
+          <input class="form-input" [(ngModel)]="formSub.ubicacion" name="subUbicacion" placeholder="Ej: Esquina derecha" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-input" [(ngModel)]="formSub.descripcion" name="subDescripcion" rows="2"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCrearSubUbicacion()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!formSub.nombre?.trim() || formSubSaving()">
+            @if (formSubSaving()) { <i class="fas fa-spinner fa-spin"></i> Guardando... }
+            @else { Crear sub-ubicación }
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 }

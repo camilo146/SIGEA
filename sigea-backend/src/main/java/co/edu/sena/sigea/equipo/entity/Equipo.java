@@ -177,6 +177,12 @@ public class Equipo extends EntidadBase {
     @JoinColumn(name = "inventario_actual_instructor_id", nullable = false)
     private Usuario inventarioActualInstructor;
 
+    // Sub-ubicación dentro del ambiente principal (opcional).
+    // Permite precisar dónde dentro del ambiente está el equipo.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sub_ubicacion_id")
+    private Ambiente subUbicacion;
+
     // =========================================================================
     // CAMPO: umbralMinimo
     // =========================================================================

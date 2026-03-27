@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { Ambiente, AmbienteCrear } from '../models/ambiente.model';
+import type { Ambiente, AmbienteCrear, SubUbicacionResumen } from '../models/ambiente.model';
 
 @Injectable({ providedIn: 'root' })
 export class AmbienteService {
@@ -50,5 +50,20 @@ export class AmbienteService {
 
   desactivar(id: number): Observable<void> {
     return this.http.patch<void>(`${this.apiUrl}/${id}/desactivar`, {});
+  }
+
+  /** Crea un ambiente sin foto (solo JSON). Compatible con rol ALIMENTADOR_EQUIPOS. */
+  crearSinFoto(dto: AmbienteCrear): Observable<Ambiente> {
+    return this.http.post<Ambiente>(this.apiUrl, dto);
+  }
+
+  /** Lista las sub-ubicaciones hijas de un ambiente padre. */
+  listarSubUbicaciones(padreId: number): Observable<SubUbicacionResumen[]> {
+    return this.http.get<SubUbicacionResumen[]>(`${this.apiUrl}/${padreId}/sub-ubicaciones`);
+  }
+
+  /** Crea una sub-ubicación dentro del ambiente padre indicado. */
+  crearSubUbicacion(padreId: number, dto: AmbienteCrear): Observable<Ambiente> {
+    return this.http.post<Ambiente>(`${this.apiUrl}/${padreId}/sub-ubicaciones`, dto);
   }
 }
