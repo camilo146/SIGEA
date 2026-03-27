@@ -5,6 +5,10 @@
 # Uso:
 #   Primera vez:  bash deploy.sh
 #   Actualizar:   bash deploy.sh update
+#
+# Nota:
+#   Este script asume despliegue público del frontend en puerto 443.
+#   Ajusta FRONTEND_PORT en .env si necesitas otro puerto.
 # ==============================================================================
 
 set -euo pipefail
@@ -18,6 +22,18 @@ GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 info()    { echo -e "${GREEN}[SIGEA]${NC} $1"; }
 warning() { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+
+frontend_url() {
+  local host port
+  host="$(hostname -I | awk '{print $1}')"
+  port="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
+  port="${port:-443}"
+  if [ "$port" = "443" ]; then
+    echo "https://$host"
+  else
+    echo "https://$host:$port"
+  fi
+}
 
 # ── Verificar Docker ────────────────────────────────────────────────────────────
 command -v docker >/dev/null 2>&1 || error "Docker no está instalado."
@@ -66,6 +82,10 @@ if [ "$ACTION" = "install" ]; then
     warning "SIGEA_APP_URL usa http://. Para proteger credenciales en tránsito, usa HTTPS (https://...)."
   fi
 
+  if grep -Eq '^FRONTEND_PORT=4043$' .env; then
+    warning "FRONTEND_PORT está en 4043. Para despliegue público recomendado usa 443."
+  fi
+
   # Construir y levantar
   info "Construyendo imágenes y levantando contenedores (puede tardar 5-10 min la primera vez)..."
   docker compose up -d --build
@@ -77,10 +97,10 @@ if [ "$ACTION" = "install" ]; then
 
   echo ""
   info "✓ SIGEA instalado correctamente."
-  info "  Frontend: http://$(hostname -I | awk '{print $1}'):${FRONTEND_PORT:-4043}"
+  info "  Frontend: $(frontend_url)"
   info "  Backend:  servicio interno (no expuesto públicamente)"
   echo ""
-  info "Credenciales por defecto: admin@sigea.edu.co / Admin2026*"
+  info "Credenciales por defecto: admin2@sigea.local / password"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACTUALIZACIÓN
@@ -115,6 +135,7 @@ elif [ "$ACTION" = "update" ]; then
 
   echo ""
   info "✓ SIGEA actualizado correctamente."
+  info "  Frontend: $(frontend_url)"
 
 else
   echo "Uso: bash deploy.sh [install|update]"
