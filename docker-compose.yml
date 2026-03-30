@@ -100,6 +100,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       SIGEA_DOMAIN: ${SIGEA_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
