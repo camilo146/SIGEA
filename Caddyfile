@@ -5,7 +5,7 @@
 # Dominio público de SIGEA (obligatorio para TLS válido de Let's Encrypt)
 {$SIGEA_DOMAIN} {
   encode gzip zstd
-  reverse_proxy frontend:80
+  reverse_proxy 172.28.10.12:80
 }
 
 # Ayuda mínima en HTTP si entran por IP o sin dominio

@@ -97,12 +97,7 @@ services:
     depends_on:
       frontend:
         condition: service_started
-    ports:
-      - "80:80"
-      - "443:443"
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
+    network_mode: host
     environment:
       SIGEA_DOMAIN: ${SIGEA_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
@@ -110,9 +105,6 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - sigea_caddy_data:/data
       - sigea_caddy_config:/config
-    networks:
-      sigea-net:
-        ipv4_address: 172.28.10.13
 
 volumes:
   sigea_db_data:
