@@ -20,3 +20,4 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY --from=build /app/dist/sigea-frontend/browser /usr/share/nginx/html
 
 EXPOSE 80
+CMD ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
