@@ -100,7 +100,6 @@ services:
     network_mode: host
     environment:
       SIGEA_DOMAIN: ${SIGEA_DOMAIN}
-      ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - sigea_caddy_data:/data

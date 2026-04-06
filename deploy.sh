@@ -7,8 +7,8 @@
 #   Actualizar:   bash deploy.sh update
 #
 # Nota:
-#   Este script asume despliegue público del frontend en puerto 443.
-#   Ajusta FRONTEND_PORT en .env si necesitas otro puerto.
+#   Este script asume publicación interna del frontend en puerto 443 con certificado
+#   interno/autofirmado servido por Caddy.
 # ==============================================================================
 
 set -euo pipefail
@@ -82,11 +82,7 @@ if [ "$ACTION" = "install" ]; then
   fi
 
   if ! grep -Eq '^SIGEA_DOMAIN=' .env; then
-    warning "SIGEA_DOMAIN no está definido. HTTPS con certificado válido requiere un dominio público."
-  fi
-
-  if ! grep -Eq '^ACME_EMAIL=' .env; then
-    warning "ACME_EMAIL no está definido. Let's Encrypt requiere correo para emitir/renovar certificados."
+    warning "SIGEA_DOMAIN no está definido. El acceso por dominio interno y el certificado autofirmado dependen de ese valor."
   fi
 
   # Construir y levantar

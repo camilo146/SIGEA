@@ -1,10 +1,7 @@
-{
-  email {$ACME_EMAIL}
-}
-
-# Dominio público de SIGEA (obligatorio para TLS válido de Let's Encrypt)
+# Dominio interno de SIGEA con certificado interno/autofirmado emitido por Caddy.
 {$SIGEA_DOMAIN} {
   encode gzip zstd
+  tls internal
   reverse_proxy 172.28.10.12:80
 }
 
