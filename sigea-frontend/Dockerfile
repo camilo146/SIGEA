@@ -13,11 +13,12 @@ RUN npm ci --include=dev
 RUN npm install
 
 COPY . .
-RUN ./node_modules/.bin/ng build --configuration=production --output-path=dist/sigea-frontend/browser
+RUN ./node_modules/.bin/ng build --configuration=production --output-path=dist/sigea-frontend
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY --from=build /app/dist/sigea-frontend/browser /usr/share/nginx/html
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=build /app/dist/sigea-frontend/browser/. /usr/share/nginx/html/
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
