@@ -42,6 +42,23 @@ public class PrestamoAmbienteControlador {
                 .body(servicio.solicitar(dto, userDetails.getUsername()));
     }
 
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<PrestamoAmbienteRespuestaDTO>> listar(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boolean esAdministradorOInstructor = userDetails != null && userDetails.getAuthorities() != null
+                && userDetails.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_ADMINISTRADOR".equals(a.getAuthority())
+                                || "ROLE_INSTRUCTOR".equals(a.getAuthority()));
+
+        if (esAdministradorOInstructor) {
+            return ResponseEntity.ok(servicio.listarTodos());
+        }
+
+        String correoUsuario = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(servicio.listarMisSolicitudes(correoUsuario));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PrestamoAmbienteRespuestaDTO> buscarPorId(@PathVariable Long id) {

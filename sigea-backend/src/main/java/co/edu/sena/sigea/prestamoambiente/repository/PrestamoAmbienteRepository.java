@@ -15,6 +15,8 @@ import co.edu.sena.sigea.prestamoambiente.enums.EstadoPrestamoAmbiente;
 @Repository
 public interface PrestamoAmbienteRepository extends JpaRepository<PrestamoAmbiente, Long> {
 
+        List<PrestamoAmbiente> findAllByOrderByFechaSolicitudDesc();
+
     List<PrestamoAmbiente> findBySolicitanteIdOrderByFechaSolicitudDesc(Long solicitanteId);
 
     List<PrestamoAmbiente> findByPropietarioAmbienteIdOrderByFechaSolicitudDesc(Long propietarioId);

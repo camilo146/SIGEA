@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.sena.sigea.ambiente.entity.Ambiente;
 import co.edu.sena.sigea.ambiente.repository.AmbienteRepository;
+import co.edu.sena.sigea.common.enums.Rol;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
 import co.edu.sena.sigea.notificacion.service.CorreoServicio;
@@ -201,6 +202,12 @@ public class PrestamoAmbienteServicio {
     }
 
     @Transactional(readOnly = true)
+    public List<PrestamoAmbienteRespuestaDTO> listarTodos() {
+        return prestamoAmbienteRepository.findAllByOrderByFechaSolicitudDesc()
+                .stream().map(this::convertirADTO).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<PrestamoAmbienteRespuestaDTO> listarMisSolicitudes(String correoSolicitante) {
         Usuario solicitante = usuarioRepository.findByCorreoElectronico(correoSolicitante)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoSolicitante));
@@ -253,9 +260,10 @@ public class PrestamoAmbienteServicio {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoUsuario));
 
         boolean esPropietario = prestamo.getPropietarioAmbiente().getId().equals(usuario.getId());
-        boolean esAdmin = usuario.getRol().name().equals("ADMINISTRADOR");
+        boolean esAdmin = usuario.getRol() == Rol.ADMINISTRADOR;
+        boolean esInstructor = usuario.getRol() == Rol.INSTRUCTOR;
 
-        if (!esPropietario && !esAdmin) {
+        if (!esPropietario && !esAdmin && !esInstructor) {
             throw new OperacionNoPermitidaException(
                     "Solo el propietario del ambiente o un administrador puede realizar esta acción");
         }
