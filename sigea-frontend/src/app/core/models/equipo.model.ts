@@ -12,6 +12,12 @@ export interface Equipo {
   nombre: string;
   descripcion?: string;
   codigoUnico: string;
+  placa?: string;
+  serial?: string;
+  modelo?: string;
+  marcaId?: number;
+  marcaNombre?: string;
+  estadoEquipoEscala?: number;
   categoriaId: number;
   categoriaNombre: string;
   ambienteId: number;
@@ -37,6 +43,10 @@ export interface EquipoCrear {
   nombre: string;
   descripcion?: string;
   codigoUnico: string;
+  placa?: string;
+  serial?: string;
+  modelo?: string;
+  marcaId?: number | null;
   categoriaId: number;
   ambienteId: number;
   subUbicacionId?: number | null;

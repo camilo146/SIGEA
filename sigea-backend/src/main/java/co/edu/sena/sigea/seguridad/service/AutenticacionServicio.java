@@ -4,8 +4,6 @@ import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,11 +77,10 @@ public class AutenticacionServicio {
     @Transactional
     public LoginRespuestaDTO login(LoginDTO loginDTO) {
 
-        // Buscar el usuario por correo
-        // si no existe responder como credenciales invalidas para evitar enumeracion de
-        // cuentas
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(
-                loginDTO.getCorreoElectronico())
+        // Buscar el usuario por número de documento (CAMBIO 6)
+        // Se responde "Credenciales inválidas" genérico para evitar enumeración
+        Usuario usuario = usuarioRepository.findByNumeroDocumento(
+                loginDTO.getNumeroDocumento())
                 .orElseThrow(() -> new OperacionNoPermitidaException(
                         "Credenciales inválidas"));
 
@@ -121,47 +118,30 @@ public class AutenticacionServicio {
                     "Tu cuenta está pendiente de aprobación por un administrador. Espera a que revisen tu registro.");
         }
 
-        // Intentar autenticar con Spring Security---
-
-        try {
-            // llama a UsuarioDetallesServicio.LoadUserByUsername (correo)
-            // carga el usuario de la BD
-            // Compara la contraseña enviada con el hash usando BCrypt
-            // si coinciden retorna la validacion exitosa
-            // si no coincide lanza BadCredentialsException
-
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginDTO.getCorreoElectronico(),
-                            loginDTO.getContrasena()));
-
-            // si el login es exitoso entonces resetear intenod fallidos
-            usuario.setIntentosFallidos(0);// resetear intentos fallidos
-            usuario.setCuentaBloqueadaHasta(null);// quitar bloqueos
-            usuarioRepository.save(usuario);// guardar cambios en la BD
-
-            // Gnerar token JWT con la informacion del usuario
-            String token = jwtProveedor.generarToken(
-                    usuario.getCorreoElectronico(),
-                    usuario.getRol().name()
-
-            );
-
-            // construir i retornar una respuesta
-
-            return LoginRespuestaDTO.builder()
-                    .token(token)
-                    .tipo("Bearer")
-                    .nombreCompleto(usuario.getNombreCompleto())
-                    .rol(usuario.getRol().name())
-                    .build();
-
-        } catch (BadCredentialsException e) {
-            // login fallido manejo de intentos fallidos
+        // Verificar contraseña directamente con BCrypt
+        // (no usamos authenticationManager para desacoplar del email-based UserDetails)
+        if (!passwordEncoder.matches(loginDTO.getContrasena(), usuario.getContrasenaHash())) {
             manejarLoginFallido(usuario);
             throw new OperacionNoPermitidaException(
                     "Credenciales invalidas, intentos fallidos:" + usuario.getIntentosFallidos());
         }
+
+        // Login exitoso: resetear intentos fallidos
+        usuario.setIntentosFallidos(0);
+        usuario.setCuentaBloqueadaHasta(null);
+        usuarioRepository.save(usuario);
+
+        // Generar token JWT usando el correo como subject (para JwtFiltroAutenticacion)
+        String token = jwtProveedor.generarToken(
+                usuario.getCorreoElectronico(),
+                usuario.getRol().name());
+
+        return LoginRespuestaDTO.builder()
+                .token(token)
+                .tipo("Bearer")
+                .nombreCompleto(usuario.getNombreCompleto())
+                .rol(usuario.getRol().name())
+                .build();
     }
 
     // Metodo para manejar intentos fallidos

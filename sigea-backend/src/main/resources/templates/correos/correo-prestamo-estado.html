@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Actualización de préstamo - SIGEA</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: #39A900; padding: 24px; text-align: center; }
+    .header img { max-height: 60px; }
+    .header h1 { color: #fff; font-size: 22px; margin: 8px 0 0; }
+    .body { padding: 32px; color: #333; }
+    .estado-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+    .estado-APROBADO { background: #d4edda; color: #155724; }
+    .estado-RECHAZADO { background: #f8d7da; color: #721c24; }
+    .estado-DEVUELTO { background: #d1ecf1; color: #0c5460; }
+    .estado-EN_MORA { background: #fff3cd; color: #856404; }
+    .detalle-tabla { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .detalle-tabla td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    .detalle-tabla td:first-child { font-weight: bold; color: #555; width: 40%; }
+    .footer { background: #f4f4f4; padding: 16px; text-align: center; font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
+    <h1>SIGEA - Actualización de Préstamo de Equipo</h1>
+  </div>
+  <div class="body">
+    <p>Hola, <strong th:text="${nombreUsuario}">Usuario</strong>,</p>
+    <p>El estado de tu préstamo ha sido actualizado:</p>
+
+    <p>
+      Estado:
+      <span class="estado-badge" th:classappend="'estado-' + ${estado}"
+            th:text="${estado}">APROBADO</span>
+    </p>
+
+    <table class="detalle-tabla">
+      <tr><td>Equipo(s)</td><td th:text="${equipos}">Nombre del equipo</td></tr>
+      <tr><td>Fecha de solicitud</td><td th:text="${fechaSolicitud}">01/01/2025</td></tr>
+      <tr th:if="${fechaDevolucion != null}">
+        <td>Fecha de devolución</td><td th:text="${fechaDevolucion}">05/01/2025</td>
+      </tr>
+      <tr th:if="${observacion != null and !#strings.isEmpty(observacion)}">
+        <td>Observación</td><td th:text="${observacion}">-</td>
+      </tr>
+    </table>
+
+    <p th:if="${estado == 'EN_MORA'}" style="color:#856404;">
+      ⚠️ Tu préstamo ha superado la fecha de devolución. Por favor devuelve el equipo a la brevedad posible.
+    </p>
+  </div>
+  <div class="footer">
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2025</p>
+    <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
+  </div>
+</div>
+</body>
+</html>

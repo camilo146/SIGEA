@@ -28,7 +28,7 @@ export class LoginComponent implements OnInit {
   showVerificacionCodigo = false;
 
   /* ---- Login ---- */
-  correoElectronico = '';
+  numeroDocumento = '';
   contrasena = '';
   showPassword = false;
 
@@ -47,6 +47,22 @@ export class LoginComponent implements OnInit {
   showRegPassword = false;
 
   readonly TIPOS_DOC = ['CC', 'TI', 'CE', 'PP', 'PEP'];
+
+  /** Comprueba requisitos de la contraseña para el indicador visual. */
+  get passwordStrength(): { upperCase: boolean; number: boolean; special: boolean; length: boolean } {
+    const p = this.reg.contrasena ?? '';
+    return {
+      length: p.length >= 8,
+      upperCase: /[A-Z]/.test(p),
+      number: /\d/.test(p),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p),
+    };
+  }
+
+  get passwordStrengthScore(): number {
+    const s = this.passwordStrength;
+    return [s.length, s.upperCase, s.number, s.special].filter(Boolean).length;
+  }
 
   ngOnInit() {
     if (this.auth.isLoggedIn()) this.router.navigate(['/dashboard']);
@@ -101,12 +117,12 @@ export class LoginComponent implements OnInit {
 
   login() {
     this.error = '';
-    if (!this.correoElectronico.trim() || !this.contrasena) {
-      this.error = 'Ingrese su correo y contraseña.';
+    if (!this.numeroDocumento.trim() || !this.contrasena) {
+      this.error = 'Ingrese su número de documento y contraseña.';
       return;
     }
     this.loading = true;
-    this.auth.login({ correoElectronico: this.correoElectronico.trim(), contrasena: this.contrasena }).subscribe({
+    this.auth.login({ numeroDocumento: this.numeroDocumento.trim(), contrasena: this.contrasena }).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: (err) => {
         this.loading = false;
@@ -142,6 +158,11 @@ export class LoginComponent implements OnInit {
     }
     if (!this.reg.contrasena || this.reg.contrasena.length < 8) {
       this.error = 'La contraseña debe tener al menos 8 caracteres.';
+      return;
+    }
+    const s = this.passwordStrength;
+    if (!s.upperCase || !s.number || !s.special) {
+      this.error = 'La contraseña debe tener al menos una mayúscula, un número y un carácter especial.';
       return;
     }
     if (this.reg.contrasena !== this.regConfirmPassword) {

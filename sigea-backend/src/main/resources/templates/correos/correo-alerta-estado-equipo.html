@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerta: Equipo requiere mantenimiento - SIGEA</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: #c0392b; padding: 24px; text-align: center; }
+    .header img { max-height: 60px; }
+    .header h1 { color: #fff; font-size: 22px; margin: 8px 0 0; }
+    .body { padding: 32px; color: #333; }
+    .alerta-box { background: #fdecea; border-left: 4px solid #c0392b; border-radius: 4px; padding: 16px; margin: 16px 0; }
+    .detalle-tabla { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .detalle-tabla td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    .detalle-tabla td:first-child { font-weight: bold; color: #555; width: 40%; }
+    .footer { background: #f4f4f4; padding: 16px; text-align: center; font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
+    <h1>⚠️ Alerta — Equipo en Estado Crítico</h1>
+  </div>
+  <div class="body">
+    <p>Hola, <strong th:text="${nombreUsuario}">Administrador</strong>,</p>
+
+    <div class="alerta-box">
+      <strong>El siguiente equipo ha sido enviado a mantenimiento correctivo automático:</strong>
+    </div>
+
+    <table class="detalle-tabla">
+      <tr><td>Equipo</td><td th:text="${equipoNombre}">Laptop HP</td></tr>
+      <tr><td>Código único</td><td th:text="${codigoEquipo}">EQ-001</td></tr>
+      <tr><td>Placa</td><td th:text="${placaEquipo}">Sin placa</td></tr>
+      <tr><td>Promedio de estado (mes anterior)</td>
+          <td><strong th:text="${promedioEstado + ' / 10'}">2.5 / 10</strong></td></tr>
+      <tr><td>Acción tomada</td><td>Generación automática de mantenimiento <strong>CORRECTIVO</strong></td></tr>
+    </table>
+
+    <p>Por favor revise el equipo y actualice su estado en SIGEA una vez resuelto el problema.</p>
+  </div>
+  <div class="footer">
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2025</p>
+    <p>Este es un mensaje automático generado por la evaluación mensual de SIGEA.</p>
+  </div>
+</div>
+</body>
+</html>

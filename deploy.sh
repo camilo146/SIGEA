@@ -99,7 +99,7 @@ if [ "$ACTION" = "install" ]; then
   info "  Frontend: $(frontend_url)"
   info "  Backend:  servicio interno (no expuesto públicamente)"
   echo ""
-  info "Credenciales por defecto: admin2@sigea.local / password"
+  info "Credenciales por defecto: documento 999999999 / password"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACTUALIZACIÓN

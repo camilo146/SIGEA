@@ -1,5 +1,5 @@
 export interface LoginRequest {
-  correoElectronico: string;
+  numeroDocumento: string;
   contrasena: string;
 }
 
@@ -13,6 +13,7 @@ export interface LoginResponse {
 export interface UserSession {
   nombreCompleto: string;
   correoElectronico: string;
+  numeroDocumento?: string;
   rol: string;
   token: string;
 }

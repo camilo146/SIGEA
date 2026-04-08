@@ -85,4 +85,20 @@ export class EquipoService {
   recuperarEquipo(id: number): Observable<Equipo> {
     return this.http.patch<Equipo>(`${this.apiUrl}/${id}/recuperar`, {});
   }
+
+  listarObservaciones(equipoId: number): Observable<ObservacionEquipo[]> {
+    return this.http.get<ObservacionEquipo[]>(
+      `${environment.apiUrl}/observaciones-equipo/equipo/${equipoId}`
+    );
+  }
+}
+
+export interface ObservacionEquipo {
+  id: number;
+  equipoId: number;
+  prestamoId: number;
+  observaciones?: string;
+  estadoDevolucion: number;
+  fechaRegistro: string;
+  usuarioRegistradorNombre?: string;
 }

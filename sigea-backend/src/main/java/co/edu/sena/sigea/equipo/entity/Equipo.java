@@ -30,6 +30,7 @@ import co.edu.sena.sigea.categoria.entity.Categoria;
 import co.edu.sena.sigea.common.entity.EntidadBase;
 import co.edu.sena.sigea.common.enums.EstadoEquipo;
 import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
+import co.edu.sena.sigea.marca.entity.Marca;
 import co.edu.sena.sigea.usuario.entity.Usuario;
 
 import jakarta.persistence.Column;
@@ -63,6 +64,47 @@ public class Equipo extends EntidadBase {
     // =========================================================================
     @Column(name = "nombre", nullable = false, length = 200)
     private String nombre;
+
+    // =========================================================================
+    // CAMPO: placa
+    // =========================================================================
+    // Placa de registro SENA — máximo 20 dígitos numéricos. Único por equipo.
+    // =========================================================================
+    @Column(name = "placa", unique = true, length = 20)
+    private String placa;
+
+    // =========================================================================
+    // CAMPO: serial
+    // =========================================================================
+    // Número de serie del fabricante — máximo 50 caracteres.
+    // =========================================================================
+    @Column(name = "serial", length = 50)
+    private String serial;
+
+    // =========================================================================
+    // CAMPO: modelo
+    // =========================================================================
+    // Modelo del equipo — máximo 100 caracteres.
+    // =========================================================================
+    @Column(name = "modelo", length = 100)
+    private String modelo;
+
+    // =========================================================================
+    // CAMPO: marca
+    // =========================================================================
+    // Relación con la entidad Marca. FK opcional (NULL para equipos legacy).
+    // =========================================================================
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "marca_id")
+    private Marca marca;
+
+    // =========================================================================
+    // CAMPO: estadoEquipoEscala
+    // =========================================================================
+    // Estado del equipo en escala 1-10. Se actualiza en cada devolución.
+    // =========================================================================
+    @Column(name = "estado_equipo_escala")
+    private Integer estadoEquipoEscala;
 
     // =========================================================================
     // CAMPO: descripcion

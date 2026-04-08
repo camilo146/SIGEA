@@ -1,0 +1,29 @@
+/* Pestañas de vista */
+.vista-tabs {
+  display: flex;
+  gap: 0.25rem;
+
+  .vista-tab {
+    padding: 0.4rem 1rem;
+    background: none;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-family: inherit;
+    transition: all 0.15s;
+
+    &.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+    }
+
+    &:hover:not(.active) {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+  }
+}

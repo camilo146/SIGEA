@@ -34,6 +34,8 @@ import co.edu.sena.sigea.equipo.entity.Equipo;
 import co.edu.sena.sigea.equipo.entity.FotoEquipo;
 import co.edu.sena.sigea.equipo.repository.EquipoRepository;
 import co.edu.sena.sigea.equipo.repository.FotoEquipoRepository;
+import co.edu.sena.sigea.marca.entity.Marca;
+import co.edu.sena.sigea.marca.repository.MarcaRepository;
 import co.edu.sena.sigea.mantenimiento.repository.MantenimientoRepository;
 import co.edu.sena.sigea.prestamo.repository.PrestamoRepository;
 import co.edu.sena.sigea.reserva.repository.ReservaRepository;
@@ -55,6 +57,7 @@ public class EquipoServicio {
         private final MantenimientoRepository mantenimientoRepository;
         private final TransferenciaRepository transferenciaRepository;
         private final UsuarioRepository usuarioRepository;
+        private final MarcaRepository marcaRepository;
         private final String rutaUploads;
 
         public EquipoServicio(
@@ -67,6 +70,7 @@ public class EquipoServicio {
                         MantenimientoRepository mantenimientoRepository,
                         TransferenciaRepository transferenciaRepository,
                         UsuarioRepository usuarioRepository,
+                        MarcaRepository marcaRepository,
                         @Value("${sigea.uploads.path}") String rutaUploads) {
 
                 this.equipoRepository = equipoRepository;
@@ -78,6 +82,7 @@ public class EquipoServicio {
                 this.mantenimientoRepository = mantenimientoRepository;
                 this.transferenciaRepository = transferenciaRepository;
                 this.usuarioRepository = usuarioRepository;
+                this.marcaRepository = marcaRepository;
                 this.rutaUploads = rutaUploads;
         }
 
@@ -128,9 +133,33 @@ public class EquipoServicio {
                         }
                 }
 
+                // Resolver marca
+                Marca marca = null;
+                if (dto.getMarcaId() != null) {
+                        marca = marcaRepository.findById(dto.getMarcaId())
+                                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                        "Marca no encontrada con ID: " + dto.getMarcaId()));
+                        if (!Boolean.TRUE.equals(marca.getActivo())) {
+                                throw new OperacionNoPermitidaException("No se puede usar una marca inactiva");
+                        }
+                }
+
+                // Verificar placa única
+                if (dto.getPlaca() != null && !dto.getPlaca().isBlank()) {
+                        equipoRepository.findByPlaca(dto.getPlaca()).ifPresent(ex -> {
+                                throw new RecursoDuplicadoException(
+                                                "Ya existe un equipo con la placa: " + dto.getPlaca());
+                        });
+                }
+
                 Equipo equipo = Equipo.builder()
                                 .nombre(dto.getNombre())
                                 .descripcion(dto.getDescripcion())
+                                .placa(dto.getPlaca())
+                                .serial(dto.getSerial())
+                                .modelo(dto.getModelo())
+                                .marca(marca)
+                                .estadoEquipoEscala(dto.getEstadoEquipoEscala())
                                 .codigoUnico(codigoUnico)
                                 .categoria(categoria)
                                 .ambiente(ambiente)
@@ -313,8 +342,34 @@ public class EquipoServicio {
                                                         + equipo.getCantidadDisponible() + ")");
                 }
 
+                // Resolver marca para actualizar
+                Marca marcaActualizar = null;
+                if (dto.getMarcaId() != null) {
+                        marcaActualizar = marcaRepository.findById(dto.getMarcaId())
+                                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                        "Marca no encontrada con ID: " + dto.getMarcaId()));
+                        if (!Boolean.TRUE.equals(marcaActualizar.getActivo())) {
+                                throw new OperacionNoPermitidaException("No se puede usar una marca inactiva");
+                        }
+                }
+
+                // Verificar placa única (ignorar el equipo actual)
+                if (dto.getPlaca() != null && !dto.getPlaca().isBlank()) {
+                        equipoRepository.findByPlaca(dto.getPlaca()).ifPresent(ex -> {
+                                if (!ex.getId().equals(id)) {
+                                        throw new RecursoDuplicadoException(
+                                                        "Ya existe otro equipo con la placa: " + dto.getPlaca());
+                                }
+                        });
+                }
+
                 equipo.setNombre(dto.getNombre());
                 equipo.setDescripcion(dto.getDescripcion());
+                equipo.setPlaca(dto.getPlaca());
+                equipo.setSerial(dto.getSerial());
+                equipo.setModelo(dto.getModelo());
+                equipo.setMarca(marcaActualizar);
+                equipo.setEstadoEquipoEscala(dto.getEstadoEquipoEscala());
                 equipo.setCodigoUnico(dto.getCodigoUnico());
                 equipo.setCategoria(categoria);
                 equipo.setAmbiente(ambiente);
@@ -542,6 +597,12 @@ public class EquipoServicio {
                                 .id(equipo.getId())
                                 .nombre(equipo.getNombre())
                                 .descripcion(equipo.getDescripcion())
+                                .placa(equipo.getPlaca())
+                                .serial(equipo.getSerial())
+                                .modelo(equipo.getModelo())
+                                .marcaId(equipo.getMarca() != null ? equipo.getMarca().getId() : null)
+                                .marcaNombre(equipo.getMarca() != null ? equipo.getMarca().getNombre() : null)
+                                .estadoEquipoEscala(equipo.getEstadoEquipoEscala())
                                 .codigoUnico(equipo.getCodigoUnico())
                                 .categoriaId(equipo.getCategoria() != null
                                                 ? equipo.getCategoria().getId()

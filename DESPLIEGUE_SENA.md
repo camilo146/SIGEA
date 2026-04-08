@@ -347,8 +347,8 @@ docker compose up -d --build
 ### Paso 7: Configuración de Usuario Admin
 
 Después del despliegue inicial, el usuario admin se crea automáticamente con:
-- **Correo**: admin2@sigea.local
-- **Contraseña**: Admin123*
+- **Número de documento**: 999999999
+- **Contraseña**: password
 
 **Importante**: Cambia la contraseña inmediatamente después del primer login.
 

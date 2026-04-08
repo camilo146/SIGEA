@@ -200,10 +200,48 @@
         <p><strong>Estado:</strong> <span class="badge" [class]="'badge-' + e.estado.toLowerCase()">{{ estadoLabel(e.estado) }}</span></p>
         <p><strong>Tipo:</strong> {{ tipoUsoLabel(e.tipoUso) }}</p>
         <p><strong>Disponible:</strong> {{ e.cantidadDisponible }} / {{ e.cantidadTotal }}</p>
+        @if (e.placa) { <p><strong>Placa:</strong> {{ e.placa }}</p> }
+        @if (e.serial) { <p><strong>Serial:</strong> {{ e.serial }}</p> }
+        @if (e.modelo) { <p><strong>Modelo:</strong> {{ e.modelo }}</p> }
+        @if (e.marcaNombre) { <p><strong>Marca:</strong> {{ e.marcaNombre }}</p> }
+        @if (e.estadoEquipoEscala != null) {
+          <p><strong>Estado (1-10):</strong>
+            <span class="escala-badge" [class.escala-ok]="e.estadoEquipoEscala >= 7" [class.escala-warn]="e.estadoEquipoEscala >= 4 && e.estadoEquipoEscala < 7" [class.escala-bad]="e.estadoEquipoEscala < 4">
+              {{ e.estadoEquipoEscala }}/10
+            </span>
+          </p>
+        }
         @if (e.descripcion) {
           <p class="desc"><strong>Descripción:</strong> {{ e.descripcion }}</p>
         }
       </div>
+      <!-- Pestañas info / observaciones -->
+      <div class="detail-tabs">
+        <button type="button" class="detail-tab" [class.active]="detailTab() === 'info'" (click)="switchDetailTab('info')">Información</button>
+        <button type="button" class="detail-tab" [class.active]="detailTab() === 'observaciones'" (click)="switchDetailTab('observaciones')">Observaciones</button>
+      </div>
+      @if (detailTab() === 'observaciones') {
+        <div class="obs-panel">
+          @if (loadingObs()) {
+            <p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>
+          } @else if (observaciones().length === 0) {
+            <p class="text-muted">Sin observaciones registradas.</p>
+          } @else {
+            @for (o of observaciones(); track o.id) {
+              <div class="obs-item">
+                <div class="obs-header">
+                  <span class="badge" [class.badge-success]="o.estadoDevolucion >= 7" [class.badge-yellow]="o.estadoDevolucion >= 4" [class.badge-danger]="o.estadoDevolucion < 4">
+                    {{ o.estadoDevolucion }}/10
+                  </span>
+                  <small class="text-muted">{{ o.fechaRegistro | date:'dd/MM/yyyy HH:mm' }}</small>
+                  @if (o.usuarioRegistradorNombre) { <small class="text-muted"> &mdash; {{ o.usuarioRegistradorNombre }}</small> }
+                </div>
+                @if (o.observaciones) { <p class="obs-texto">{{ o.observaciones }}</p> }
+              </div>
+            }
+          }
+        </div>
+      }
       <div class="equipo-detail-actions">
         @if (e.activo && e.cantidadDisponible > 0) {
           <button type="button" class="btn btn-primary" (click)="solicitarEquipo(e)">
@@ -238,6 +276,31 @@
         <div class="form-group">
           <label>Código único</label>
           <input type="text" [(ngModel)]="form.codigoUnico" name="codigoUnico" [readonly]="editingId() != null" placeholder="Opcional: dejar vacío para auto-generar (ej: SIGEA-EQ-...)" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Placa</label>
+            <input type="text" [(ngModel)]="form.placa" name="placa" maxlength="50" placeholder="Número de placa (opcional)" />
+          </div>
+          <div class="form-group">
+            <label>Serial</label>
+            <input type="text" [(ngModel)]="form.serial" name="serial" maxlength="100" placeholder="Número de serie" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Modelo</label>
+            <input type="text" [(ngModel)]="form.modelo" name="modelo" maxlength="100" placeholder="Modelo del equipo" />
+          </div>
+          <div class="form-group">
+            <label>Marca</label>
+            <select [(ngModel)]="form.marcaId" name="marcaId">
+              <option [ngValue]="null">— Sin marca —</option>
+              @for (m of marcas(); track m.id) {
+                <option [value]="m.id">{{ m.nombre }}</option>
+              }
+            </select>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">

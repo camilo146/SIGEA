@@ -119,6 +119,7 @@ export class MainLayoutComponent implements OnInit {
       reportes: 'Reportes',
       transferencias: 'Transferencias',
       mantenimientos: 'Mantenimientos',
+      'prestamos-ambientes': 'Préstamos de Ambientes',
     };
     return map[segments[1]] ?? segments[1];
   }

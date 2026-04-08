@@ -39,7 +39,8 @@ export class AuthService {
       tap((res) => {
         const session: UserSession = {
           nombreCompleto: res.nombreCompleto,
-          correoElectronico: credentials.correoElectronico,
+          correoElectronico: '',
+          numeroDocumento: credentials.numeroDocumento,
           rol: res.rol,
           token: res.token,
         };

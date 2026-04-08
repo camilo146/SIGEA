@@ -2,9 +2,10 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { EquipoService } from '../../core/services/equipo.service';
+import { EquipoService, ObservacionEquipo } from '../../core/services/equipo.service';
 import { CategoriaService } from '../../core/services/categoria.service';
 import { AmbienteService } from '../../core/services/ambiente.service';
+import { MarcaService } from '../../core/services/marca.service';
 import { ReporteService } from '../../core/services/reporte.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -13,6 +14,7 @@ import type { Equipo, EquipoCrear, TipoUsoEquipo } from '../../core/models/equip
 import type { Categoria } from '../../core/models/categoria.model';
 import type { Ambiente } from '../../core/models/ambiente.model';
 import type { SubUbicacionResumen } from '../../core/models/ambiente.model';
+import type { Marca } from '../../core/models/marca.model';
 
 @Component({
   selector: 'app-inventario',
@@ -25,6 +27,7 @@ export class InventarioComponent implements OnInit {
   private equipoService = inject(EquipoService);
   private categoriaService = inject(CategoriaService);
   private ambienteService = inject(AmbienteService);
+  private marcaService = inject(MarcaService);
   private reporteService = inject(ReporteService);
   private auth = inject(AuthService);
   private router = inject(Router);
@@ -33,12 +36,18 @@ export class InventarioComponent implements OnInit {
   equipos = signal<Equipo[]>([]);
   categorias = signal<Categoria[]>([]);
   ambientes = signal<Ambiente[]>([]);
+  marcas = signal<Marca[]>([]);
   loading = signal(true);
   error = signal('');
   modalOpen = signal(false);
   editingId = signal<number | null>(null);
   savingForm = signal(false);
   actionPending = signal<Record<string, boolean>>({});
+  /** Observaciones del equipo en el panel de detalle. */
+  observaciones = signal<ObservacionEquipo[]>([]);
+  loadingObs = signal(false);
+  /** Pestaña activa del panel de detalle: 'info' | 'observaciones' */
+  detailTab = signal<'info' | 'observaciones'>('info');
 
   filterCategoria = signal<number | ''>('');
   filterEstado = signal<string>('');
@@ -59,7 +68,7 @@ export class InventarioComponent implements OnInit {
   /** Sub-ubicaciones disponibles según la ubicación seleccionada en el formulario. */
   subUbicacionesAmbiente = signal<SubUbicacionResumen[]>([]);
 
-  form: EquipoCrear = { nombre: '', descripcion: '', codigoUnico: '', categoriaId: 0, ambienteId: 0, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+  form: EquipoCrear = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: 0, ambienteId: 0, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
 
   readonly TIPOS_USO: Array<{ value: TipoUsoEquipo; label: string }> = [
     { value: 'NO_CONSUMIBLE', label: 'No consumible' },
@@ -92,6 +101,7 @@ export class InventarioComponent implements OnInit {
   ngOnInit() {
     this.categoriaService.listarActivas().subscribe({ next: (c) => this.categorias.set(c), error: () => {} });
     this.ambienteService.listar().subscribe({ next: (a) => this.ambientes.set(a), error: () => {} });
+    this.marcaService.listarActivas().subscribe({ next: (m) => this.marcas.set(m), error: () => {} });
     this.loadEquipos();
   }
 
@@ -119,7 +129,7 @@ export class InventarioComponent implements OnInit {
     this.editingId.set(null);
     this.fotoArchivo = null;
     const defaultAmbienteId = this.ambientes()[0]?.id ?? 0;
-    this.form = { nombre: '', descripcion: '', codigoUnico: '', categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: defaultAmbienteId, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+    this.form = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: defaultAmbienteId, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
     this.subUbicacionesAmbiente.set([]);
     if (defaultAmbienteId) {
       this.ambienteService.listarSubUbicaciones(defaultAmbienteId).subscribe({
@@ -132,7 +142,7 @@ export class InventarioComponent implements OnInit {
 
   openEdit(e: Equipo) {
     this.editingId.set(e.id);
-    this.form = { nombre: e.nombre, descripcion: e.descripcion ?? '', codigoUnico: e.codigoUnico, categoriaId: e.categoriaId, ambienteId: e.ambienteId, subUbicacionId: e.subUbicacionId ?? null, cantidadTotal: e.cantidadTotal, tipoUso: e.tipoUso ?? 'NO_CONSUMIBLE', umbralMinimo: e.umbralMinimo };
+    this.form = { nombre: e.nombre, descripcion: e.descripcion ?? '', codigoUnico: e.codigoUnico, placa: e.placa ?? '', serial: e.serial ?? '', modelo: e.modelo ?? '', marcaId: e.marcaId ?? null, categoriaId: e.categoriaId, ambienteId: e.ambienteId, subUbicacionId: e.subUbicacionId ?? null, cantidadTotal: e.cantidadTotal, tipoUso: e.tipoUso ?? 'NO_CONSUMIBLE', umbralMinimo: e.umbralMinimo };
     this.subUbicacionesAmbiente.set([]);
     if (e.ambienteId) {
       this.ambienteService.listarSubUbicaciones(e.ambienteId).subscribe({
@@ -284,10 +294,26 @@ export class InventarioComponent implements OnInit {
 
   openDetalle(e: Equipo) {
     this.selectedEquipo.set(e);
+    this.detailTab.set('info');
+    this.observaciones.set([]);
   }
 
   closeDetalle() {
     this.selectedEquipo.set(null);
+    this.observaciones.set([]);
+  }
+
+  switchDetailTab(tab: 'info' | 'observaciones') {
+    this.detailTab.set(tab);
+    if (tab === 'observaciones') {
+      const eq = this.selectedEquipo();
+      if (!eq) return;
+      this.loadingObs.set(true);
+      this.equipoService.listarObservaciones(eq.id).subscribe({
+        next: (list) => { this.observaciones.set(list); this.loadingObs.set(false); },
+        error: () => { this.loadingObs.set(false); },
+      });
+    }
   }
 
   irAReserva(e: Equipo) {

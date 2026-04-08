@@ -11,6 +11,7 @@ package co.edu.sena.sigea.reporte.service;
 // =============================================================================
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -19,12 +20,15 @@ import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
+import com.lowagie.text.Image;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import co.edu.sena.sigea.equipo.entity.Equipo;
@@ -34,10 +38,29 @@ import co.edu.sena.sigea.usuario.entity.Usuario;
 @Service
 public class ReportePdfServicio {
 
+    private static final Logger log = LoggerFactory.getLogger(ReportePdfServicio.class);
     private static final DateTimeFormatter FECHA_HORA = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final Font FONT_TITULO = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
     private static final Font FONT_HEADER = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
     private static final Font FONT_NORMAL = FontFactory.getFont(FontFactory.HELVETICA, 9);
+
+    /**
+     * Agrega el logo SENA al inicio del documento si está disponible en el
+     * classpath.
+     */
+    private void agregarLogo(Document document) {
+        try (InputStream logoStream = getClass().getResourceAsStream("/static/logo-sena.png")) {
+            if (logoStream != null) {
+                byte[] logoBytes = logoStream.readAllBytes();
+                Image logo = Image.getInstance(logoBytes);
+                logo.scaleToFit(100, 50);
+                logo.setAlignment(Element.ALIGN_LEFT);
+                document.add(logo);
+            }
+        } catch (Exception e) {
+            log.debug("Logo SENA no encontrado o no se pudo cargar en el PDF: {}", e.getMessage());
+        }
+    }
 
     /**
      * RF-REP-01: Reporte de inventario en PDF.
@@ -47,6 +70,7 @@ public class ReportePdfServicio {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfWriter.getInstance(document, out);
             document.open();
+            agregarLogo(document);
             document.add(new Paragraph("Reporte de Inventario - SIGEA", FONT_TITULO));
             document.add(new Paragraph(" "));
 
@@ -97,6 +121,7 @@ public class ReportePdfServicio {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfWriter.getInstance(document, out);
             document.open();
+            agregarLogo(document);
             document.add(new Paragraph("Historial de Préstamos - SIGEA", FONT_TITULO));
             document.add(new Paragraph(" "));
 
@@ -146,6 +171,7 @@ public class ReportePdfServicio {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfWriter.getInstance(document, out);
             document.open();
+            agregarLogo(document);
             document.add(new Paragraph("Equipos más solicitados - SIGEA", FONT_TITULO));
             document.add(new Paragraph(" "));
 
@@ -184,6 +210,7 @@ public class ReportePdfServicio {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfWriter.getInstance(document, out);
             document.open();
+            agregarLogo(document);
             document.add(new Paragraph("Usuarios con préstamos activos o en mora - SIGEA", FONT_TITULO));
             document.add(new Paragraph(" "));
 

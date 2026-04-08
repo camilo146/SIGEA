@@ -71,13 +71,15 @@
       <!-- ======================== LOGIN ======================== -->
         <form class="auth-form" (ngSubmit)="login()">
           <div class="input-group">
-            <span class="input-icon"><i class="fas fa-envelope"></i></span>
+            <span class="input-icon"><i class="fas fa-id-card"></i></span>
             <input
-              type="email"
-              [(ngModel)]="correoElectronico"
-              name="correoElectronico"
-              placeholder="Correo electrónico"
+              type="text"
+              [(ngModel)]="numeroDocumento"
+              name="numeroDocumento"
+              placeholder="Número de documento"
               required
+              minlength="4"
+              maxlength="20"
             />
           </div>
           <div class="input-group">
@@ -171,6 +173,27 @@
               <i class="fas" [ngClass]="showRegPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
             </button>
           </div>
+
+          @if (reg.contrasena) {
+            <div class="password-strength">
+              <div class="strength-bar">
+                <div
+                  class="strength-fill"
+                  [style.width]="(passwordStrengthScore / 4 * 100) + '%'"
+                  [class.weak]="passwordStrengthScore <= 1"
+                  [class.fair]="passwordStrengthScore === 2"
+                  [class.good]="passwordStrengthScore === 3"
+                  [class.strong]="passwordStrengthScore === 4"
+                ></div>
+              </div>
+              <ul class="strength-hints">
+                <li [class.ok]="passwordStrength.length"><i class="fas" [ngClass]="passwordStrength.length ? 'fa-check' : 'fa-times'"></i> Mínimo 8 caracteres</li>
+                <li [class.ok]="passwordStrength.upperCase"><i class="fas" [ngClass]="passwordStrength.upperCase ? 'fa-check' : 'fa-times'"></i> Al menos una mayúscula</li>
+                <li [class.ok]="passwordStrength.number"><i class="fas" [ngClass]="passwordStrength.number ? 'fa-check' : 'fa-times'"></i> Al menos un número</li>
+                <li [class.ok]="passwordStrength.special"><i class="fas" [ngClass]="passwordStrength.special ? 'fa-check' : 'fa-times'"></i> Al menos un carácter especial</li>
+              </ul>
+            </div>
+          }
 
           <div class="input-group">
             <span class="input-icon"><i class="fas fa-lock"></i></span>

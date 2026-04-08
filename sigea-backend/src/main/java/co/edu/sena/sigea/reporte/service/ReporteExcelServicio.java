@@ -11,18 +11,23 @@ package co.edu.sena.sigea.reporte.service;
 // =============================================================================
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import co.edu.sena.sigea.equipo.entity.Equipo;
@@ -32,7 +37,36 @@ import co.edu.sena.sigea.usuario.entity.Usuario;
 @Service
 public class ReporteExcelServicio {
 
+    private static final Logger log = LoggerFactory.getLogger(ReporteExcelServicio.class);
     private static final DateTimeFormatter FECHA_HORA = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    /**
+     * Inserta el logo SENA en la celda A1 de la hoja si el archivo está disponible.
+     * Retorna el número de filas que ocupa el logo para que los datos empiecen
+     * después.
+     */
+    private int insertarLogo(Workbook wb, Sheet sheet) {
+        try (InputStream logoStream = getClass().getResourceAsStream("/static/logo-sena.png")) {
+            if (logoStream == null)
+                return 0;
+            byte[] logoBytes = logoStream.readAllBytes();
+            int pictureIdx = wb.addPicture(logoBytes, Workbook.PICTURE_TYPE_PNG);
+            Drawing<?> drawing = sheet.createDrawingPatriarch();
+            ClientAnchor anchor = wb.getCreationHelper().createClientAnchor();
+            anchor.setCol1(0);
+            anchor.setRow1(0);
+            anchor.setCol2(3);
+            anchor.setRow2(3);
+            drawing.createPicture(anchor, pictureIdx);
+            // Reservar 3 filas para el logo
+            for (int i = 0; i < 3; i++)
+                sheet.createRow(i).setHeightInPoints(20);
+            return 3;
+        } catch (Exception e) {
+            log.debug("Logo SENA no encontrado o no se pudo insertar en Excel: {}", e.getMessage());
+            return 0;
+        }
+    }
 
     /**
      * RF-REP-01: Reporte de inventario en XLSX.
@@ -43,7 +77,7 @@ public class ReporteExcelServicio {
             CellStyle headerStyle = crearEstiloEncabezado(wb);
             CellStyle cellStyle = crearEstiloCelda(wb);
 
-            int rowNum = 0;
+            int rowNum = insertarLogo(wb, sheet);
             Row headerRow = sheet.createRow(rowNum++);
             String[] headers = { "Código", "Nombre", "Categoría", "Ubicación", "Dueño", "Inventario actual", "Estado",
                     "Cant. total", "Cant. disponible", "Umbral mín." };
@@ -91,7 +125,7 @@ public class ReporteExcelServicio {
             CellStyle headerStyle = crearEstiloEncabezado(wb);
             CellStyle cellStyle = crearEstiloCelda(wb);
 
-            int rowNum = 0;
+            int rowNum = insertarLogo(wb, sheet);
             Row headerRow = sheet.createRow(rowNum++);
             String[] headers = { "ID", "Solicitante", "Correo", "Estado", "Fecha solicitud", "Fecha dev. estimada",
                     "Fecha dev. real" };
@@ -143,7 +177,7 @@ public class ReporteExcelServicio {
             CellStyle headerStyle = crearEstiloEncabezado(wb);
             CellStyle cellStyle = crearEstiloCelda(wb);
 
-            int rowNum = 0;
+            int rowNum = insertarLogo(wb, sheet);
             Row headerRow = sheet.createRow(rowNum++);
             String[] headers = { "Código", "Nombre", "Categoría", "Veces solicitado" };
             for (int i = 0; i < headers.length; i++) {
@@ -182,7 +216,7 @@ public class ReporteExcelServicio {
             CellStyle headerStyle = crearEstiloEncabezado(wb);
             CellStyle cellStyle = crearEstiloCelda(wb);
 
-            int rowNum = 0;
+            int rowNum = insertarLogo(wb, sheet);
             Row headerRow = sheet.createRow(rowNum++);
             String[] headers = { "Documento", "Nombre completo", "Correo", "Teléfono", "Rol" };
             for (int i = 0; i < headers.length; i++) {

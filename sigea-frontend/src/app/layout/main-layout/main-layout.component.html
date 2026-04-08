@@ -3,7 +3,10 @@
     <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" title="Menú">
       <i class="fas fa-bars"></i>
     </button>
-    <div class="logo-small"><i class="fas fa-graduation-cap"></i></div>
+    <div class="logo-small">
+      <img src="assets/logo-sena.png" alt="SENA" class="sena-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
+      <i class="fas fa-graduation-cap" style="display:none"></i>
+    </div>
     <span class="system-name">SIGEA</span>
   </div>
 
@@ -135,6 +138,10 @@
       <a routerLink="/reservas" routerLinkActive="active" class="nav-item">
         <i class="fas fa-calendar-check"></i>
         <span>{{ isAdmin() ? 'Reservas' : 'Mis Reservas' }}</span>
+      </a>
+      <a routerLink="/prestamos-ambientes" routerLinkActive="active" class="nav-item">
+        <i class="fas fa-building"></i>
+        <span>Ambientes</span>
       </a>
       @if (isInstructor()) {
         <div class="nav-section-label">Mi ubicación</div>

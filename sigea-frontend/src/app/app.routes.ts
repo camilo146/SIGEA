@@ -67,6 +67,11 @@ export const routes: Routes = [
         canActivate: [adminOrInstructorGuard],
       },
       {
+        path: 'prestamos-ambientes',
+        loadComponent: () => import('./pages/prestamos-ambientes/prestamos-ambientes.component').then(m => m.PrestamosAmbientesComponent),
+        canActivate: [authGuard],
+      },
+      {
         path: 'alimentador',
         loadComponent: () => import('./pages/alimentador/alimentador.component').then(m => m.AlimentadorComponent),
         canActivate: [alimentadorGuard],

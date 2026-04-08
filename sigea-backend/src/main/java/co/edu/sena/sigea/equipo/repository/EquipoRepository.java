@@ -37,4 +37,8 @@ public interface EquipoRepository extends JpaRepository<Equipo, Long> {
 
     @Query("SELECT COUNT(e) FROM Equipo e WHERE e.activo = true AND (e.cantidadDisponible <= e.umbralMinimo OR (e.umbralMinimo = 0 AND e.cantidadDisponible <= 1))")
     long countEquiposConStockBajo();
+
+    Optional<Equipo> findByPlaca(String placa);
+
+    List<Equipo> findByActivoTrueAndEstado(EstadoEquipo estado);
 }

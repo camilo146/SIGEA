@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificación de correo - SIGEA</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: #39A900; padding: 24px; text-align: center; }
+    .header img { max-height: 60px; }
+    .header h1 { color: #fff; font-size: 22px; margin: 8px 0 0; }
+    .body { padding: 32px; color: #333; }
+    .code-box { background: #f0f7ee; border: 2px solid #39A900; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0; }
+    .code { font-size: 40px; font-weight: bold; letter-spacing: 12px; color: #39A900; }
+    .footer { background: #f4f4f4; padding: 16px; text-align: center; font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
+    <h1>SIGEA - Sistema de Gestión de Equipos y Activos</h1>
+  </div>
+  <div class="body">
+    <p>Hola, <strong th:text="${nombreUsuario}">Usuario</strong>,</p>
+    <p>Para verificar tu correo electrónico e iniciar sesión en SIGEA, ingresa el siguiente código:</p>
+    <div class="code-box">
+      <div class="code" th:text="${codigo}">000000</div>
+    </div>
+    <p>Este código es válido por <strong th:text="${minutosValidez}">15</strong> minutos.</p>
+    <p>Si no solicitaste este código, puedes ignorar este mensaje.</p>
+  </div>
+  <div class="footer">
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2025</p>
+    <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
+  </div>
+</div>
+</body>
+</html>

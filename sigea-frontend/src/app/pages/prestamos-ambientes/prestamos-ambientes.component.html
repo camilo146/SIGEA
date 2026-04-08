@@ -1,0 +1,169 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">Préstamos de Ambientes</h2>
+    <p class="page-subtitle">Solicita y gestiona el uso de aulas y laboratorios</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openSolicitar()">
+      <i class="fas fa-plus"></i> Solicitar Ambiente
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+}
+
+<div class="inv-card">
+  <!-- Toolbar -->
+  <div class="inv-toolbar">
+    @if (isAdminOrInstructor()) {
+      <div class="vista-tabs">
+        <button type="button" class="vista-tab" [class.active]="vista() === 'mis'" (click)="vista.set('mis'); cargar()">Mis solicitudes</button>
+        <button type="button" class="vista-tab" [class.active]="vista() === 'todos'" (click)="vista.set('todos'); cargar()">Pendientes de aprobación</button>
+      </div>
+    }
+    <div class="toolbar-filters">
+      <select [ngModel]="filterEstado()" (ngModelChange)="filterEstado.set($event)" class="filter-select">
+        @for (op of ESTADOS_FILTER; track op.value) {
+          <option [value]="op.value">{{ op.label }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  @if (loading()) {
+    <div class="spinner-wrap" style="padding:2rem"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Ambiente</th>
+            <th>Solicitante</th>
+            <th>Fecha inicio</th>
+            <th>Fecha fin</th>
+            <th>Hora</th>
+            <th>Tipo actividad</th>
+            <th>Estado</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of filteredPrestamos; track p.id) {
+            <tr>
+              <td><strong>{{ p.ambienteNombre }}</strong></td>
+              <td>{{ p.solicitanteNombre }}</td>
+              <td>{{ p.fechaInicio | date:'dd/MM/yyyy' }}</td>
+              <td>{{ p.fechaFin | date:'dd/MM/yyyy' }}</td>
+              <td>{{ p.horaInicio }} – {{ p.horaFin }}</td>
+              <td>{{ p.tipoActividad ?? '—' }}</td>
+              <td><span class="badge" [class]="estadoBadgeClass(p.estado)">{{ estadoLabel(p.estado) }}</span></td>
+              <td class="actions">
+                @if (isAdminOrInstructor() && p.estado === 'SOLICITADO') {
+                  <button type="button" class="btn-icon success" (click)="aprobar(p)" title="Aprobar" [disabled]="isActionPending('aprobar', p.id)">
+                    @if (isActionPending('aprobar', p.id)) { <i class="fas fa-spinner fa-spin"></i> }
+                    @else { <i class="fas fa-check"></i> }
+                  </button>
+                  <button type="button" class="btn-icon danger" (click)="rechazar(p)" title="Rechazar" [disabled]="isActionPending('rechazar', p.id)">
+                    @if (isActionPending('rechazar', p.id)) { <i class="fas fa-spinner fa-spin"></i> }
+                    @else { <i class="fas fa-times"></i> }
+                  </button>
+                }
+                @if (p.estado === 'SOLICITADO' || p.estado === 'APROBADO') {
+                  <button type="button" class="btn-icon" (click)="cancelar(p)" title="Cancelar" [disabled]="isActionPending('cancelar', p.id)">
+                    @if (isActionPending('cancelar', p.id)) { <i class="fas fa-spinner fa-spin"></i> }
+                    @else { <i class="fas fa-ban"></i> }
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="empty">
+              <i class="fas fa-door-closed" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
+              No hay solicitudes de ambientes
+            </td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="text-muted" style="font-size:0.85rem">{{ filteredPrestamos.length }} solicitud(es)</span>
+    </div>
+  }
+</div>
+
+<!-- Modal solicitar ambiente -->
+@if (modalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Solicitar Ambiente</h3>
+        <button type="button" class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <form (ngSubmit)="submitSolicitar()" class="modal-body">
+        @if (error()) {
+          <div class="alert alert-danger">{{ error() }}</div>
+        }
+        <div class="form-group">
+          <label>Ambiente *</label>
+          <select [(ngModel)]="form.ambienteId" name="ambienteId" required>
+            @for (a of ambientes(); track a.id) {
+              <option [value]="a.id">{{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha inicio *</label>
+            <input type="date" [(ngModel)]="form.fechaInicio" name="fechaInicio" required />
+          </div>
+          <div class="form-group">
+            <label>Fecha fin *</label>
+            <input type="date" [(ngModel)]="form.fechaFin" name="fechaFin" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hora inicio *</label>
+            <input type="time" [(ngModel)]="form.horaInicio" name="horaInicio" required />
+          </div>
+          <div class="form-group">
+            <label>Hora fin *</label>
+            <input type="time" [(ngModel)]="form.horaFin" name="horaFin" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo de actividad</label>
+            <select [(ngModel)]="form.tipoActividad" name="tipoActividad">
+              @for (t of TIPOS_ACTIVIDAD; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>N.° participantes</label>
+            <input type="number" [(ngModel)]="form.numeroParticipantes" name="numeroParticipantes" min="1" placeholder="Opcional" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Propósito *</label>
+          <textarea [(ngModel)]="form.proposito" name="proposito" required rows="2" placeholder="Describa el propósito del uso del ambiente"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Observaciones adicionales</label>
+          <textarea [(ngModel)]="form.observacionesSolicitud" name="observacionesSolicitud" rows="2" placeholder="(opcional)"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="savingForm()">
+            @if (savingForm()) { <i class="fas fa-spinner fa-spin btn-spinner"></i> Enviando... }
+            @else { <i class="fas fa-paper-plane"></i> Solicitar }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
