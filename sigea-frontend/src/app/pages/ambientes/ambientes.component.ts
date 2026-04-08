@@ -24,6 +24,9 @@ export class AmbientesComponent implements OnInit {
   private equipoService = inject(EquipoService);
   private ui = inject(UiFeedbackService);
 
+  isAdminOrInstructor = this.auth.isAdminOrInstructor;
+  canCreateAmbientes = this.auth.isOperativo;
+
   ambientes = signal<Ambiente[]>([]);
   usuarios = signal<{ id: number; nombreCompleto: string; rol: string }[]>([]);
   loading = signal(true);
@@ -87,7 +90,6 @@ export class AmbientesComponent implements OnInit {
 
   ngOnInit() {
     this.loadAmbientes();
-    // listarTodos() requiere ADMIN — esta página ya tiene adminGuard, así que es seguro
     this.usuarioService.listarTodos().subscribe({
       next: (list) =>
         this.usuarios.set(
@@ -172,7 +174,7 @@ export class AmbientesComponent implements OnInit {
       ? { ...this.form, idInstructorResponsable: null }
       : this.form;
 
-    if (id == null && !this.fotoArchivo) {
+    if (id == null && this.isAdminOrInstructor() && !this.fotoArchivo) {
       this.error.set('Debe adjuntar la foto de la ubicación para crearla.');
       return;
     }
@@ -180,7 +182,9 @@ export class AmbientesComponent implements OnInit {
     const obs =
       id != null
         ? this.ambienteService.actualizar(id, this.form)
-        : this.ambienteService.crear(payload, this.fotoArchivo!);
+        : this.isAdminOrInstructor()
+          ? this.ambienteService.crear(payload, this.fotoArchivo!)
+          : this.ambienteService.crearSinFoto(payload);
 
     this.formSaving.set(true);
     obs.subscribe({

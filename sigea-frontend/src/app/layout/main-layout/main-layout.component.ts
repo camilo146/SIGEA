@@ -32,6 +32,7 @@ export class MainLayoutComponent implements OnInit {
   user = this.auth.user;
   isAdmin = this.auth.isAdmin;
   isInstructor = this.auth.isInstructor;
+  isOperativo = this.auth.isOperativo;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
 
   ngOnInit() {
@@ -120,7 +121,6 @@ export class MainLayoutComponent implements OnInit {
       reportes: 'Reportes',
       transferencias: 'Transferencias',
       mantenimientos: 'Mantenimientos',
-      'prestamos-ambientes': 'Préstamos de Ambientes',
     };
     return map[segments[1]] ?? segments[1];
   }
@@ -129,6 +129,7 @@ export class MainLayoutComponent implements OnInit {
     const map: Record<string, string> = {
       ADMINISTRADOR: 'Administrador',
       INSTRUCTOR: 'Instructor',
+      ALIMENTADOR_EQUIPOS: 'Alimentador de equipos',
       APRENDIZ: 'Aprendiz',
       FUNCIONARIO: 'Funcionario',
     };

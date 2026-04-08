@@ -28,9 +28,9 @@ public class MarcaControlador {
         this.marcaServicio = marcaServicio;
     }
 
-    /** POST /api/v1/marcas — Crear marca (solo ADMINISTRADOR o INSTRUCTOR) */
+    /** POST /api/v1/marcas — Crear marca (roles operativos) */
     @PostMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<MarcaRespuestaDTO> crear(@Valid @RequestBody MarcaCrearDTO dto) {
         return new ResponseEntity<>(marcaServicio.crear(dto), HttpStatus.CREATED);
     }
@@ -42,9 +42,9 @@ public class MarcaControlador {
         return ResponseEntity.ok(marcaServicio.listarActivas());
     }
 
-    /** GET /api/v1/marcas/todas — Listar todas (ADMINISTRADOR o INSTRUCTOR) */
+    /** GET /api/v1/marcas/todas — Listar todas (roles operativos) */
     @GetMapping("/todas")
-    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<List<MarcaRespuestaDTO>> listarTodas() {
         return ResponseEntity.ok(marcaServicio.listarTodas());
     }
@@ -56,9 +56,9 @@ public class MarcaControlador {
         return ResponseEntity.ok(marcaServicio.buscarPorId(id));
     }
 
-    /** PUT /api/v1/marcas/{id} — Editar (solo ADMINISTRADOR o INSTRUCTOR) */
+    /** PUT /api/v1/marcas/{id} — Editar (roles operativos) */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<MarcaRespuestaDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody MarcaCrearDTO dto) {
@@ -67,14 +67,14 @@ public class MarcaControlador {
 
     /** PUT /api/v1/marcas/{id}/activar */
     @PutMapping("/{id}/activar")
-    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<MarcaRespuestaDTO> activar(@PathVariable Long id) {
         return ResponseEntity.ok(marcaServicio.activar(id));
     }
 
     /** PUT /api/v1/marcas/{id}/desactivar */
     @PutMapping("/{id}/desactivar")
-    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<MarcaRespuestaDTO> desactivar(@PathVariable Long id) {
         return ResponseEntity.ok(marcaServicio.desactivar(id));
     }

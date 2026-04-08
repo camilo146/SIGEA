@@ -1,13 +1,14 @@
 <div class="content-header">
   <div>
-    <h2 class="page-title">{{ isAdminOrInstructor() ? 'Inventario' : 'Equipos' }}</h2>
-    <p class="page-subtitle">{{ isAdminOrInstructor() ? 'Gestión de equipos y herramientas' : 'Consulta los equipos y solicita préstamos' }}</p>
+    <h2 class="page-title">{{ isOperativo() ? 'Inventario' : 'Equipos' }}</h2>
+    <p class="page-subtitle">{{ isOperativo() ? 'Registro y gestión operativa de equipos' : 'Consulta los equipos y solicita préstamos' }}</p>
   </div>
-  @if (isAdminOrInstructor()) {
+  @if (isOperativo()) {
     <div class="content-actions">
       <button type="button" class="btn btn-primary" (click)="openCreate()">
         <i class="fas fa-plus"></i> Registrar Equipo
       </button>
+      @if (isAdminOrInstructor()) {
       <div class="export-group">
         <button type="button" class="btn btn-outline" (click)="exportar('xlsx')">
           <i class="fas fa-file-excel"></i> Excel
@@ -16,6 +17,7 @@
           <i class="fas fa-file-pdf"></i> PDF
         </button>
       </div>
+      }
     </div>
   }
 </div>
@@ -152,7 +154,7 @@
                       }
                     </button>
                   }
-                } @else if (e.activo && e.cantidadDisponible > 0) {
+                } @else if (!isOperativo() && e.activo && e.cantidadDisponible > 0) {
                   <button type="button" class="btn btn-primary btn-xs" (click)="solicitarEquipo(e)">
                     <i class="fas fa-hand-holding"></i> Solicitar
                   </button>
@@ -352,7 +354,7 @@
             <input type="number" [(ngModel)]="form.umbralMinimo" name="umbralMinimo" min="0" placeholder="0" />
           </div>
         </div>
-        @if (!editingId()) {
+        @if (!editingId() && isAdminOrInstructor()) {
           <div class="form-group">
             <label>Foto del equipo *</label>
             <input type="file" accept="image/*" (change)="onFotoSelected($event)" #fotoInput />
@@ -360,6 +362,11 @@
             @if (fotoArchivo) {
               <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
             }
+          </div>
+        } @else if (!editingId()) {
+          <div class="form-group">
+            <label>Foto del equipo</label>
+            <small class="text-muted">El registro operativo para alimentador se guarda sin foto inicial.</small>
           </div>
         }
         <div class="modal-footer">

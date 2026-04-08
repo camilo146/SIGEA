@@ -3,6 +3,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { adminOrInstructorGuard } from './core/guards/admin-or-instructor.guard';
 import { alimentadorGuard } from './core/guards/alimentador.guard';
+import { operativoGuard } from './core/guards/operativo.guard';
 import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 
 export const routes: Routes = [
@@ -44,12 +45,12 @@ export const routes: Routes = [
       {
         path: 'ambientes',
         loadComponent: () => import('./pages/ambientes/ambientes.component').then(m => m.AmbientesComponent),
-        canActivate: [adminOrInstructorGuard],
+        canActivate: [operativoGuard],
       },
       {
         path: 'marcas',
         loadComponent: () => import('./pages/marcas/marcas.component').then(m => m.MarcasComponent),
-        canActivate: [adminOrInstructorGuard],
+        canActivate: [operativoGuard],
       },
       {
         path: 'usuarios',
@@ -73,8 +74,8 @@ export const routes: Routes = [
       },
       {
         path: 'prestamos-ambientes',
-        loadComponent: () => import('./pages/prestamos-ambientes/prestamos-ambientes.component').then(m => m.PrestamosAmbientesComponent),
-        canActivate: [authGuard],
+        redirectTo: 'reservas',
+        pathMatch: 'full',
       },
       {
         path: 'alimentador',

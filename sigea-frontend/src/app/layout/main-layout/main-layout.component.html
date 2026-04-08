@@ -4,7 +4,7 @@
       <i class="fas fa-bars"></i>
     </button>
     <div class="logo-small">
-      <img src="assets/logo-sena.png" alt="SENA" class="sena-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
+      <img src="/assets/logo-sena.png" alt="SENA" class="sena-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
       <i class="fas fa-graduation-cap" style="display:none"></i>
     </div>
     <span class="system-name">SIGEA</span>
@@ -139,24 +139,21 @@
         <i class="fas fa-calendar-check"></i>
         <span>{{ isAdmin() ? 'Reservas' : 'Mis Reservas' }}</span>
       </a>
-      <a routerLink="/prestamos-ambientes" routerLinkActive="active" class="nav-item">
-        <i class="fas fa-building"></i>
-        <span>Ambientes</span>
-      </a>
       @if (isInstructor()) {
         <div class="nav-section-label">Mi ubicación</div>
         <a routerLink="/mi-ambiente" routerLinkActive="active" class="nav-item">
           <i class="fas fa-door-open"></i><span>Mi ubicación</span>
         </a>
       }
-      @if (isAdminOrInstructor()) {
-        <div class="nav-section-label">{{ isAdmin() ? 'Administración' : 'Gestión' }}</div>
+      @if (isOperativo()) {
+        <div class="nav-section-label">{{ isAdminOrInstructor() ? (isAdmin() ? 'Administración' : 'Gestión') : 'Operación' }}</div>
         <a routerLink="/ambientes" routerLinkActive="active" class="nav-item">
           <i class="fas fa-map-marker-alt"></i><span>Ubicaciones</span>
         </a>
         <a routerLink="/marcas" routerLinkActive="active" class="nav-item">
           <i class="fas fa-tags"></i><span>Marcas</span>
         </a>
+        @if (isAdminOrInstructor()) {
         @if (isAdmin()) {
           <a routerLink="/usuarios" routerLinkActive="active" class="nav-item">
             <i class="fas fa-users"></i><span>Usuarios</span>
@@ -171,6 +168,7 @@
         <a routerLink="/reportes" routerLinkActive="active" class="nav-item">
           <i class="fas fa-chart-bar"></i><span>Reportes</span>
         </a>
+        }
       }
     </nav>
     <div class="sidebar-footer">

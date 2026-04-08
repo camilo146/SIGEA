@@ -58,6 +58,7 @@ export class InventarioComponent implements OnInit {
   /** Vista actual: 'todos' | 'mi-inventario' | 'mis-equipos' */
   vistaActual = signal<'todos' | 'mi-inventario' | 'mis-equipos'>('todos');
   isAdmin = this.auth.isAdmin;
+  isOperativo = this.auth.isOperativo;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
   /** Equipo seleccionado para ver detalle en card. */
   selectedEquipo = signal<Equipo | null>(null);
@@ -187,7 +188,7 @@ export class InventarioComponent implements OnInit {
     }
     const id = this.editingId();
     const esCrear = id == null;
-    if (esCrear && !this.fotoArchivo) {
+    if (esCrear && this.isAdminOrInstructor() && !this.fotoArchivo) {
       this.error.set('Debe adjuntar al menos una foto del equipo (JPG, PNG).');
       return;
     }
@@ -195,20 +196,28 @@ export class InventarioComponent implements OnInit {
     if (esCrear) {
       this.equipoService.crear(this.form).subscribe({
         next: (nuevo) => {
-          this.equipoService.subirFoto(nuevo.id, this.fotoArchivo!).subscribe({
-            next: () => {
-              this.savingForm.set(false);
-              this.closeModal();
-              this.loadEquipos();
-              this.ui.success(`El equipo "${nuevo.nombre}" fue registrado correctamente.`, 'Inventario');
-            },
-            error: (err) => {
-              this.savingForm.set(false);
-              const message = err.error?.message ?? 'Error al subir la foto';
-              this.error.set(message);
-              this.ui.error(message, 'Inventario');
-            },
-          });
+          if (this.fotoArchivo && this.isAdminOrInstructor()) {
+            this.equipoService.subirFoto(nuevo.id, this.fotoArchivo).subscribe({
+              next: () => {
+                this.savingForm.set(false);
+                this.closeModal();
+                this.loadEquipos();
+                this.ui.success(`El equipo "${nuevo.nombre}" fue registrado correctamente.`, 'Inventario');
+              },
+              error: (err) => {
+                this.savingForm.set(false);
+                const message = err.error?.message ?? 'Error al subir la foto';
+                this.error.set(message);
+                this.ui.error(message, 'Inventario');
+              },
+            });
+            return;
+          }
+
+          this.savingForm.set(false);
+          this.closeModal();
+          this.loadEquipos();
+          this.ui.success(`El equipo "${nuevo.nombre}" fue registrado correctamente.`, 'Inventario');
         },
         error: (err) => {
           this.savingForm.set(false);

@@ -3,11 +3,13 @@
     <h2 class="page-title">Ubicaciones</h2>
     <p class="page-subtitle">Gestión de espacios, laboratorios y salas del SENA</p>
   </div>
+  @if (canCreateAmbientes()) {
   <div class="content-actions">
     <button type="button" class="btn btn-primary" (click)="openCreate()">
       <i class="fas fa-plus"></i> Nueva Ubicación
     </button>
   </div>
+  }
 </div>
 
 @if (error() && !modalOpen()) {
@@ -107,6 +109,7 @@
                 </button>
               </td>
               <td class="actions">
+                @if (isAdminOrInstructor()) {
                 <button type="button" class="btn-icon" (click)="openEdit(a)" title="Editar" aria-label="Editar ubicación">
                   <i class="fas fa-edit"></i>
                 </button>
@@ -126,6 +129,7 @@
                       <i class="fas fa-check"></i>
                     }
                   </button>
+                }
                 }
               </td>
             </tr>
@@ -192,7 +196,7 @@
             placeholder="Descripción breve del espacio..."
           ></textarea>
         </div>
-        @if (!editingId()) {
+        @if (!editingId() && isAdminOrInstructor()) {
           <div class="form-group">
             <label>Foto de la ubicación *</label>
             <input type="file" accept="image/*" (change)="onFotoSelected($event)" required />
@@ -200,6 +204,11 @@
             @if (fotoArchivo) {
               <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
             }
+          </div>
+        } @else if (!editingId()) {
+          <div class="form-group">
+            <label>Foto de la ubicación</label>
+            <small class="text-muted">El registro operativo para alimentador se guarda sin foto inicial.</small>
           </div>
         }
         <div class="form-group">
@@ -380,7 +389,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeCrearSubUbicacion()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="!formSub.nombre?.trim() || formSubSaving()">
+          <button type="submit" class="btn btn-primary" [disabled]="!formSub.nombre.trim() || formSubSaving()">
             @if (formSubSaving()) { <i class="fas fa-spinner fa-spin"></i> Guardando... }
             @else { Crear sub-ubicación }
           </button>
