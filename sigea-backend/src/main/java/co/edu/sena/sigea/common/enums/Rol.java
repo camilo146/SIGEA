@@ -27,7 +27,7 @@ public enum Rol {
     ADMINISTRADOR,
 
     // Alimentador de equipos (típicamente aprendices en sesión de carga masiva).
-    // Puede: crear equipos (con propietario explícito) y crear ambientes.
+    // Puede: crear equipos asignando un instructor propietario y crear ambientes.
     // NO puede editar, eliminar ni acceder a otros módulos.
     ALIMENTADOR_EQUIPOS,
 

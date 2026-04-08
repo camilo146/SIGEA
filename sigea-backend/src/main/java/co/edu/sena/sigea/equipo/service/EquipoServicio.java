@@ -662,19 +662,7 @@ public class EquipoServicio {
                 }
 
                 if (usuarioActual.getRol() == Rol.ADMINISTRADOR) {
-                        if (dto.getPropietarioId() == null) {
-                                throw new OperacionNoPermitidaException(
-                                                "Debes indicar propietarioId cuando un administrador crea un equipo.");
-                        }
-                        Usuario propietario = usuarioRepository.findById(dto.getPropietarioId())
-                                        .orElseThrow(() -> new RecursoNoEncontradoException(
-                                                        "Instructor propietario no encontrado con ID: "
-                                                                        + dto.getPropietarioId()));
-                        if (propietario.getRol() != Rol.INSTRUCTOR) {
-                                throw new OperacionNoPermitidaException(
-                                                "El propietario del equipo debe tener rol INSTRUCTOR.");
-                        }
-                        return propietario;
+                        return usuarioActual;
                 }
 
                 // ALIMENTADOR_EQUIPOS: debe indicar el instructor propietario explícitamente
