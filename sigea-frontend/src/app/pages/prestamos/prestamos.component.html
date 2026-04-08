@@ -111,12 +111,8 @@
                     </button>
                   }
                   @if (p.estado === 'ACTIVO' || p.estado === 'EN_MORA') {
-                    <button type="button" class="btn btn-primary btn-sm" (click)="registrarDevolucion(p)" [disabled]="isActionPending('return', p.id)">
-                      @if (isActionPending('return', p.id)) {
-                        <i class="fas fa-spinner fa-spin"></i> Procesando...
-                      } @else {
-                        <i class="fas fa-undo"></i> Devolver
-                      }
+                    <button type="button" class="btn btn-primary btn-sm" (click)="abrirDevolucion(p)">
+                      <i class="fas fa-undo"></i> Devolver
                     </button>
                   }
                 </td>
@@ -195,6 +191,51 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+}
+
+@if (modalDevolucion(); as prestamo) {
+  <div class="modal-overlay" (click)="cerrarDevolucion()">
+    <div class="modal-box modal-devolucion" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-clipboard-check" style="color:var(--color-primary);margin-right:.4rem"></i>Registrar devolución de equipos</h3>
+        <button type="button" class="btn-close" (click)="cerrarDevolucion()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:1rem"><strong>PR-{{ prestamo.id.toString().padStart(3, '0') }}</strong> · {{ prestamo.nombreUsuarioSolicitante }}</p>
+        @if (error()) {
+          <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
+        }
+        <div class="devolucion-list">
+          @for (detalle of devolucionDetalles(); track detalle.detalleId; let i = $index) {
+            <div class="devolucion-item">
+              <div class="devolucion-item-header">
+                <strong>{{ detalleDevolucionNombre(detalle.detalleId) }}</strong>
+                <span class="text-muted">Cantidad: {{ detalleDevolucionCantidad(detalle.detalleId) }}</span>
+              </div>
+              <div class="form-group">
+                <label>Calificación del estado (1 a 10) *</label>
+                <input type="number" [ngModel]="detalle.estadoDevolucion" (ngModelChange)="actualizarDetalleDevolucion(i, { estadoDevolucion: +$event })" [name]="'estado-' + detalle.detalleId" min="1" max="10" required />
+              </div>
+              <div class="form-group">
+                <label>Observaciones del estado del equipo *</label>
+                <textarea [ngModel]="detalle.observacionesDevolucion" (ngModelChange)="actualizarDetalleDevolucion(i, { observacionesDevolucion: $event })" [name]="'observaciones-' + detalle.detalleId" rows="3" required placeholder="Describe cómo fue entregado el equipo"></textarea>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="cerrarDevolucion()">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="submitDevolucion()" [disabled]="devolucionSaving()">
+            @if (devolucionSaving()) {
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              <i class="fas fa-save"></i> Registrar devolución
+            }
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 }

@@ -8,6 +8,7 @@ export interface LoginResponse {
   tipo: string;
   nombreCompleto: string;
   rol: string;
+  esSuperAdmin: boolean;
 }
 
 export interface UserSession {
@@ -16,6 +17,7 @@ export interface UserSession {
   numeroDocumento?: string;
   rol: string;
   token: string;
+  esSuperAdmin: boolean;
 }
 
 export interface RegisterRequest {

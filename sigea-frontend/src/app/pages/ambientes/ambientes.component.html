@@ -196,19 +196,16 @@
             placeholder="Descripción breve del espacio..."
           ></textarea>
         </div>
-        @if (!editingId() && isAdminOrInstructor()) {
+        @if (!editingId()) {
           <div class="form-group">
-            <label>Foto de la ubicación *</label>
-            <input type="file" accept="image/*" (change)="onFotoSelected($event)" required />
-            <small class="text-muted">Obligatorio para crear ubicación. JPG/PNG, máximo 5 MB.</small>
+            <label>Foto de la ubicación {{ isAdminOrInstructor() ? '*' : '' }}</label>
+            <input type="file" accept="image/*" (change)="onFotoSelected($event)" [required]="isAdminOrInstructor()" />
+            <small class="text-muted">
+              {{ isAdminOrInstructor() ? 'Obligatorio para crear ubicación.' : 'Opcional para el registro operativo.' }} JPG/PNG, máximo 5 MB.
+            </small>
             @if (fotoArchivo) {
               <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
             }
-          </div>
-        } @else if (!editingId()) {
-          <div class="form-group">
-            <label>Foto de la ubicación</label>
-            <small class="text-muted">El registro operativo para alimentador se guarda sin foto inicial.</small>
           </div>
         }
         <div class="form-group">

@@ -50,7 +50,7 @@ export interface EquipoCrear {
   categoriaId: number;
   ambienteId: number;
   subUbicacionId?: number | null;
-  propietarioId?: number;
+  propietarioId?: number | null;
   cantidadTotal: number;
   tipoUso: TipoUsoEquipo;
   umbralMinimo: number;

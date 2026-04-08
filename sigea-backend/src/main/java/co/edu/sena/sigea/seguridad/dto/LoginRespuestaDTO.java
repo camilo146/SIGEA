@@ -25,4 +25,6 @@ public class LoginRespuestaDTO {
     //Rol del usuario autenticado3  6
     //El front lo usara para mostrar opciones basadas en el rol del usuario
     private String rol;
+
+    private Boolean esSuperAdmin;
 }

@@ -306,7 +306,8 @@ public class EquipoServicio {
 
                 Equipo equipo = equipoRepository.findById(id)
                                 .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", id));
-                validarPermisoGestion(equipo, correoUsuario);
+                Usuario usuarioActual = obtenerUsuarioActual(correoUsuario);
+                validarPermisoGestion(equipo, usuarioActual);
 
                 equipoRepository.findByCodigoUnico(dto.getCodigoUnico())
                                 .ifPresent(existente -> {
@@ -373,9 +374,18 @@ public class EquipoServicio {
                 equipo.setCodigoUnico(dto.getCodigoUnico());
                 equipo.setCategoria(categoria);
                 equipo.setAmbiente(ambiente);
+                equipo.setSubUbicacion(resolverSubUbicacionParaActualizacion(dto.getSubUbicacionId(), ambiente));
                 equipo.setCantidadTotal(dto.getCantidadTotal());
                 equipo.setTipoUso(dto.getTipoUso());
                 equipo.setUmbralMinimo(dto.getUmbralMinimo());
+
+                if (dto.getPropietarioId() != null
+                                || usuarioPuedeCambiarPropietario(usuarioActual)) {
+                        Usuario propietarioActualizado = resolverPropietarioParaActualizacion(dto, usuarioActual,
+                                        equipo.getPropietario());
+                        equipo.setPropietario(propietarioActualizado);
+                        equipo.setInventarioActualInstructor(propietarioActualizado);
+                }
 
                 Equipo actualizado = equipoRepository.save(equipo);
 
@@ -665,21 +675,12 @@ public class EquipoServicio {
                         return usuarioActual;
                 }
 
-                // ALIMENTADOR_EQUIPOS: debe indicar el instructor propietario explícitamente
+                // ALIMENTADOR_EQUIPOS: puede asignar propietario explícito o usar el
+                // superadmin activo por defecto.
                 if (usuarioActual.getRol() == Rol.ALIMENTADOR_EQUIPOS) {
-                        if (dto.getPropietarioId() == null) {
-                                throw new OperacionNoPermitidaException(
-                                                "Debes indicar el propietario del equipo (propietarioId) al crearlo.");
-                        }
-                        Usuario propietario = usuarioRepository.findById(dto.getPropietarioId())
-                                        .orElseThrow(() -> new RecursoNoEncontradoException(
-                                                        "Instructor propietario no encontrado con ID: "
-                                                                        + dto.getPropietarioId()));
-                        if (propietario.getRol() != Rol.INSTRUCTOR) {
-                                throw new OperacionNoPermitidaException(
-                                                "El propietario del equipo debe tener rol INSTRUCTOR.");
-                        }
-                        return propietario;
+                        return dto.getPropietarioId() != null
+                                        ? resolverPropietarioSeleccionado(dto.getPropietarioId())
+                                        : obtenerSuperAdminActivo();
                 }
 
                 throw new OperacionNoPermitidaException(
@@ -695,9 +696,11 @@ public class EquipoServicio {
                                                 "Usuario no encontrado: " + correoUsuario));
         }
 
-        private void validarPermisoGestion(Equipo equipo, String correoUsuario) {
-                Usuario usuarioActual = obtenerUsuarioActual(correoUsuario);
+        private void validarPermisoGestion(Equipo equipo, Usuario usuarioActual) {
                 if (usuarioActual.getRol() == Rol.ADMINISTRADOR) {
+                        return;
+                }
+                if (usuarioActual.getRol() == Rol.ALIMENTADOR_EQUIPOS) {
                         return;
                 }
                 if (usuarioActual.getRol() == Rol.INSTRUCTOR
@@ -706,6 +709,72 @@ public class EquipoServicio {
                         return;
                 }
                 throw new OperacionNoPermitidaException(
-                                "Solo el instructor dueño del equipo o un administrador puede gestionarlo.");
+                                "Solo el instructor dueño del equipo, un alimentador o un administrador puede gestionarlo.");
+        }
+
+        private void validarPermisoGestion(Equipo equipo, String correoUsuario) {
+                validarPermisoGestion(equipo, obtenerUsuarioActual(correoUsuario));
+        }
+
+        private Ambiente resolverSubUbicacionParaActualizacion(Long subUbicacionId, Ambiente ambiente) {
+                if (subUbicacionId == null) {
+                        return null;
+                }
+                Ambiente subUbicacion = ambienteRepository.findById(subUbicacionId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Sub-ubicacion no encontrada con ID: " + subUbicacionId));
+                if (subUbicacion.getPadre() == null || !subUbicacion.getPadre().getId().equals(ambiente.getId())) {
+                        throw new OperacionNoPermitidaException(
+                                        "La sub-ubicacion indicada no pertenece al ambiente seleccionado.");
+                }
+                return subUbicacion;
+        }
+
+        private Usuario resolverPropietarioParaActualizacion(EquipoCrearDTO dto, Usuario usuarioActual,
+                        Usuario propietarioActual) {
+                if (dto.getPropietarioId() == null) {
+                        if (usuarioPuedeCambiarPropietario(usuarioActual)) {
+                                return obtenerSuperAdminActivo();
+                        }
+                        return propietarioActual;
+                }
+
+                if (propietarioActual != null && propietarioActual.getId().equals(dto.getPropietarioId())) {
+                        return propietarioActual;
+                }
+
+                validarPermisoCambioPropietario(usuarioActual);
+                return resolverPropietarioSeleccionado(dto.getPropietarioId());
+        }
+
+        private void validarPermisoCambioPropietario(Usuario usuarioActual) {
+                if (usuarioPuedeCambiarPropietario(usuarioActual)) {
+                        return;
+                }
+                throw new OperacionNoPermitidaException(
+                                "Solo el usuario alimentador de equipos o el superadmin pueden cambiar el propietario del equipo.");
+        }
+
+        private boolean usuarioPuedeCambiarPropietario(Usuario usuarioActual) {
+                return usuarioActual.getRol() == Rol.ALIMENTADOR_EQUIPOS
+                                || (usuarioActual.getRol() == Rol.ADMINISTRADOR
+                                                && Boolean.TRUE.equals(usuarioActual.getEsSuperAdmin()));
+        }
+
+        private Usuario resolverPropietarioSeleccionado(Long propietarioId) {
+                Usuario propietario = usuarioRepository.findById(propietarioId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Usuario propietario no encontrado con ID: " + propietarioId));
+                if (!Boolean.TRUE.equals(propietario.getActivo())) {
+                        throw new OperacionNoPermitidaException(
+                                        "No se puede asignar un propietario inactivo al equipo.");
+                }
+                return propietario;
+        }
+
+        private Usuario obtenerSuperAdminActivo() {
+                return usuarioRepository.findFirstByEsSuperAdminTrueAndActivoTrue()
+                                .orElseThrow(() -> new OperacionNoPermitidaException(
+                                                "No existe un superadmin activo para asignar como propietario por defecto."));
         }
 }

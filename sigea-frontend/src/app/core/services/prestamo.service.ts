@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { Prestamo, PrestamoCrear } from '../models/prestamo.model';
+import type { Prestamo, PrestamoCrear, PrestamoDevolucion } from '../models/prestamo.model';
 
 @Injectable({ providedIn: 'root' })
 export class PrestamoService {
@@ -42,8 +42,8 @@ export class PrestamoService {
     return this.http.patch<Prestamo>(`${this.apiUrl}/${id}/registrar-salida`, {});
   }
 
-  registrarDevolucion(id: number): Observable<Prestamo> {
-    return this.http.patch<Prestamo>(`${this.apiUrl}/${id}/registrar-devolucion`, {});
+  registrarDevolucion(id: number, dto: PrestamoDevolucion): Observable<Prestamo> {
+    return this.http.patch<Prestamo>(`${this.apiUrl}/${id}/registrar-devolucion`, dto);
   }
 
   eliminar(id: number): Observable<void> {

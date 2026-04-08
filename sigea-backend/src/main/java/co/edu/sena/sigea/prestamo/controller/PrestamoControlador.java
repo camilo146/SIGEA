@@ -53,6 +53,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.sena.sigea.common.enums.EstadoPrestamo;
 import co.edu.sena.sigea.prestamo.dto.PrestamoCrearDTO;
+import co.edu.sena.sigea.prestamo.dto.PrestamoDevolucionDTO;
 import co.edu.sena.sigea.prestamo.dto.PrestamoRespuestaDTO;
 import co.edu.sena.sigea.prestamo.service.PrestamoServicio;
 import jakarta.validation.Valid;
@@ -249,10 +250,11 @@ public class PrestamoControlador {
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<PrestamoRespuestaDTO> registrarDevolucion(
             @PathVariable Long id,
+            @Valid @RequestBody PrestamoDevolucionDTO dto,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         String correoAdmin = userDetails.getUsername();
-        return ResponseEntity.ok(prestamoServicio.registrarDevolucion(id, correoAdmin));
+        return ResponseEntity.ok(prestamoServicio.registrarDevolucion(id, dto, correoAdmin));
     }
 
     @DeleteMapping("/{id}")

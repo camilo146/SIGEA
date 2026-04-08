@@ -7,7 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { PrestamoService } from '../../core/services/prestamo.service';
 import { EquipoService } from '../../core/services/equipo.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
-import type { Prestamo, PrestamoCrear } from '../../core/models/prestamo.model';
+import type { Prestamo, PrestamoCrear, PrestamoDevolucionDetalle } from '../../core/models/prestamo.model';
 
 @Pipe({ name: 'dateFormat', standalone: true })
 export class DateFormatPipe implements PipeTransform {
@@ -38,10 +38,13 @@ export class PrestamosComponent implements OnInit {
   loading = signal(true);
   error = signal('');
   modalSolicitar = signal(false);
+  modalDevolucion = signal<Prestamo | null>(null);
   activeTab = signal<TabKey>('todos');
   searchTerm = signal('');
   submitSaving = signal(false);
+  devolucionSaving = signal(false);
   actionPending = signal<Record<string, boolean>>({});
+  devolucionDetalles = signal<PrestamoDevolucionDetalle[]>([]);
 
   isAdmin = this.auth.isAdmin;
 
@@ -199,8 +202,71 @@ export class PrestamosComponent implements OnInit {
   registrarSalida(p: Prestamo) {
     this.runAction('checkout', p.id, () => this.prestamoService.registrarSalida(p.id), `Se registró la salida del préstamo PR-${p.id.toString().padStart(3, '0')}.`);
   }
-  registrarDevolucion(p: Prestamo) {
-    this.runAction('return', p.id, () => this.prestamoService.registrarDevolucion(p.id), `Se registró la devolución del préstamo PR-${p.id.toString().padStart(3, '0')}.`);
+  abrirDevolucion(p: Prestamo) {
+    const detallesPendientes = (p.detalles ?? []).filter((detalle) => detalle.tipoUso !== 'CONSUMIBLE' && !detalle.devuelto);
+    if (!detallesPendientes.length) {
+      this.error.set('Este préstamo no tiene equipos pendientes por devolver.');
+      return;
+    }
+    this.devolucionDetalles.set(
+      detallesPendientes.map((detalle) => ({
+        detalleId: detalle.id,
+        estadoDevolucion: 8,
+        observacionesDevolucion: '',
+      }))
+    );
+    this.modalDevolucion.set(p);
+    this.error.set('');
+  }
+
+  cerrarDevolucion() {
+    this.modalDevolucion.set(null);
+    this.devolucionDetalles.set([]);
+    this.devolucionSaving.set(false);
+  }
+
+  actualizarDetalleDevolucion(index: number, patch: Partial<PrestamoDevolucionDetalle>) {
+    this.devolucionDetalles.update((detalles) =>
+      detalles.map((detalle, detalleIndex) => detalleIndex === index ? { ...detalle, ...patch } : detalle)
+    );
+  }
+
+  detalleDevolucionNombre(detalleId: number): string {
+    const prestamo = this.modalDevolucion();
+    return prestamo?.detalles.find((detalle) => detalle.id === detalleId)?.nombreEquipo ?? `Equipo #${detalleId}`;
+  }
+
+  detalleDevolucionCantidad(detalleId: number): number {
+    const prestamo = this.modalDevolucion();
+    return prestamo?.detalles.find((detalle) => detalle.id === detalleId)?.cantidad ?? 1;
+  }
+
+  submitDevolucion() {
+    const prestamo = this.modalDevolucion();
+    if (!prestamo) return;
+
+    const detalles = this.devolucionDetalles();
+    const invalido = detalles.some((detalle) => !detalle.observacionesDevolucion.trim() || detalle.estadoDevolucion < 1 || detalle.estadoDevolucion > 10);
+    if (!detalles.length || invalido) {
+      this.error.set('Debes registrar calificación y observaciones en todos los equipos devueltos.');
+      return;
+    }
+
+    this.devolucionSaving.set(true);
+    this.prestamoService.registrarDevolucion(prestamo.id, { detalles }).subscribe({
+      next: () => {
+        this.devolucionSaving.set(false);
+        this.cerrarDevolucion();
+        this.loadPrestamos();
+        this.ui.success(`Se registró la devolución evaluada del préstamo PR-${prestamo.id.toString().padStart(3, '0')}.`, 'Préstamos');
+      },
+      error: (e) => {
+        this.devolucionSaving.set(false);
+        const message = e.error?.message ?? 'No fue posible registrar la devolución.';
+        this.error.set(message);
+        this.ui.error(message, 'Préstamos');
+      },
+    });
   }
 
   async eliminar(p: Prestamo) {

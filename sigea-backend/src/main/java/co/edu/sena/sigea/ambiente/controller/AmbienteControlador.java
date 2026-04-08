@@ -37,7 +37,7 @@ public class AmbienteControlador {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<AmbienteRespuestaDTO> crear(
             @Valid @ModelAttribute AmbienteCrearDTO dto,
             @RequestParam("archivo") MultipartFile archivo,

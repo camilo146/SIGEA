@@ -145,7 +145,7 @@ public class EquipoControlador {
 
     // PUT /api/v1/equipos/{id}
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<EquipoRespuestaDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody EquipoCrearDTO dto,
@@ -195,7 +195,7 @@ public class EquipoControlador {
 
     // POST /api/v1/equipos/{id}/fotos
     @PostMapping(value = "/{id}/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR','ALIMENTADOR_EQUIPOS')")
     public ResponseEntity<FotoEquipoRespuestaDTO> subirFoto(
             @PathVariable Long id,
             @RequestParam("archivo") MultipartFile archivo,

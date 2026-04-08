@@ -31,19 +31,23 @@ package co.edu.sena.sigea.prestamo.service;
 
 import co.edu.sena.sigea.common.enums.EstadoCondicion;
 import co.edu.sena.sigea.common.enums.EstadoPrestamo;
+import co.edu.sena.sigea.common.enums.EstadoReserva;
 import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
 import co.edu.sena.sigea.equipo.entity.Equipo;
 import co.edu.sena.sigea.equipo.repository.EquipoRepository;
+import co.edu.sena.sigea.notificacion.service.NotificacionServicio;
+import co.edu.sena.sigea.observacion.entity.ObservacionEquipo;
+import co.edu.sena.sigea.observacion.repository.ObservacionEquipoRepository;
 import co.edu.sena.sigea.prestamo.dto.DetallePrestamoDTO;
+import co.edu.sena.sigea.prestamo.dto.PrestamoDevolucionDTO;
+import co.edu.sena.sigea.prestamo.dto.PrestamoDevolucionDetalleDTO;
 import co.edu.sena.sigea.prestamo.dto.DetallePrestamoRespuestaDTO;
 import co.edu.sena.sigea.prestamo.dto.PrestamoCrearDTO;
 import co.edu.sena.sigea.prestamo.dto.PrestamoRespuestaDTO;
 import co.edu.sena.sigea.prestamo.entity.DetallePrestamo;
 import co.edu.sena.sigea.prestamo.entity.Prestamo;
-import co.edu.sena.sigea.common.enums.EstadoReserva;
-import co.edu.sena.sigea.notificacion.service.NotificacionServicio;
 import co.edu.sena.sigea.prestamo.repository.PrestamoRepository;
 import co.edu.sena.sigea.reserva.entity.Reserva;
 import co.edu.sena.sigea.reserva.repository.ReservaRepository;
@@ -55,7 +59,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 // @Transactional a nivel de clase significa que TODOS los métodos públicos
@@ -82,17 +89,20 @@ public class PrestamoServicio {
     private final EquipoRepository equipoRepository;
     private final ReservaRepository reservaRepository;
     private final NotificacionServicio notificacionServicio;
+    private final ObservacionEquipoRepository observacionEquipoRepository;
 
     public PrestamoServicio(PrestamoRepository prestamoRepository,
             UsuarioRepository usuarioRepository,
             EquipoRepository equipoRepository,
             ReservaRepository reservaRepository,
-            NotificacionServicio notificacionServicio) {
+            NotificacionServicio notificacionServicio,
+            ObservacionEquipoRepository observacionEquipoRepository) {
         this.prestamoRepository = prestamoRepository;
         this.usuarioRepository = usuarioRepository;
         this.equipoRepository = equipoRepository;
         this.reservaRepository = reservaRepository;
         this.notificacionServicio = notificacionServicio;
+        this.observacionEquipoRepository = observacionEquipoRepository;
     }
 
     // =========================================================================
@@ -366,7 +376,7 @@ public class PrestamoServicio {
     // 3. Si todos los detalles están devueltos → estado = DEVUELTO
     // (con allMatch verifica que no quede ninguno pendiente)
     // =========================================================================
-    public PrestamoRespuestaDTO registrarDevolucion(Long id, String correoAdmin) {
+    public PrestamoRespuestaDTO registrarDevolucion(Long id, PrestamoDevolucionDTO dto, String correoAdmin) {
 
         Prestamo prestamo = buscarEntidadPorId(id);
 
@@ -380,6 +390,26 @@ public class PrestamoServicio {
         Usuario admin = usuarioRepository.findByCorreoElectronico(correoAdmin)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoAdmin));
+
+        List<DetallePrestamo> pendientes = prestamo.getDetalles().stream()
+            .filter(detalle -> !Boolean.TRUE.equals(detalle.getDevuelto()))
+            .filter(detalle -> detalle.getEquipo().getTipoUso() != TipoUsoEquipo.CONSUMIBLE)
+            .toList();
+
+        Map<Long, PrestamoDevolucionDetalleDTO> devolucionesPorDetalle = dto.getDetalles().stream()
+            .collect(Collectors.toMap(
+                PrestamoDevolucionDetalleDTO::getDetalleId,
+                Function.identity(),
+                (primero, segundo) -> {
+                    throw new OperacionNoPermitidaException(
+                        "No puedes registrar dos veces el mismo equipo en la devolución.");
+                }));
+
+        if (pendientes.size() != devolucionesPorDetalle.size()
+            || pendientes.stream().anyMatch(detalle -> !devolucionesPorDetalle.containsKey(detalle.getId()))) {
+            throw new OperacionNoPermitidaException(
+                "Debes calificar y describir el estado de todos los equipos pendientes por devolver.");
+        }
 
         // Reponer stock de CADA equipo y marcar como devuelto (RF-PRE-10).
         for (DetallePrestamo detalle : prestamo.getDetalles()) {
@@ -396,14 +426,30 @@ public class PrestamoServicio {
                     continue;
                 }
 
-                // Documentar estado al recibir la devolución (RN-04).
-                // Se registra como BUENO por defecto.
-                detalle.setEstadoEquipoDevolucion(EstadoCondicion.BUENO);
+                PrestamoDevolucionDetalleDTO devolucionDetalle = devolucionesPorDetalle.get(detalle.getId());
+                if (devolucionDetalle == null) {
+                    throw new OperacionNoPermitidaException(
+                            "Falta registrar el estado del equipo " + equipo.getNombre() + " en la devolución.");
+                }
+
+                detalle.setEstadoEquipoDevolucion(mapearEstadoCondicion(devolucionDetalle.getEstadoDevolucion()));
+                detalle.setObservacionesDevolucion(devolucionDetalle.getObservacionesDevolucion().trim());
 
                 // Reponer stock.
                 // Ej: cantidadDisponible=8, cantidad devuelta=2 → cantidadDisponible=10.
                 equipo.setCantidadDisponible(equipo.getCantidadDisponible() + detalle.getCantidad());
+                equipo.setEstadoEquipoEscala(devolucionDetalle.getEstadoDevolucion());
                 equipoRepository.save(equipo);
+
+                observacionEquipoRepository.save(ObservacionEquipo.builder()
+                        .prestamo(prestamo)
+                        .equipo(equipo)
+                        .usuarioDuenio(equipo.getPropietario() != null ? equipo.getPropietario() : admin)
+                        .usuarioPrestatario(prestamo.getUsuarioSolicitante())
+                        .observaciones(devolucionDetalle.getObservacionesDevolucion().trim())
+                        .estadoDevolucion(devolucionDetalle.getEstadoDevolucion())
+                        .fechaRegistro(LocalDateTime.now())
+                        .build());
 
                 // Marcar este equipo como devuelto.
                 detalle.setDevuelto(true);
@@ -601,6 +647,22 @@ public class PrestamoServicio {
                 .observacionesDevolucion(detalle.getObservacionesDevolucion())
                 .devuelto(detalle.getDevuelto())
                 .build();
+    }
+
+    private EstadoCondicion mapearEstadoCondicion(Integer estadoDevolucion) {
+        if (estadoDevolucion == null) {
+            return EstadoCondicion.BUENO;
+        }
+        if (estadoDevolucion >= 9) {
+            return EstadoCondicion.EXCELENTE;
+        }
+        if (estadoDevolucion >= 7) {
+            return EstadoCondicion.BUENO;
+        }
+        if (estadoDevolucion >= 4) {
+            return EstadoCondicion.REGULAR;
+        }
+        return EstadoCondicion.MALO;
     }
 
     /**

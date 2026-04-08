@@ -18,6 +18,7 @@ export class AuthService {
   isAdmin = computed(() => this.currentUser()?.rol === 'ADMINISTRADOR');
   isInstructor = computed(() => this.currentUser()?.rol === 'INSTRUCTOR');
   isAlimentadorEquipos = computed(() => this.currentUser()?.rol === 'ALIMENTADOR_EQUIPOS');
+  isSuperAdmin = computed(() => !!this.currentUser()?.esSuperAdmin);
   /** true si es ADMIN o INSTRUCTOR (acceso a ambientes, reportes, etc., pero no a usuarios) */
   isAdminOrInstructor = computed(() => {
     const r = this.currentUser()?.rol;
@@ -43,6 +44,7 @@ export class AuthService {
           numeroDocumento: credentials.numeroDocumento,
           rol: res.rol,
           token: res.token,
+          esSuperAdmin: !!res.esSuperAdmin,
         };
         localStorage.setItem(TOKEN_KEY, res.token);
         localStorage.setItem(USER_KEY, JSON.stringify(session));

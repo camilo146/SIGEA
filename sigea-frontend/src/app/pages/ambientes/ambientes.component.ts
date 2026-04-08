@@ -182,8 +182,8 @@ export class AmbientesComponent implements OnInit {
     const obs =
       id != null
         ? this.ambienteService.actualizar(id, this.form)
-        : this.isAdminOrInstructor()
-          ? this.ambienteService.crear(payload, this.fotoArchivo!)
+        : this.fotoArchivo
+          ? this.ambienteService.crear(payload, this.fotoArchivo)
           : this.ambienteService.crearSinFoto(payload);
 
     this.formSaving.set(true);

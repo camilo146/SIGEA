@@ -8,6 +8,7 @@ import { AmbienteService } from '../../core/services/ambiente.service';
 import { MarcaService } from '../../core/services/marca.service';
 import { ReporteService } from '../../core/services/reporte.service';
 import { AuthService } from '../../core/services/auth.service';
+import { UsuarioService } from '../../core/services/usuario.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { environment } from '../../../environments/environment';
 import type { Equipo, EquipoCrear, TipoUsoEquipo } from '../../core/models/equipo.model';
@@ -15,6 +16,7 @@ import type { Categoria } from '../../core/models/categoria.model';
 import type { Ambiente } from '../../core/models/ambiente.model';
 import type { SubUbicacionResumen } from '../../core/models/ambiente.model';
 import type { Marca } from '../../core/models/marca.model';
+import type { Usuario } from '../../core/models/usuario.model';
 
 @Component({
   selector: 'app-inventario',
@@ -30,6 +32,7 @@ export class InventarioComponent implements OnInit {
   private marcaService = inject(MarcaService);
   private reporteService = inject(ReporteService);
   private auth = inject(AuthService);
+  private usuarioService = inject(UsuarioService);
   private router = inject(Router);
   private ui = inject(UiFeedbackService);
 
@@ -37,6 +40,7 @@ export class InventarioComponent implements OnInit {
   categorias = signal<Categoria[]>([]);
   ambientes = signal<Ambiente[]>([]);
   marcas = signal<Marca[]>([]);
+  usuarios = signal<Usuario[]>([]);
   loading = signal(true);
   error = signal('');
   modalOpen = signal(false);
@@ -60,6 +64,8 @@ export class InventarioComponent implements OnInit {
   isAdmin = this.auth.isAdmin;
   isOperativo = this.auth.isOperativo;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
+  isAlimentadorEquipos = this.auth.isAlimentadorEquipos;
+  isSuperAdmin = this.auth.isSuperAdmin;
   /** Equipo seleccionado para ver detalle en card. */
   selectedEquipo = signal<Equipo | null>(null);
 
@@ -69,7 +75,17 @@ export class InventarioComponent implements OnInit {
   /** Sub-ubicaciones disponibles según la ubicación seleccionada en el formulario. */
   subUbicacionesAmbiente = signal<SubUbicacionResumen[]>([]);
 
-  form: EquipoCrear = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: 0, ambienteId: 0, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+  form: EquipoCrear = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: 0, ambienteId: 0, subUbicacionId: null, propietarioId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+
+  canAssignOwner = computed(() => this.isAlimentadorEquipos() || this.isSuperAdmin());
+  usuariosDisponibles = computed(() =>
+    this.usuarios()
+      .filter((usuario) => usuario.activo)
+      .sort((left, right) => left.nombreCompleto.localeCompare(right.nombreCompleto))
+  );
+  superAdminPredeterminado = computed(() =>
+    this.usuariosDisponibles().find((usuario) => usuario.esSuperAdmin) ?? null
+  );
 
   readonly TIPOS_USO: Array<{ value: TipoUsoEquipo; label: string }> = [
     { value: 'NO_CONSUMIBLE', label: 'No consumible' },
@@ -103,6 +119,7 @@ export class InventarioComponent implements OnInit {
     this.categoriaService.listarActivas().subscribe({ next: (c) => this.categorias.set(c), error: () => {} });
     this.ambienteService.listar().subscribe({ next: (a) => this.ambientes.set(a), error: () => {} });
     this.marcaService.listarActivas().subscribe({ next: (m) => this.marcas.set(m), error: () => {} });
+    this.usuarioService.listarTodos().subscribe({ next: (u) => this.usuarios.set(u), error: () => {} });
     this.loadEquipos();
   }
 
@@ -130,7 +147,7 @@ export class InventarioComponent implements OnInit {
     this.editingId.set(null);
     this.fotoArchivo = null;
     const defaultAmbienteId = this.ambientes()[0]?.id ?? 0;
-    this.form = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: defaultAmbienteId, subUbicacionId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+    this.form = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: defaultAmbienteId, subUbicacionId: null, propietarioId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
     this.subUbicacionesAmbiente.set([]);
     if (defaultAmbienteId) {
       this.ambienteService.listarSubUbicaciones(defaultAmbienteId).subscribe({
@@ -143,7 +160,7 @@ export class InventarioComponent implements OnInit {
 
   openEdit(e: Equipo) {
     this.editingId.set(e.id);
-    this.form = { nombre: e.nombre, descripcion: e.descripcion ?? '', codigoUnico: e.codigoUnico, placa: e.placa ?? '', serial: e.serial ?? '', modelo: e.modelo ?? '', marcaId: e.marcaId ?? null, categoriaId: e.categoriaId, ambienteId: e.ambienteId, subUbicacionId: e.subUbicacionId ?? null, cantidadTotal: e.cantidadTotal, tipoUso: e.tipoUso ?? 'NO_CONSUMIBLE', umbralMinimo: e.umbralMinimo };
+    this.form = { nombre: e.nombre, descripcion: e.descripcion ?? '', codigoUnico: e.codigoUnico, placa: e.placa ?? '', serial: e.serial ?? '', modelo: e.modelo ?? '', marcaId: e.marcaId ?? null, categoriaId: e.categoriaId, ambienteId: e.ambienteId, subUbicacionId: e.subUbicacionId ?? null, propietarioId: e.propietarioId ?? null, cantidadTotal: e.cantidadTotal, tipoUso: e.tipoUso ?? 'NO_CONSUMIBLE', umbralMinimo: e.umbralMinimo };
     this.subUbicacionesAmbiente.set([]);
     if (e.ambienteId) {
       this.ambienteService.listarSubUbicaciones(e.ambienteId).subscribe({
@@ -196,7 +213,7 @@ export class InventarioComponent implements OnInit {
     if (esCrear) {
       this.equipoService.crear(this.form).subscribe({
         next: (nuevo) => {
-          if (this.fotoArchivo && this.isAdminOrInstructor()) {
+          if (this.fotoArchivo) {
             this.equipoService.subirFoto(nuevo.id, this.fotoArchivo).subscribe({
               next: () => {
                 this.savingForm.set(false);
@@ -242,6 +259,14 @@ export class InventarioComponent implements OnInit {
         },
       });
     }
+  }
+
+  getNombrePropietarioSeleccionado(): string {
+    const propietarioId = this.form.propietarioId;
+    if (propietarioId == null) {
+      return this.superAdminPredeterminado()?.nombreCompleto ?? 'Superadmin';
+    }
+    return this.usuariosDisponibles().find((usuario) => usuario.id === propietarioId)?.nombreCompleto ?? 'Usuario seleccionado';
   }
 
   getFotoUrl(e: Equipo): string {

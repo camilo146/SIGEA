@@ -117,10 +117,12 @@
                 }
               </td>
               <td class="actions">
-                @if (isAdminOrInstructor()) {
+                @if (isOperativo()) {
                   <button type="button" class="btn-icon" (click)="openEdit(e)" title="Editar" aria-label="Editar equipo">
                     <i class="fas fa-edit"></i>
                   </button>
+                }
+                @if (isAdminOrInstructor()) {
                   @if (e.activo) {
                     <button type="button" class="btn-icon danger" (click)="darDeBaja(e)" title="Dar de baja" aria-label="Dar de baja equipo" [disabled]="isActionPending('deactivate', e.id)">
                       @if (isActionPending('deactivate', e.id)) {
@@ -334,6 +336,24 @@
             <small class="text-muted">Área específica dentro de la ubicación seleccionada.</small>
           </div>
         }
+        @if (canAssignOwner()) {
+          <div class="form-group">
+            <label>Propietario del equipo</label>
+            <select [(ngModel)]="form.propietarioId" name="propietarioId">
+              <option [ngValue]="null">Superadmin por defecto</option>
+              @for (u of usuariosDisponibles(); track u.id) {
+                <option [ngValue]="u.id">{{ u.nombreCompleto }}{{ u.esSuperAdmin ? ' · Superadmin' : '' }}</option>
+              }
+            </select>
+            <small class="text-muted">Si no selecciona un usuario, el propietario será {{ superAdminPredeterminado()?.nombreCompleto || 'el superadmin activo' }}.</small>
+          </div>
+        } @else if (editingId()) {
+          <div class="form-group">
+            <label>Propietario actual</label>
+            <input type="text" [ngModel]="getNombrePropietarioSeleccionado()" name="propietarioActual" readonly />
+            <small class="text-muted">Solo alimentador de equipos y superadmin pueden cambiar el propietario.</small>
+          </div>
+        }
         <div class="form-row">
           <div class="form-group">
             <label>Cantidad total *</label>
@@ -354,19 +374,17 @@
             <input type="number" [(ngModel)]="form.umbralMinimo" name="umbralMinimo" min="0" placeholder="0" />
           </div>
         </div>
-        @if (!editingId() && isAdminOrInstructor()) {
+        @if (!editingId()) {
           <div class="form-group">
-            <label>Foto del equipo *</label>
-            <input type="file" accept="image/*" (change)="onFotoSelected($event)" #fotoInput />
-            <small class="text-muted">Desde PC: explorador de archivos. En celular: galería o cámara. JPG/PNG, máx. 5 MB.</small>
+            <label>Foto del equipo {{ isAdminOrInstructor() ? '*' : '' }}</label>
+            <input type="file" accept="image/*" (change)="onFotoSelected($event)" [required]="isAdminOrInstructor()" #fotoInput />
+            <small class="text-muted">
+              {{ isAdminOrInstructor() ? 'Obligatoria al crear.' : 'Opcional para el registro operativo.' }}
+              Desde PC: explorador de archivos. En celular: galería o cámara. JPG/PNG, máx. 5 MB.
+            </small>
             @if (fotoArchivo) {
               <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
             }
-          </div>
-        } @else if (!editingId()) {
-          <div class="form-group">
-            <label>Foto del equipo</label>
-            <small class="text-muted">El registro operativo para alimentador se guarda sin foto inicial.</small>
           </div>
         }
         <div class="modal-footer">
