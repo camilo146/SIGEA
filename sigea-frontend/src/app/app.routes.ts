@@ -47,6 +47,11 @@ export const routes: Routes = [
         canActivate: [adminOrInstructorGuard],
       },
       {
+        path: 'marcas',
+        loadComponent: () => import('./pages/marcas/marcas.component').then(m => m.MarcasComponent),
+        canActivate: [adminOrInstructorGuard],
+      },
+      {
         path: 'usuarios',
         loadComponent: () => import('./pages/usuarios/usuarios.component').then(m => m.UsuariosComponent),
         canActivate: [adminGuard],

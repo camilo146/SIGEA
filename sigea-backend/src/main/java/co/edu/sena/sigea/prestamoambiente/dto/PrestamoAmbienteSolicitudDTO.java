@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 import co.edu.sena.sigea.prestamoambiente.enums.TipoActividad;
-import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,7 +19,7 @@ public class PrestamoAmbienteSolicitudDTO {
     private Long ambienteId;
 
     @NotNull(message = "La fecha de inicio es obligatoria")
-    @Future(message = "La fecha de inicio debe ser futura")
+    @FutureOrPresent(message = "La fecha de inicio debe ser hoy o futura")
     private LocalDate fechaInicio;
 
     @NotNull(message = "La fecha de fin es obligatoria")

@@ -47,10 +47,12 @@ export class PrestamosAmbientesComponent implements OnInit {
     horaInicio: '',
     horaFin: '',
     proposito: '',
-    numeroParticipantes: undefined,
-    tipoActividad: undefined,
+    numeroParticipantes: 1,
+    tipoActividad: 'CLASE',
     observacionesSolicitud: '',
   };
+
+  readonly minFecha = new Date().toISOString().split('T')[0];
 
   readonly TIPOS_ACTIVIDAD: Array<{ value: TipoActividad; label: string }> = [
     { value: 'CLASE', label: 'Clase' },
@@ -95,12 +97,12 @@ export class PrestamosAmbientesComponent implements OnInit {
   openSolicitar() {
     this.form = {
       ambienteId: this.ambientes()[0]?.id ?? 0,
-      fechaInicio: '',
-      fechaFin: '',
+      fechaInicio: this.minFecha,
+      fechaFin: this.minFecha,
       horaInicio: '08:00',
       horaFin: '10:00',
       proposito: '',
-      numeroParticipantes: undefined,
+      numeroParticipantes: 1,
       tipoActividad: 'CLASE',
       observacionesSolicitud: '',
     };
@@ -114,8 +116,16 @@ export class PrestamosAmbientesComponent implements OnInit {
   }
 
   submitSolicitar() {
-    if (!this.form.ambienteId || !this.form.fechaInicio || !this.form.fechaFin || !this.form.horaInicio || !this.form.horaFin || !this.form.proposito.trim()) {
-      this.error.set('Complete ambiente, fechas, horas y propósito.');
+    if (!this.form.ambienteId || !this.form.fechaInicio || !this.form.fechaFin || !this.form.horaInicio || !this.form.horaFin || !this.form.proposito.trim() || !this.form.tipoActividad || !this.form.numeroParticipantes || this.form.numeroParticipantes < 1) {
+      this.error.set('Complete ambiente, fechas, horas, tipo de actividad, participantes y propósito.');
+      return;
+    }
+    if (this.form.fechaFin < this.form.fechaInicio) {
+      this.error.set('La fecha de fin debe ser igual o posterior a la fecha de inicio.');
+      return;
+    }
+    if (this.form.fechaInicio < this.minFecha) {
+      this.error.set('La fecha de inicio no puede ser anterior a hoy.');
       return;
     }
     this.savingForm.set(true);
@@ -128,7 +138,8 @@ export class PrestamosAmbientesComponent implements OnInit {
       },
       error: (err) => {
         this.savingForm.set(false);
-        this.error.set(err.error?.message ?? 'Error al solicitar');
+        const detalle = Array.isArray(err.error?.detalles) ? err.error.detalles[0] : null;
+        this.error.set(detalle ?? err.error?.message ?? 'Error al solicitar');
       },
     });
   }

@@ -115,6 +115,7 @@ export class MainLayoutComponent implements OnInit {
       reservas: 'Reservas',
       'mi-ambiente': 'Mi ubicación',
       ambientes: 'Ubicaciones',
+      marcas: 'Marcas',
       usuarios: 'Usuarios',
       reportes: 'Reportes',
       transferencias: 'Transferencias',

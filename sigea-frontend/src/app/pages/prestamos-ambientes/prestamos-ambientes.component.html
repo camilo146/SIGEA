@@ -117,11 +117,11 @@
         <div class="form-row">
           <div class="form-group">
             <label>Fecha inicio *</label>
-            <input type="date" [(ngModel)]="form.fechaInicio" name="fechaInicio" required />
+            <input type="date" [(ngModel)]="form.fechaInicio" name="fechaInicio" [min]="minFecha" required />
           </div>
           <div class="form-group">
             <label>Fecha fin *</label>
-            <input type="date" [(ngModel)]="form.fechaFin" name="fechaFin" required />
+            <input type="date" [(ngModel)]="form.fechaFin" name="fechaFin" [min]="form.fechaInicio || minFecha" required />
           </div>
         </div>
         <div class="form-row">
@@ -136,16 +136,16 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Tipo de actividad</label>
-            <select [(ngModel)]="form.tipoActividad" name="tipoActividad">
+            <label>Tipo de actividad *</label>
+            <select [(ngModel)]="form.tipoActividad" name="tipoActividad" required>
               @for (t of TIPOS_ACTIVIDAD; track t.value) {
                 <option [value]="t.value">{{ t.label }}</option>
               }
             </select>
           </div>
           <div class="form-group">
-            <label>N.° participantes</label>
-            <input type="number" [(ngModel)]="form.numeroParticipantes" name="numeroParticipantes" min="1" placeholder="Opcional" />
+            <label>N.° participantes *</label>
+            <input type="number" [(ngModel)]="form.numeroParticipantes" name="numeroParticipantes" min="1" required />
           </div>
         </div>
         <div class="form-group">

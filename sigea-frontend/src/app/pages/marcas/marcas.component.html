@@ -1,0 +1,130 @@
+<div class="content-header">
+  <div>
+    <h2 class="page-title">Marcas</h2>
+    <p class="page-subtitle">Administra las marcas disponibles para el inventario de equipos</p>
+  </div>
+  <div class="content-actions">
+    <button type="button" class="btn btn-primary" (click)="openCreate()">
+      <i class="fas fa-plus"></i> Nueva marca
+    </button>
+  </div>
+</div>
+
+@if (error() && !modalOpen()) {
+  <div class="alert alert-danger page-alert">{{ error() }}</div>
+}
+
+<div class="inv-card">
+  <div class="inv-toolbar">
+    <div class="toolbar-filters grow">
+      <input
+        type="text"
+        class="filter-input"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        placeholder="Buscar por nombre o descripción"
+      />
+      <select class="filter-select" [ngModel]="filterEstado()" (ngModelChange)="filterEstado.set($event)">
+        <option value="todos">Todas</option>
+        <option value="activas">Activas</option>
+        <option value="inactivas">Inactivas</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-wrap page-loader"><i class="fas fa-spinner fa-spin"></i> Cargando marcas...</div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (marca of filteredMarcas(); track marca.id) {
+            <tr>
+              <td><strong>{{ marca.nombre }}</strong></td>
+              <td>{{ marca.descripcion || '—' }}</td>
+              <td>
+                <span class="badge" [class]="estadoBadgeClass(marca.activo)">
+                  {{ marca.activo ? 'Activa' : 'Inactiva' }}
+                </span>
+              </td>
+              <td class="actions">
+                <button type="button" class="btn-icon" title="Editar" (click)="openEdit(marca)">
+                  <i class="fas fa-pen"></i>
+                </button>
+                @if (marca.activo) {
+                  <button
+                    type="button"
+                    class="btn-icon danger"
+                    title="Desactivar"
+                    (click)="desactivar(marca)"
+                    [disabled]="actionPending()['desactivar-' + marca.id]"
+                  >
+                    @if (actionPending()['desactivar-' + marca.id]) { <i class="fas fa-spinner fa-spin"></i> }
+                    @else { <i class="fas fa-eye-slash"></i> }
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn-icon success"
+                    title="Activar"
+                    (click)="activar(marca)"
+                    [disabled]="actionPending()['activar-' + marca.id]"
+                  >
+                    @if (actionPending()['activar-' + marca.id]) { <i class="fas fa-spinner fa-spin"></i> }
+                    @else { <i class="fas fa-check"></i> }
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="empty">
+                <i class="fas fa-tags" style="font-size:1.4rem; display:block; margin-bottom:0.45rem"></i>
+                No hay marcas registradas con los filtros actuales.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+@if (modalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ editingId() == null ? 'Registrar marca' : 'Editar marca' }}</h3>
+        <button type="button" class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <form class="modal-body" (ngSubmit)="submitForm()">
+        @if (error()) {
+          <div class="alert alert-danger">{{ error() }}</div>
+        }
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" [(ngModel)]="form.nombre" name="nombre" maxlength="100" required />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea [(ngModel)]="form.descripcion" name="descripcion" rows="4" maxlength="2000"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            @if (saving()) { <i class="fas fa-spinner fa-spin"></i> Guardando... }
+            @else { <i class="fas fa-save"></i> Guardar }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
