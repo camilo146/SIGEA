@@ -14,6 +14,8 @@ export interface PrestamoAmbiente {
   ambienteNombre: string;
   solicitanteId: number;
   solicitanteNombre: string;
+  propietarioAmbienteId?: number;
+  propietarioAmbienteNombre?: string;
   fechaInicio: string;
   fechaFin: string;
   horaInicio: string;

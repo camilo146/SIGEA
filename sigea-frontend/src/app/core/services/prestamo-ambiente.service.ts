@@ -15,6 +15,10 @@ export class PrestamoAmbienteService {
 
   constructor(private http: HttpClient) {}
 
+  listarTodos(): Observable<PrestamoAmbiente[]> {
+    return this.http.get<PrestamoAmbiente[]>(this.apiUrl);
+  }
+
   solicitar(dto: PrestamoAmbienteSolicitud): Observable<PrestamoAmbiente> {
     return this.http.post<PrestamoAmbiente>(this.apiUrl, dto);
   }
