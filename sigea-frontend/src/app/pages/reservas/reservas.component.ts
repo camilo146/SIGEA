@@ -63,6 +63,7 @@ export class ReservasComponent implements OnInit {
   devolucionAmbienteSaving = signal(false);
   actionPending = signal<Record<string, boolean>>({});
   agendaFecha = signal('');
+  calendarioMes = signal(`${new Date().toISOString().slice(0, 7)}-01`);
   mostrarCalendarioAmbiente = signal(false);
 
   isAdmin = this.auth.isAdmin;
@@ -153,7 +154,7 @@ export class ReservasComponent implements OnInit {
     });
   });
 
-  ambientesReservables = computed(() => this.ambientes().filter((a) => a.activo));
+  ambientesReservables = computed(() => this.ambientes().filter((a) => a.activo && !a.padreId));
 
   ambienteSeleccionadoReserva = computed(() =>
     this.ambientesReservables().find((a) => a.id === this.formAmbiente.ambienteId) ?? null
@@ -169,11 +170,16 @@ export class ReservasComponent implements OnInit {
     });
   });
 
-  agendaSemana = computed(() => {
-    const base = this.getInicioSemana(this.agendaFecha() || this.fechaMinAmbiente());
-    return Array.from({ length: 7 }, (_, index) => {
-      const fecha = new Date(base);
-      fecha.setDate(base.getDate() + index);
+  agendaMes = computed(() => {
+    const inicioMes = new Date(`${this.calendarioMes()}T00:00:00`);
+    const primerDia = inicioMes.getDay();
+    const offset = primerDia === 0 ? 6 : primerDia - 1;
+    const inicioGrid = new Date(inicioMes);
+    inicioGrid.setDate(inicioMes.getDate() - offset);
+
+    return Array.from({ length: 42 }, (_, index) => {
+      const fecha = new Date(inicioGrid);
+      fecha.setDate(inicioGrid.getDate() + index);
       const iso = this.toIsoDate(fecha);
       const items = this.agendaAmbiente()
         .filter((reserva) => this.reservaOcurreEnFecha(reserva, iso))
@@ -181,8 +187,8 @@ export class ReservasComponent implements OnInit {
 
       return {
         iso,
-        shortLabel: fecha.toLocaleDateString('es-CO', { weekday: 'short' }),
         dayNumber: fecha.getDate(),
+        isCurrentMonth: fecha.getMonth() === inicioMes.getMonth(),
         isToday: iso === this.toIsoDate(new Date()),
         isSelected: iso === this.agendaFecha(),
         items,
@@ -332,6 +338,7 @@ export class ReservasComponent implements OnInit {
       observacionesSolicitud: '',
     };
     this.agendaFecha.set(hoy);
+    this.calendarioMes.set(`${hoy.slice(0, 7)}-01`);
     this.agendaAmbiente.set([]);
     this.mostrarCalendarioAmbiente.set(false);
     this.error.set('');
@@ -364,6 +371,9 @@ export class ReservasComponent implements OnInit {
     const parsed = Number(ambienteId);
     this.formAmbiente = { ...this.formAmbiente, ambienteId: parsed };
     this.mostrarCalendarioAmbiente.set(false);
+    const hoy = this.fechaMinAmbiente();
+    this.agendaFecha.set(hoy);
+    this.calendarioMes.set(`${hoy.slice(0, 7)}-01`);
     if (parsed > 0) this.cargarAgendaAmbiente(parsed);
   }
 
@@ -376,10 +386,18 @@ export class ReservasComponent implements OnInit {
     this.mostrarCalendarioAmbiente.update((value) => !value);
   }
 
-  moverSemana(offsetDias: number) {
-    const base = new Date(`${this.agendaFecha() || this.fechaMinAmbiente()}T00:00:00`);
-    base.setDate(base.getDate() + offsetDias);
-    this.agendaFecha.set(this.toIsoDate(base));
+  moverMes(offsetMeses: number) {
+    const base = new Date(`${this.calendarioMes()}T00:00:00`);
+    base.setMonth(base.getMonth() + offsetMeses);
+    const nuevoMes = `${base.toISOString().slice(0, 7)}-01`;
+    this.calendarioMes.set(nuevoMes);
+    if (!this.agendaFecha().startsWith(nuevoMes.slice(0, 7))) {
+      this.agendaFecha.set(nuevoMes);
+    }
+  }
+
+  seleccionarDiaAgenda(iso: string) {
+    this.agendaFecha.set(iso);
   }
 
   submitCrearAmbiente() {
@@ -615,16 +633,16 @@ export class ReservasComponent implements OnInit {
     return `${environment.apiUrl}/uploads/${path}`;
   }
 
-  getRangoSemanaAgenda(): string {
-    const semana = this.agendaSemana();
-    if (!semana.length) return '';
-    return `${this.formatDateOnly(semana[0].iso)} - ${this.formatDateOnly(semana[6].iso)}`;
+  getTituloCalendarioMes(): string {
+    return new Date(`${this.calendarioMes()}T00:00:00`).toLocaleDateString('es-CO', {
+      month: 'long',
+      year: 'numeric',
+    });
   }
 
   ambienteLabel(a: Ambiente): string {
     const partes = [a.nombre];
     if (a.ubicacion) partes.push(a.ubicacion);
-    if (a.padreNombre) partes.push(`Sub-ubicación de ${a.padreNombre}`);
     return partes.join(' · ');
   }
 
@@ -697,14 +715,6 @@ export class ReservasComponent implements OnInit {
         this.ui.error(message, 'Reservas de Ambientes');
       },
     });
-  }
-
-  private getInicioSemana(value: string): Date {
-    const date = new Date(`${value}T00:00:00`);
-    const day = date.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    date.setDate(date.getDate() + diff);
-    return date;
   }
 
   private toIsoDate(date: Date): string {
