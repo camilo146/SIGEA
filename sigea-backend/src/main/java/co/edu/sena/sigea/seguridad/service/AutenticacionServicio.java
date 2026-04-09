@@ -137,12 +137,12 @@ public class AutenticacionServicio {
                 usuario.getRol().name());
 
         return LoginRespuestaDTO.builder()
-            .id(usuario.getId())
+                .id(usuario.getId())
                 .token(token)
                 .tipo("Bearer")
                 .nombreCompleto(usuario.getNombreCompleto())
                 .rol(usuario.getRol().name())
-            .correoElectronico(usuario.getCorreoElectronico())
+                .correoElectronico(usuario.getCorreoElectronico())
                 .esSuperAdmin(Boolean.TRUE.equals(usuario.getEsSuperAdmin()))
                 .build();
     }

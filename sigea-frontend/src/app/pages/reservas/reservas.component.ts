@@ -46,6 +46,8 @@ export class ReservasComponent implements OnInit {
   agendaAmbiente = signal<PrestamoAmbiente[]>([]);
   loading = signal(true);
   loadingAmbientes = signal(true);
+  loadingUbicaciones = signal(false);
+  loadingAgendaAmbiente = signal(false);
   error = signal('');
   modalCrear = signal(false);
   modalCrearAmbiente = signal(false);
@@ -68,6 +70,7 @@ export class ReservasComponent implements OnInit {
 
   isAdmin = this.auth.isAdmin;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
+  currentUser = this.auth.user;
   selectedAmbienteShellRef = viewChild<ElementRef<HTMLElement>>('selectedAmbienteShell');
   agendaCalendarCardRef = viewChild<ElementRef<HTMLElement>>('agendaCalendarCard');
 
@@ -225,26 +228,10 @@ export class ReservasComponent implements OnInit {
   ngOnInit() {
     this.loadReservas();
     this.loadReservasAmbientes();
-    this.loadAmbientes();
-    this.equipoService.listarActivos().subscribe({
-      next: (list) => {
-        this.equipos.set(
-          list.map((e) => ({
-            id: e.id,
-            nombre: e.nombre,
-            codigoUnico: e.codigoUnico,
-            cantidadDisponible: e.cantidadDisponible,
-          }))
-        );
-        const state = history.state as { reservarEquipoId?: number } | undefined;
-        if (state?.reservarEquipoId && list.some((e) => e.id === state.reservarEquipoId)) {
-          this.form = { equipoId: state.reservarEquipoId, cantidad: 1, fechaHoraInicio: this.fechaMinInicio() };
-          this.modalCrear.set(true);
-          this.error.set('');
-        }
-      },
-      error: () => {},
-    });
+    const state = history.state as { reservarEquipoId?: number } | undefined;
+    if (state?.reservarEquipoId) {
+      this.ensureEquiposLoaded(state.reservarEquipoId);
+    }
   }
 
   loadReservas() {
@@ -268,11 +255,7 @@ export class ReservasComponent implements OnInit {
 
   loadReservasAmbientes() {
     this.loadingAmbientes.set(true);
-    const obs = this.isAdminOrInstructor()
-      ? this.prestamoAmbienteService.listarTodos()
-      : this.prestamoAmbienteService.listarMisSolicitudes();
-
-    obs.subscribe({
+    this.prestamoAmbienteService.listarTodos().subscribe({
       next: (list) => {
         this.reservasAmbientes.set(list);
         this.loadingAmbientes.set(false);
@@ -285,8 +268,44 @@ export class ReservasComponent implements OnInit {
   }
 
   loadAmbientes() {
-    this.ambienteService.listarTodos().subscribe({
-      next: (list) => this.ambientes.set(list),
+    this.loadingUbicaciones.set(true);
+    this.ambienteService.listar().subscribe({
+      next: (list) => {
+        this.ambientes.set(list);
+        this.loadingUbicaciones.set(false);
+      },
+      error: () => {
+        this.loadingUbicaciones.set(false);
+      },
+    });
+  }
+
+  ensureEquiposLoaded(preselectedId?: number) {
+    if (this.equipos().length > 0) {
+      if (preselectedId && this.equipos().some((equipo) => equipo.id === preselectedId)) {
+        this.form = { equipoId: preselectedId, cantidad: 1, fechaHoraInicio: this.fechaMinInicio() };
+        this.modalCrear.set(true);
+        this.error.set('');
+      }
+      return;
+    }
+
+    this.equipoService.listarActivos().subscribe({
+      next: (list) => {
+        this.equipos.set(
+          list.map((e) => ({
+            id: e.id,
+            nombre: e.nombre,
+            codigoUnico: e.codigoUnico,
+            cantidadDisponible: e.cantidadDisponible,
+          }))
+        );
+        if (preselectedId && list.some((equipo) => equipo.id === preselectedId)) {
+          this.form = { equipoId: preselectedId, cantidad: 1, fechaHoraInicio: this.fechaMinInicio() };
+          this.modalCrear.set(true);
+          this.error.set('');
+        }
+      },
       error: () => {},
     });
   }
@@ -317,6 +336,7 @@ export class ReservasComponent implements OnInit {
   }
 
   openCrear() {
+    this.ensureEquiposLoaded();
     this.form = {
       equipoId: this.equipos()[0]?.id ?? 0,
       cantidad: 1,
@@ -327,6 +347,9 @@ export class ReservasComponent implements OnInit {
   }
 
   openCrearAmbiente() {
+    if (this.ambientes().length === 0) {
+      this.loadAmbientes();
+    }
     const hoy = this.fechaMinAmbiente();
     this.formAmbiente = {
       ambienteId: 0,
@@ -434,10 +457,20 @@ export class ReservasComponent implements OnInit {
   }
 
   cargarAgendaAmbiente(ambienteId: number) {
+    this.loadingAgendaAmbiente.set(true);
     this.agendaAmbiente.set([]);
     this.prestamoAmbienteService.listarPorAmbiente(ambienteId).subscribe({
-      next: (list) => this.agendaAmbiente.set(list),
-      error: () => this.agendaAmbiente.set([]),
+      next: (list) => {
+        this.agendaAmbiente.set(list);
+        this.loadingAgendaAmbiente.set(false);
+        if (this.mostrarCalendarioAmbiente()) {
+          this.scrollToReservaSection('calendar');
+        }
+      },
+      error: () => {
+        this.agendaAmbiente.set([]);
+        this.loadingAgendaAmbiente.set(false);
+      },
     });
   }
 
@@ -659,6 +692,12 @@ export class ReservasComponent implements OnInit {
     return !this.isAdminOrInstructor() || this.isAdmin();
   }
 
+  canManageAmbienteReservation(r: PrestamoAmbiente): boolean {
+    if (this.isAdmin()) return true;
+    const currentUserId = this.currentUser()?.id;
+    return !!currentUserId && r.propietarioAmbienteId === currentUserId;
+  }
+
   getInitials(nombre: string | undefined): string {
     if (!nombre) return 'NA';
     return nombre.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
@@ -749,6 +788,6 @@ export class ReservasComponent implements OnInit {
       }
 
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    }, 80);
   }
 }

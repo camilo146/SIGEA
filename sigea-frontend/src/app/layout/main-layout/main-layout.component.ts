@@ -36,9 +36,10 @@ export class MainLayoutComponent implements OnInit {
   isInstructor = this.auth.isInstructor;
   isOperativo = this.auth.isOperativo;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
+
   ngOnInit() {
+    this.syncResponsiveSidebar();
     this.loadContador();
-    this.loadNotificaciones();
   }
 
   loadContador() {
@@ -63,6 +64,9 @@ export class MainLayoutComponent implements OnInit {
 
   toggleNotifications(event?: Event) {
     event?.stopPropagation();
+    if (this.isMobileViewport() && this.sidebarOpen()) {
+      this.sidebarOpen.set(false);
+    }
     const open = !this.notificationOpen();
     this.notificationOpen.set(open);
     this.userMenuOpen.set(false);
@@ -89,12 +93,16 @@ export class MainLayoutComponent implements OnInit {
 
   toggleSidebar(event?: Event) {
     this.sidebarOpen.update((v) => !v);
+    this.closeDropdowns();
     // Quitar el foco del botón de toggle para evitar problemas de accesibilidad/UX
     (event?.currentTarget as HTMLElement)?.blur();
   }
 
   toggleUserMenu(event?: Event) {
     event?.stopPropagation();
+    if (this.isMobileViewport() && this.sidebarOpen()) {
+      this.sidebarOpen.set(false);
+    }
     this.userMenuOpen.update((v) => !v);
     this.notificationOpen.set(false);
   }
@@ -218,11 +226,31 @@ export class MainLayoutComponent implements OnInit {
     return formatter.format(diffDays, 'day');
   }
 
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.syncResponsiveSidebar();
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement | null;
     if (!target) return;
     if (!target.closest('.notifications-popover')) this.notificationOpen.set(false);
     if (!target.closest('.user-popover')) this.userMenuOpen.set(false);
+  }
+
+  private isMobileViewport(): boolean {
+    return typeof window !== 'undefined' && window.innerWidth <= 900;
+  }
+
+  private syncResponsiveSidebar() {
+    if (this.isMobileViewport()) {
+      this.sidebarOpen.set(false);
+      return;
+    }
+
+    if (!this.sidebarOpen()) {
+      this.sidebarOpen.set(true);
+    }
   }
 }

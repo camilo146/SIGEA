@@ -281,7 +281,7 @@ public class AmbienteService {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
         verificarPropiedadInstructor(ambiente, correoUsuario,
-            "Solo puedes activar/desactivar los ambientes que tú creaste.");
+                "Solo puedes activar/desactivar los ambientes que tú creaste.");
         if (!ambiente.getActivo()) {
             throw new OperacionNoPermitidaException("El ambiente ya se encuentra desactivado");
         }
@@ -294,7 +294,7 @@ public class AmbienteService {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
         verificarPropiedadInstructor(ambiente, correoUsuario,
-            "Solo puedes activar/desactivar los ambientes que tú creaste.");
+                "Solo puedes activar/desactivar los ambientes que tú creaste.");
         if (ambiente.getActivo()) {
             throw new OperacionNoPermitidaException("El ambiente ya se encuentra activo");
         }
@@ -343,13 +343,13 @@ public class AmbienteService {
                                 ? ambiente.getInstructorResponsable().getNombreCompleto()
                                 : null)
                 .propietarioId(
-                    ambiente.getPropietario() != null
-                        ? ambiente.getPropietario().getId()
-                        : null)
+                        ambiente.getPropietario() != null
+                                ? ambiente.getPropietario().getId()
+                                : null)
                 .propietarioNombre(
-                    ambiente.getPropietario() != null
-                        ? ambiente.getPropietario().getNombreCompleto()
-                        : null)
+                        ambiente.getPropietario() != null
+                                ? ambiente.getPropietario().getNombreCompleto()
+                                : null)
                 .padreId(ambiente.getPadre() != null ? ambiente.getPadre().getId() : null)
                 .padreNombre(ambiente.getPadre() != null ? ambiente.getPadre().getNombre() : null)
                 .subUbicaciones(subUbicacionesDTO)

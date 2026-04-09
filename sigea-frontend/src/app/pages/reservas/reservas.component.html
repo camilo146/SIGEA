@@ -218,7 +218,7 @@
                   }
                 </td>
                 <td class="actions">
-                  @if (isAdminOrInstructor() && r.estado === 'SOLICITADO') {
+                  @if (canManageAmbienteReservation(r) && r.estado === 'SOLICITADO') {
                     <button type="button" class="btn-icon success" (click)="aprobarAmbiente(r)" title="Aprobar" [disabled]="isActionPending('approve-env', r.id)">
                       @if (isActionPending('approve-env', r.id)) { <i class="fas fa-spinner fa-spin"></i> }
                       @else { <i class="fas fa-check"></i> }
@@ -228,7 +228,7 @@
                       @else { <i class="fas fa-times"></i> }
                     </button>
                   }
-                  @if (isAdminOrInstructor() && (r.estado === 'APROBADO' || r.estado === 'ACTIVO')) {
+                  @if (canManageAmbienteReservation(r) && (r.estado === 'APROBADO' || r.estado === 'ACTIVO')) {
                     <button type="button" class="btn btn-primary btn-xs" (click)="openDevolucionAmbiente(r)">
                       <i class="fas fa-clipboard-check"></i> Devolución
                     </button>
@@ -352,7 +352,13 @@
           }
         </div>
 
-        @if (ambientesReservables().length === 0) {
+        @if (loadingUbicaciones()) {
+          <div class="reservation-empty-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <h4>Cargando ubicaciones disponibles</h4>
+            <p>Estamos preparando los ambientes para la reserva.</p>
+          </div>
+        } @else if (ambientesReservables().length === 0) {
           <div class="reservation-empty-state">
             <i class="fas fa-building-circle-xmark"></i>
             <h4>No hay ubicaciones disponibles</h4>
@@ -420,6 +426,12 @@
                     <button type="button" class="btn btn-outline btn-sm" (click)="moverMes(1)"><i class="fas fa-chevron-right"></i></button>
                   </div>
                 </div>
+                @if (loadingAgendaAmbiente()) {
+                  <div class="agenda-loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Cargando calendario de reservas...</span>
+                  </div>
+                } @else {
                 <div class="agenda-weekdays-row">
                   @for (label of ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']; track label) {
                     <span>{{ label }}</span>
@@ -477,6 +489,7 @@
                     }
                   </div>
                 </div>
+                }
               </div>
             }
 

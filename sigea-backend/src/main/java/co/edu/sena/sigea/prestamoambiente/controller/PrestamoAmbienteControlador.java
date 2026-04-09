@@ -46,17 +46,8 @@ public class PrestamoAmbienteControlador {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<PrestamoAmbienteRespuestaDTO>> listar(
             @AuthenticationPrincipal UserDetails userDetails) {
-        boolean esAdministradorOInstructor = userDetails != null && userDetails.getAuthorities() != null
-                && userDetails.getAuthorities().stream()
-                        .anyMatch(a -> "ROLE_ADMINISTRADOR".equals(a.getAuthority())
-                                || "ROLE_INSTRUCTOR".equals(a.getAuthority()));
-
-        if (esAdministradorOInstructor) {
-            return ResponseEntity.ok(servicio.listarTodos());
-        }
-
         String correoUsuario = userDetails != null ? userDetails.getUsername() : null;
-        return ResponseEntity.ok(servicio.listarMisSolicitudes(correoUsuario));
+        return ResponseEntity.ok(servicio.listarVisiblesParaUsuario(correoUsuario));
     }
 
     @GetMapping("/{id}")
