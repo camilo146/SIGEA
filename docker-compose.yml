@@ -86,6 +86,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-4043}:80"
     networks:
       sigea-net:
         ipv4_address: 172.28.10.12

@@ -24,13 +24,16 @@ warning() { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 frontend_url() {
-  local host domain
+  local host domain frontend_port
   host="$(hostname -I | awk '{print $1}')"
   domain="$(grep -E '^SIGEA_DOMAIN=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
-  if [ -n "$domain" ]; then
+  frontend_port="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
+  [ -n "$frontend_port" ] || frontend_port="4043"
+
+  if [ -n "$domain" ] && [ "$domain" != "localhost" ]; then
     echo "https://$domain"
   else
-    echo "https://$host"
+    echo "http://$host:$frontend_port"
   fi
 }
 
@@ -83,6 +86,8 @@ if [ "$ACTION" = "install" ]; then
 
   if ! grep -Eq '^SIGEA_DOMAIN=' .env; then
     warning "SIGEA_DOMAIN no está definido. El acceso por dominio interno y el certificado autofirmado dependen de ese valor."
+  elif grep -Eq '^SIGEA_DOMAIN=localhost$' .env; then
+    warning "SIGEA_DOMAIN=localhost no sirve para acceso remoto por dominio. Se usará acceso directo por IP y FRONTEND_PORT."
   fi
 
   # Construir y levantar
