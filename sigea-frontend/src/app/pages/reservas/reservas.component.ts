@@ -8,6 +8,7 @@ import { PrestamoAmbienteService } from '../../core/services/prestamo-ambiente.s
 import { EquipoService } from '../../core/services/equipo.service';
 import { AmbienteService } from '../../core/services/ambiente.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { environment } from '../../../environments/environment';
 import type { Reserva, ReservaCrear } from '../../core/models/reserva.model';
 import type {
   PrestamoAmbiente,
@@ -62,6 +63,7 @@ export class ReservasComponent implements OnInit {
   devolucionAmbienteSaving = signal(false);
   actionPending = signal<Record<string, boolean>>({});
   agendaFecha = signal('');
+  mostrarCalendarioAmbiente = signal(false);
 
   isAdmin = this.auth.isAdmin;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
@@ -153,6 +155,10 @@ export class ReservasComponent implements OnInit {
 
   ambientesReservables = computed(() => this.ambientes().filter((a) => a.activo));
 
+  ambienteSeleccionadoReserva = computed(() =>
+    this.ambientesReservables().find((a) => a.id === this.formAmbiente.ambienteId) ?? null
+  );
+
   agendaReservasDelDia = computed(() => {
     const fecha = this.agendaFecha();
     if (!fecha) return this.agendaAmbiente();
@@ -160,6 +166,27 @@ export class ReservasComponent implements OnInit {
       const inicio = (r.fechaInicio ?? '').toString().slice(0, 10);
       const fin = (r.fechaFin ?? '').toString().slice(0, 10);
       return fecha >= inicio && fecha <= fin;
+    });
+  });
+
+  agendaSemana = computed(() => {
+    const base = this.getInicioSemana(this.agendaFecha() || this.fechaMinAmbiente());
+    return Array.from({ length: 7 }, (_, index) => {
+      const fecha = new Date(base);
+      fecha.setDate(base.getDate() + index);
+      const iso = this.toIsoDate(fecha);
+      const items = this.agendaAmbiente()
+        .filter((reserva) => this.reservaOcurreEnFecha(reserva, iso))
+        .sort((left, right) => left.horaInicio.localeCompare(right.horaInicio));
+
+      return {
+        iso,
+        shortLabel: fecha.toLocaleDateString('es-CO', { weekday: 'short' }),
+        dayNumber: fecha.getDate(),
+        isToday: iso === this.toIsoDate(new Date()),
+        isSelected: iso === this.agendaFecha(),
+        items,
+      };
     });
   });
 
@@ -292,10 +319,9 @@ export class ReservasComponent implements OnInit {
   }
 
   openCrearAmbiente() {
-    const primerAmbiente = this.ambientesReservables()[0];
     const hoy = this.fechaMinAmbiente();
     this.formAmbiente = {
-      ambienteId: primerAmbiente?.id ?? 0,
+      ambienteId: 0,
       fechaInicio: hoy,
       fechaFin: hoy,
       horaInicio: '08:00',
@@ -306,9 +332,10 @@ export class ReservasComponent implements OnInit {
       observacionesSolicitud: '',
     };
     this.agendaFecha.set(hoy);
+    this.agendaAmbiente.set([]);
+    this.mostrarCalendarioAmbiente.set(false);
     this.error.set('');
     this.modalCrearAmbiente.set(true);
-    if (primerAmbiente) this.cargarAgendaAmbiente(primerAmbiente.id);
   }
 
   submitCrear() {
@@ -336,7 +363,23 @@ export class ReservasComponent implements OnInit {
   onSelectAmbienteReserva(ambienteId: number | string) {
     const parsed = Number(ambienteId);
     this.formAmbiente = { ...this.formAmbiente, ambienteId: parsed };
+    this.mostrarCalendarioAmbiente.set(false);
     if (parsed > 0) this.cargarAgendaAmbiente(parsed);
+  }
+
+  selectAmbienteCard(ambiente: Ambiente) {
+    this.onSelectAmbienteReserva(ambiente.id);
+  }
+
+  toggleCalendarioAmbiente() {
+    if (!this.formAmbiente.ambienteId) return;
+    this.mostrarCalendarioAmbiente.update((value) => !value);
+  }
+
+  moverSemana(offsetDias: number) {
+    const base = new Date(`${this.agendaFecha() || this.fechaMinAmbiente()}T00:00:00`);
+    base.setDate(base.getDate() + offsetDias);
+    this.agendaFecha.set(this.toIsoDate(base));
   }
 
   submitCrearAmbiente() {
@@ -562,6 +605,22 @@ export class ReservasComponent implements OnInit {
     return this.ambientes().find((a) => a.id === id);
   }
 
+  getAmbienteFotoUrl(a: Ambiente): string {
+    if (!a?.rutaFoto) return '';
+    const ruta = a.rutaFoto.trim();
+    if (ruta.startsWith('http://') || ruta.startsWith('https://')) return ruta;
+    if (ruta.startsWith('/uploads/')) return `${environment.apiUrl}${ruta}`;
+    if (ruta.startsWith('uploads/')) return `${environment.apiUrl}/${ruta}`;
+    const path = ruta.startsWith('/') ? ruta.slice(1) : ruta;
+    return `${environment.apiUrl}/uploads/${path}`;
+  }
+
+  getRangoSemanaAgenda(): string {
+    const semana = this.agendaSemana();
+    if (!semana.length) return '';
+    return `${this.formatDateOnly(semana[0].iso)} - ${this.formatDateOnly(semana[6].iso)}`;
+  }
+
   ambienteLabel(a: Ambiente): string {
     const partes = [a.nombre];
     if (a.ubicacion) partes.push(a.ubicacion);
@@ -638,5 +697,23 @@ export class ReservasComponent implements OnInit {
         this.ui.error(message, 'Reservas de Ambientes');
       },
     });
+  }
+
+  private getInicioSemana(value: string): Date {
+    const date = new Date(`${value}T00:00:00`);
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    return date;
+  }
+
+  private toIsoDate(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private reservaOcurreEnFecha(reserva: PrestamoAmbiente, fechaIso: string): boolean {
+    const inicio = (reserva.fechaInicio ?? '').toString().slice(0, 10);
+    const fin = (reserva.fechaFin ?? '').toString().slice(0, 10);
+    return !!inicio && !!fin && fechaIso >= inicio && fechaIso <= fin;
   }
 }

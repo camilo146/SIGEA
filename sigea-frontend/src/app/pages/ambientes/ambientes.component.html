@@ -332,7 +332,7 @@
 <!-- Modal Sub-ubicaciones -->
 @if (modalSubUbicacionesOpen()) {
   <div class="modal-overlay" (click)="closeSubUbicaciones()">
-    <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-box modal-box-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>
           <i class="fas fa-sitemap" style="color:var(--color-primary);margin-right:.4rem"></i>
@@ -341,28 +341,77 @@
         <button type="button" class="btn-close" (click)="closeSubUbicaciones()">&times;</button>
       </div>
       <div class="modal-body">
-        <button type="button" class="btn btn-primary" style="margin-bottom:1rem" (click)="openCrearSubUbicacion()">
-          <i class="fas fa-plus"></i> Nueva sub-ubicación
-        </button>
+        <div class="sub-card-toolbar">
+          <div>
+            <strong class="sub-card-title">Sub-ubicaciones internas</strong>
+            <p class="sub-card-subtitle">Despliega cada card para ver los equipos asignados a esa zona.</p>
+          </div>
+          <button type="button" class="btn btn-primary" (click)="openCrearSubUbicacion()">
+            <i class="fas fa-plus"></i> Nueva sub-ubicación
+          </button>
+        </div>
         @if (loadingSubUbicaciones()) {
           <p><i class="fas fa-spinner fa-spin"></i> Cargando...</p>
         } @else if (subUbicaciones().length === 0) {
           <p class="text-muted">Este ambiente no tiene sub-ubicaciones aún.</p>
         } @else {
-          <ul class="equipo-list">
+          <div class="sub-grid">
             @for (sub of subUbicaciones(); track sub.id) {
-              <li class="equipo-list-item">
-                <i class="fas fa-map-pin" style="color:var(--color-primary)"></i>
-                <span>
-                  <strong>{{ sub.nombre }}</strong>
-                  @if (sub.ubicacion) { <small class="text-muted"> · {{ sub.ubicacion }}</small> }
-                </span>
-                <span class="badge" [class]="sub.activo ? 'badge-green' : 'badge-red'">
-                  {{ sub.activo ? 'Activo' : 'Inactivo' }}
-                </span>
-              </li>
+              <article class="sub-card" [class.sub-card-inactive]="!sub.activo">
+                <div class="sub-card-head">
+                  <div class="sub-card-icon"><i class="fas fa-map-pin"></i></div>
+                  <div class="sub-card-head-copy">
+                    <strong>{{ sub.nombre }}</strong>
+                    <span>{{ sub.ubicacion || 'Zona interna de la ubicación principal' }}</span>
+                  </div>
+                  <span class="badge" [class]="sub.activo ? 'badge-green' : 'badge-red'">
+                    {{ sub.activo ? 'Activa' : 'Inactiva' }}
+                  </span>
+                </div>
+
+                @if (sub.descripcion) {
+                  <p class="sub-card-desc">{{ sub.descripcion }}</p>
+                }
+
+                <div class="sub-card-meta">
+                  <span><i class="fas fa-box-open"></i> {{ getEquiposSubUbicacionCount(sub.id) }} equipo(s)</span>
+                  <button type="button" class="btn btn-sm btn-outline sub-card-toggle" (click)="toggleSubUbicacionCard(sub.id)">
+                    <i class="fas" [ngClass]="subUbicacionesExpanded()[sub.id] ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    {{ subUbicacionesExpanded()[sub.id] ? 'Ocultar equipos' : 'Ver equipos' }}
+                  </button>
+                </div>
+
+                @if (subUbicacionesExpanded()[sub.id]) {
+                  <div class="sub-card-equipos">
+                    @if (loadingSubEquipos()) {
+                      <div class="sub-card-empty"><i class="fas fa-spinner fa-spin"></i> Cargando equipos...</div>
+                    } @else if (getEquiposSubUbicacion(sub.id).length === 0) {
+                      <div class="sub-card-empty">No hay equipos asignados a esta sub-ubicación.</div>
+                    } @else {
+                      <div class="sub-card-equipo-list">
+                        @for (equipo of getEquiposSubUbicacion(sub.id); track equipo.id) {
+                          <div class="sub-card-equipo-item">
+                            @if (getEquipoFotoUrl(equipo)) {
+                              <img [src]="getEquipoFotoUrl(equipo)" alt="" class="equipo-thumb-sm" />
+                            } @else {
+                              <span class="equipo-thumb-sm placeholder"><i class="fas fa-image"></i></span>
+                            }
+                            <div>
+                              <strong>{{ equipo.nombre }}</strong>
+                              <span>{{ equipo.codigoUnico }} · {{ equipo.cantidadDisponible }}/{{ equipo.cantidadTotal }}</span>
+                            </div>
+                            <span class="badge" [class]="equipo.estado === 'EN_MANTENIMIENTO' ? 'badge-orange' : 'badge-green'">
+                              {{ equipo.estado === 'EN_MANTENIMIENTO' ? 'Mantenimiento' : 'Disponible' }}
+                            </span>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </article>
             }
-          </ul>
+          </div>
         }
       </div>
     </div>

@@ -339,38 +339,118 @@
         @if (error()) {
           <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
         }
-        <div class="form-group">
-          <label>Ambiente / ubicación *</label>
-          <select [ngModel]="formAmbiente.ambienteId" (ngModelChange)="onSelectAmbienteReserva($event)" name="ambienteReservaId" required>
-            <option [value]="0" disabled>Seleccione un ambiente</option>
+        <div class="reservation-builder-hero">
+          <div>
+            <strong>1. Elige una ubicación disponible</strong>
+            <p>Selecciona una card para continuar con el horario, el propósito y la revisión del calendario.</p>
+          </div>
+          @if (ambienteSeleccionadoReserva()) {
+            <button type="button" class="btn btn-outline btn-sm" (click)="toggleCalendarioAmbiente()">
+              <i class="fas fa-calendar-week"></i>
+              {{ mostrarCalendarioAmbiente() ? 'Ocultar calendario' : 'Ver calendario' }}
+            </button>
+          }
+        </div>
+
+        @if (ambientesReservables().length === 0) {
+          <div class="reservation-empty-state">
+            <i class="fas fa-building-circle-xmark"></i>
+            <h4>No hay ubicaciones disponibles</h4>
+            <p>No existen ambientes activos para reservar en este momento.</p>
+          </div>
+        } @else {
+          <div class="ambiente-picker-grid">
             @for (a of ambientesReservables(); track a.id) {
-              <option [value]="a.id">{{ ambienteLabel(a) }}</option>
-            }
-          </select>
-        </div>
-        <div class="agenda-box">
-          <div class="agenda-header">
-            <div>
-              <strong>Calendario de ocupación</strong>
-              <p class="text-muted">Consulta las reservas ya registradas para el ambiente seleccionado.</p>
-            </div>
-            <input type="date" [ngModel]="agendaFecha()" (ngModelChange)="agendaFecha.set($event)" name="agendaFecha" [min]="fechaMinAmbiente()" />
-          </div>
-          <div class="agenda-list">
-            @for (item of agendaReservasDelDia(); track item.id) {
-              <div class="agenda-item">
-                <div class="agenda-item-top">
-                  <strong>{{ formatDateOnly(item.fechaInicio) }} - {{ formatDateOnly(item.fechaFin) }}</strong>
-                  <span class="badge" [class]="estadoAmbienteBadgeClass(item.estado)">{{ estadoAmbienteLabel(item.estado) }}</span>
+              <button type="button" class="ambiente-picker-card" [class.selected]="formAmbiente.ambienteId === a.id" (click)="selectAmbienteCard(a)">
+                <div class="apc-photo">
+                  @if (getAmbienteFotoUrl(a)) {
+                    <img [src]="getAmbienteFotoUrl(a)" [alt]="a.nombre" loading="lazy" />
+                  } @else {
+                    <div class="apc-photo-placeholder"><i class="fas fa-building"></i></div>
+                  }
+                  <span class="apc-badge"><i class="fas fa-location-dot"></i> {{ a.padreNombre ? 'Sub-ubicación' : 'Ubicación' }}</span>
                 </div>
-                <div class="agenda-item-copy">{{ item.horaInicio }} a {{ item.horaFin }} · {{ item.solicitanteNombre }}</div>
-                <div class="agenda-item-copy">{{ item.proposito }}</div>
-              </div>
-            } @empty {
-              <div class="empty-agenda">No hay reservas registradas para la fecha seleccionada.</div>
+                <div class="apc-body">
+                  <strong>{{ a.nombre }}</strong>
+                  <span>{{ a.ubicacion || 'Ubicación no especificada' }}</span>
+                  @if (a.descripcion) {
+                    <p>{{ a.descripcion | slice:0:90 }}{{ a.descripcion.length > 90 ? '…' : '' }}</p>
+                  }
+                  <div class="apc-meta">
+                    <span><i class="fas fa-user"></i> {{ a.instructorResponsableNombre }}</span>
+                    @if (a.padreNombre) {
+                      <span><i class="fas fa-sitemap"></i> {{ a.padreNombre }}</span>
+                    }
+                  </div>
+                </div>
+              </button>
             }
           </div>
-        </div>
+        }
+
+        @if (ambienteSeleccionadoReserva(); as ambienteSel) {
+          <div class="selected-ambiente-shell animate-fade-in-up">
+            <div class="selected-ambiente-card">
+              <div class="selected-ambiente-copy">
+                <span class="selected-pill">Ubicación seleccionada</span>
+                <h4>{{ ambienteSel.nombre }}</h4>
+                <p>{{ ambienteSel.ubicacion || 'Ubicación no especificada' }}</p>
+              </div>
+              <div class="selected-ambiente-actions">
+                <span class="selected-helper"><i class="fas fa-circle-check"></i> Continúa con la solicitud</span>
+                <button type="button" class="btn btn-outline btn-sm" (click)="toggleCalendarioAmbiente()">
+                  <i class="fas fa-calendar-days"></i>
+                  {{ mostrarCalendarioAmbiente() ? 'Ocultar calendario' : 'Ver calendario' }}
+                </button>
+              </div>
+            </div>
+
+            @if (mostrarCalendarioAmbiente()) {
+              <div class="agenda-calendar-card animate-fade-in-scale">
+                <div class="agenda-calendar-header">
+                  <div>
+                    <strong>Calendario semanal de {{ ambienteSel.nombre }}</strong>
+                    <p class="text-muted">Revisa qué días y horas ya están ocupados.</p>
+                  </div>
+                  <div class="agenda-calendar-tools">
+                    <button type="button" class="btn btn-outline btn-sm" (click)="moverSemana(-7)"><i class="fas fa-chevron-left"></i></button>
+                    <div class="agenda-range-chip">{{ getRangoSemanaAgenda() }}</div>
+                    <button type="button" class="btn btn-outline btn-sm" (click)="moverSemana(7)"><i class="fas fa-chevron-right"></i></button>
+                  </div>
+                </div>
+                <div class="agenda-week-grid">
+                  @for (dia of agendaSemana(); track dia.iso) {
+                    <section class="agenda-day-card" [class.has-events]="dia.items.length > 0" [class.is-selected]="dia.isSelected">
+                      <button type="button" class="agenda-day-head" (click)="agendaFecha.set(dia.iso)">
+                        <span>{{ dia.shortLabel }}</span>
+                        <strong>{{ dia.dayNumber }}</strong>
+                        @if (dia.isToday) {
+                          <small>Hoy</small>
+                        }
+                      </button>
+                      <div class="agenda-day-body">
+                        @for (item of dia.items; track item.id) {
+                          <article class="agenda-event-card">
+                            <div class="agenda-event-time">{{ item.horaInicio }} - {{ item.horaFin }}</div>
+                            <strong>{{ item.solicitanteNombre }}</strong>
+                            <span>{{ item.proposito }}</span>
+                            <span class="badge" [class]="estadoAmbienteBadgeClass(item.estado)">{{ estadoAmbienteLabel(item.estado) }}</span>
+                          </article>
+                        } @empty {
+                          <div class="agenda-day-empty">Disponible</div>
+                        }
+                      </div>
+                    </section>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="builder-step-title">
+              <i class="fas fa-clock"></i> 2. Selecciona horario y completa la solicitud
+            </div>
+          </div>
+        }
         <div class="form-row">
           <div class="form-group">
             <label>Fecha inicio *</label>

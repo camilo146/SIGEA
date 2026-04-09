@@ -54,6 +54,9 @@ export class AmbientesComponent implements OnInit {
   formSub: AmbienteCrear = { nombre: '', idInstructorResponsable: null };
   /** Sub-ubicación seleccionada en el panel de detalle (null = mostrar todos los equipos). */
   selectedSubUbicacion = signal<SubUbicacionResumen | null>(null);
+  subEquipos = signal<Equipo[]>([]);
+  loadingSubEquipos = signal(false);
+  subUbicacionesExpanded = signal<Record<number, boolean>>({});
 
   form: AmbienteCrear = {
     nombre: '',
@@ -323,12 +326,39 @@ export class AmbientesComponent implements OnInit {
     this.ambientePadreSeleccionado.set(padre);
     this.modalSubUbicacionesOpen.set(true);
     this.loadSubUbicaciones(padre.id);
+    this.loadingSubEquipos.set(true);
+    this.subEquipos.set([]);
+    this.subUbicacionesExpanded.set({});
+    this.equipoService.listarPorAmbiente(padre.id).subscribe({
+      next: (list) => {
+        this.subEquipos.set(list);
+        this.loadingSubEquipos.set(false);
+      },
+      error: () => {
+        this.subEquipos.set([]);
+        this.loadingSubEquipos.set(false);
+      },
+    });
   }
 
   closeSubUbicaciones() {
     this.modalSubUbicacionesOpen.set(false);
     this.ambientePadreSeleccionado.set(null);
     this.subUbicaciones.set([]);
+    this.subEquipos.set([]);
+    this.subUbicacionesExpanded.set({});
+  }
+
+  toggleSubUbicacionCard(subId: number) {
+    this.subUbicacionesExpanded.update((state) => ({ ...state, [subId]: !state[subId] }));
+  }
+
+  getEquiposSubUbicacion(subId: number): Equipo[] {
+    return this.subEquipos().filter((equipo) => equipo.subUbicacionId === subId);
+  }
+
+  getEquiposSubUbicacionCount(subId: number): number {
+    return this.getEquiposSubUbicacion(subId).length;
   }
 
   private loadSubUbicaciones(padreId: number) {

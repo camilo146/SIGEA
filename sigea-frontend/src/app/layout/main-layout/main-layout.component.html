@@ -189,7 +189,7 @@
   </main>
 </div>
 
-@if (!sidebarOpen()) {
+@if (sidebarOpen()) {
   <div class="sidebar-overlay" id="sidebarOverlay" (click)="toggleSidebar()"></div>
 }
 
