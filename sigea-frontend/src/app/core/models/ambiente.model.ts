@@ -14,6 +14,8 @@ export interface Ambiente {
   direccion?: string;
   instructorResponsableId: number;
   instructorResponsableNombre: string;
+  propietarioId?: number;
+  propietarioNombre?: string;
   activo: boolean;
   rutaFoto?: string;
   /** ID del ambiente padre (solo si es sub-ubicación). */

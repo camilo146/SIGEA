@@ -40,8 +40,9 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((res) => {
         const session: UserSession = {
+          id: res.id,
           nombreCompleto: res.nombreCompleto,
-          correoElectronico: '',
+          correoElectronico: res.correoElectronico,
           numeroDocumento: credentials.numeroDocumento,
           rol: res.rol,
           token: res.token,

@@ -56,9 +56,11 @@ public class AmbienteService {
             throw new RecursoDuplicadoException(
                     "Ya existe un ambiente con el nombre: " + dto.getNombre());
         }
+        Usuario propietario = null;
         Usuario instructor;
         if (correoUsuario != null && !correoUsuario.isBlank()) {
             Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
+            propietario = actual;
             if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
                 instructor = actual;
             } else {
@@ -76,6 +78,9 @@ public class AmbienteService {
             instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
                     .orElseThrow(() -> new RecursoNoEncontradoException(
                             "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+        }
+        if (propietario == null) {
+            propietario = instructor;
         }
 
         // Soporte de sub-ubicaciones: resolver el padre si se indica
@@ -96,6 +101,7 @@ public class AmbienteService {
                 .descripcion(dto.getDescripcion())
                 .direccion(dto.getDireccion())
                 .instructorResponsable(instructor)
+                .propietario(propietario)
                 .padre(padre)
                 .activo(true)
                 .build();
@@ -132,9 +138,11 @@ public class AmbienteService {
             throw new RecursoDuplicadoException("Ya existe un ambiente con el nombre: " + dto.getNombre());
         }
 
+        Usuario propietario = null;
         Usuario instructor;
         if (correoInstructor != null && !correoInstructor.isBlank()) {
             Usuario actual = usuarioRepository.findByCorreoElectronico(correoInstructor).orElse(null);
+            propietario = actual;
             if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
                 instructor = actual;
             } else {
@@ -152,6 +160,9 @@ public class AmbienteService {
             instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
                     .orElseThrow(() -> new RecursoNoEncontradoException(
                             "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+        }
+        if (propietario == null) {
+            propietario = instructor;
         }
 
         Path directorio = Paths.get(rutaUploads).resolve("ambientes");
@@ -180,6 +191,7 @@ public class AmbienteService {
                     .descripcion(dto.getDescripcion())
                     .direccion(dto.getDireccion())
                     .instructorResponsable(instructor)
+                    .propietario(propietario)
                     .padre(padre)
                     .activo(true)
                     .rutaFoto(rutaParaBD)
@@ -227,7 +239,7 @@ public class AmbienteService {
         if (correo == null || correo.isBlank())
             return Collections.emptyList();
         return usuarioRepository.findByCorreoElectronico(correo)
-                .map(u -> ambienteRepository.findByInstructorResponsableId(u.getId())
+                .map(u -> ambienteRepository.findByPropietarioId(u.getId())
                         .stream().map(this::convertirADTO).toList())
                 .orElse(Collections.emptyList());
     }
@@ -244,15 +256,7 @@ public class AmbienteService {
     public AmbienteRespuestaDTO actualizar(Long id, AmbienteCrearDTO dto, String correoUsuario) {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
-        if (correoUsuario != null && !correoUsuario.isBlank()) {
-            Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
-            if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
-                if (ambiente.getInstructorResponsable() == null
-                        || !ambiente.getInstructorResponsable().getId().equals(actual.getId())) {
-                    throw new OperacionNoPermitidaException("Solo puedes editar los ambientes que tú administras.");
-                }
-            }
-        }
+        verificarPropiedadInstructor(ambiente, correoUsuario, "Solo puedes editar los ambientes que tú creaste.");
         ambienteRepository.findByNombre(dto.getNombre())
                 .ifPresent(existente -> {
                     if (!existente.getId().equals(id)) {
@@ -276,7 +280,8 @@ public class AmbienteService {
     public void desactivar(Long id, String correoUsuario) {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
-        verificarPropiedadInstructor(ambiente, correoUsuario);
+        verificarPropiedadInstructor(ambiente, correoUsuario,
+            "Solo puedes activar/desactivar los ambientes que tú creaste.");
         if (!ambiente.getActivo()) {
             throw new OperacionNoPermitidaException("El ambiente ya se encuentra desactivado");
         }
@@ -288,7 +293,8 @@ public class AmbienteService {
     public void activar(Long id, String correoUsuario) {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
-        verificarPropiedadInstructor(ambiente, correoUsuario);
+        verificarPropiedadInstructor(ambiente, correoUsuario,
+            "Solo puedes activar/desactivar los ambientes que tú creaste.");
         if (ambiente.getActivo()) {
             throw new OperacionNoPermitidaException("El ambiente ya se encuentra activo");
         }
@@ -296,15 +302,14 @@ public class AmbienteService {
         ambienteRepository.save(ambiente);
     }
 
-    private void verificarPropiedadInstructor(Ambiente ambiente, String correoUsuario) {
+    private void verificarPropiedadInstructor(Ambiente ambiente, String correoUsuario, String mensajeError) {
         if (correoUsuario == null || correoUsuario.isBlank())
             return;
         Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
         if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
-            if (ambiente.getInstructorResponsable() == null
-                    || !ambiente.getInstructorResponsable().getId().equals(actual.getId())) {
-                throw new OperacionNoPermitidaException(
-                        "Solo puedes activar/desactivar los ambientes que tú administras.");
+            if (ambiente.getPropietario() == null
+                    || !ambiente.getPropietario().getId().equals(actual.getId())) {
+                throw new OperacionNoPermitidaException(mensajeError);
             }
         }
     }
@@ -337,6 +342,14 @@ public class AmbienteService {
                         ambiente.getInstructorResponsable() != null
                                 ? ambiente.getInstructorResponsable().getNombreCompleto()
                                 : null)
+                .propietarioId(
+                    ambiente.getPropietario() != null
+                        ? ambiente.getPropietario().getId()
+                        : null)
+                .propietarioNombre(
+                    ambiente.getPropietario() != null
+                        ? ambiente.getPropietario().getNombreCompleto()
+                        : null)
                 .padreId(ambiente.getPadre() != null ? ambiente.getPadre().getId() : null)
                 .padreNombre(ambiente.getPadre() != null ? ambiente.getPadre().getNombre() : null)
                 .subUbicaciones(subUbicacionesDTO)

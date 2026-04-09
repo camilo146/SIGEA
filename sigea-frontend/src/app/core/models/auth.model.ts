@@ -4,14 +4,17 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
+  id: number;
   token: string;
   tipo: string;
   nombreCompleto: string;
+  correoElectronico: string;
   rol: string;
   esSuperAdmin: boolean;
 }
 
 export interface UserSession {
+  id: number;
   nombreCompleto: string;
   correoElectronico: string;
   numeroDocumento?: string;

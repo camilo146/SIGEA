@@ -30,6 +30,10 @@ public class AmbienteRespuestaDTO {
 
     private String instructorResponsableNombre;
 
+    private Long propietarioId;
+
+    private String propietarioNombre;
+
     /** ID del ambiente padre (null si es una ubicación raíz). */
     private Long padreId;
 

@@ -391,7 +391,7 @@
         }
 
         @if (ambienteSeleccionadoReserva(); as ambienteSel) {
-          <div class="selected-ambiente-shell animate-fade-in-up">
+          <div #selectedAmbienteShell class="selected-ambiente-shell animate-fade-in-up">
             <div class="selected-ambiente-card">
               <div class="selected-ambiente-copy">
                 <span class="selected-pill">Ubicación seleccionada</span>
@@ -408,7 +408,7 @@
             </div>
 
             @if (mostrarCalendarioAmbiente()) {
-              <div class="agenda-calendar-card animate-fade-in-scale">
+              <div #agendaCalendarCard class="agenda-calendar-card animate-fade-in-scale">
                 <div class="agenda-calendar-header">
                   <div>
                     <strong>Calendario de reservas de {{ ambienteSel.nombre }}</strong>

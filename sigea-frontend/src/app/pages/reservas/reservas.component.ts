@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, ElementRef, inject, OnInit, signal, computed, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -68,6 +68,8 @@ export class ReservasComponent implements OnInit {
 
   isAdmin = this.auth.isAdmin;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
+  selectedAmbienteShellRef = viewChild<ElementRef<HTMLElement>>('selectedAmbienteShell');
+  agendaCalendarCardRef = viewChild<ElementRef<HTMLElement>>('agendaCalendarCard');
 
   form: ReservaCrear = { equipoId: 0, cantidad: 1, fechaHoraInicio: '' };
   formAmbiente: PrestamoAmbienteSolicitud = {
@@ -380,11 +382,16 @@ export class ReservasComponent implements OnInit {
   selectAmbienteCard(ambiente: Ambiente, abrirCalendario = true) {
     this.onSelectAmbienteReserva(ambiente.id);
     this.mostrarCalendarioAmbiente.set(abrirCalendario);
+    this.scrollToReservaSection(abrirCalendario ? 'calendar' : 'selected');
   }
 
   toggleCalendarioAmbiente() {
     if (!this.formAmbiente.ambienteId) return;
-    this.mostrarCalendarioAmbiente.update((value) => !value);
+    const next = !this.mostrarCalendarioAmbiente();
+    this.mostrarCalendarioAmbiente.set(next);
+    if (next) {
+      this.scrollToReservaSection('calendar');
+    }
   }
 
   moverMes(offsetMeses: number) {
@@ -726,5 +733,22 @@ export class ReservasComponent implements OnInit {
     const inicio = (reserva.fechaInicio ?? '').toString().slice(0, 10);
     const fin = (reserva.fechaFin ?? '').toString().slice(0, 10);
     return !!inicio && !!fin && fechaIso >= inicio && fechaIso <= fin;
+  }
+
+  private scrollToReservaSection(target: 'selected' | 'calendar') {
+    setTimeout(() => {
+      const targetRef = target === 'calendar' ? this.agendaCalendarCardRef() : this.selectedAmbienteShellRef();
+      const element = targetRef?.nativeElement;
+      if (!element) return;
+
+      const scrollContainer = element.closest('.modal-box');
+      if (scrollContainer instanceof HTMLElement) {
+        const top = element.offsetTop - 24;
+        scrollContainer.scrollTo({ top, behavior: 'smooth' });
+        return;
+      }
+
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 }

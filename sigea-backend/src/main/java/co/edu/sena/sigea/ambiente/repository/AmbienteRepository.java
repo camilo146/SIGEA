@@ -19,6 +19,8 @@ public interface AmbienteRepository extends JpaRepository<Ambiente, Long> {
 
     List<Ambiente> findByInstructorResponsableId(Long instructorId);
 
+    List<Ambiente> findByPropietarioId(Long propietarioId);
+
     /** Devuelve todas las sub-ubicaciones (hijas) del ambiente padre dado. */
     List<Ambiente> findByPadreId(Long padreId);
 

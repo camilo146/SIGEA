@@ -106,6 +106,10 @@ public class Ambiente extends EntidadBase {
     @JoinColumn(name = "instructor_responsable_id")
     private Usuario instructorResponsable;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "propietario_id")
+    private Usuario propietario;
+
     // =========================================================================
     // CAMPO: padre
     // =========================================================================

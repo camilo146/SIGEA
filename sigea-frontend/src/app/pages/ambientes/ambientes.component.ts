@@ -25,7 +25,9 @@ export class AmbientesComponent implements OnInit {
   private ui = inject(UiFeedbackService);
 
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
+  isInstructor = this.auth.isInstructor;
   canCreateAmbientes = this.auth.isOperativo;
+  currentUser = this.auth.user;
 
   ambientes = signal<Ambiente[]>([]);
   usuarios = signal<{ id: number; nombreCompleto: string; rol: string }[]>([]);
@@ -111,7 +113,11 @@ export class AmbientesComponent implements OnInit {
   loadAmbientes() {
     this.loading.set(true);
     this.error.set('');
-    this.ambienteService.listarTodos().subscribe({
+    const request = this.auth.isInstructor()
+      ? this.ambienteService.listarMiAmbiente()
+      : this.ambienteService.listarTodos();
+
+    request.subscribe({
       next: (list) => {
         this.ambientes.set(list);
         this.loading.set(false);
@@ -130,7 +136,9 @@ export class AmbientesComponent implements OnInit {
       nombre: '',
       ubicacion: '',
       descripcion: '',
-      idInstructorResponsable: this.instructoresParaSelect()[0]?.id ?? 0,
+      idInstructorResponsable: this.auth.isInstructor()
+        ? this.currentUser()?.id ?? null
+        : this.instructoresParaSelect()[0]?.id ?? 0,
     };
     this.modalOpen.set(true);
     this.error.set('');
@@ -228,6 +236,17 @@ export class AmbientesComponent implements OnInit {
   getInitials(nombre: string): string {
     if (!nombre) return 'NA';
     return nombre.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+  }
+
+  canManageAmbiente(ambiente: Ambiente): boolean {
+    if (this.auth.isAdmin()) return true;
+    if (!this.auth.isInstructor()) return false;
+    return !!this.currentUser()?.id && ambiente.propietarioId === this.currentUser()?.id;
+  }
+
+  getPropietarioLabel(ambiente: Ambiente): string {
+    if (ambiente.propietarioNombre) return ambiente.propietarioNombre;
+    return ambiente.instructorResponsableNombre;
   }
 
   openEquipos(a: Ambiente) {

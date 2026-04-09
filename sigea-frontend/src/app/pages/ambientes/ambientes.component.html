@@ -110,6 +110,10 @@
               <div class="avatar sm-avatar">{{ getInitials(a.instructorResponsableNombre) }}</div>
               <span>{{ a.instructorResponsableNombre }}</span>
             </div>
+            <div class="amb-card-owner">
+              <i class="fas fa-key"></i>
+              <span>Propietario: {{ getPropietarioLabel(a) }}</span>
+            </div>
           </div>
 
           <!-- Footer con acciones -->
@@ -122,7 +126,7 @@
                 <i class="fas fa-sitemap"></i>
               </button>
             </div>
-            @if (isAdminOrInstructor()) {
+            @if (canManageAmbiente(a)) {
               <div class="amb-footer-right">
                 <button type="button" class="btn-icon" (click)="openEdit(a)" title="Editar" aria-label="Editar ubicación">
                   <i class="fas fa-edit"></i>
@@ -138,6 +142,11 @@
                     @else { <i class="fas fa-check"></i> }
                   </button>
                 }
+              </div>
+            } @else if (isAdminOrInstructor()) {
+              <div class="amb-footer-right amb-owner-lock" title="Solo el propietario puede administrar esta ubicación">
+                <i class="fas fa-lock"></i>
+                <span>Solo propietario</span>
               </div>
             }
           </div>
@@ -216,7 +225,10 @@
         }
         <div class="form-group">
           <label>Instructor / Responsable *</label>
-          @if (instructoresParaSelect().length > 0) {
+          @if (isInstructor() && !editingId()) {
+            <input type="text" [value]="currentUser()?.nombreCompleto || 'Instructor actual'" readonly />
+            <small class="text-muted">Como instructor, las ubicaciones que crees quedarán asociadas a tu cuenta como propietario.</small>
+          } @else if (instructoresParaSelect().length > 0) {
             <select [(ngModel)]="form.idInstructorResponsable" name="idInstructorResponsable" required>
               <option [value]="0" disabled>Seleccione responsable</option>
               @for (u of instructoresParaSelect(); track u.id) {
@@ -274,6 +286,7 @@
             <p><strong>Descripción:</strong> {{ amb.descripcion }}</p>
           }
           <p><strong>Responsable:</strong> {{ amb.instructorResponsableNombre }}</p>
+          <p><strong>Propietario:</strong> {{ getPropietarioLabel(amb) }}</p>
           <p><strong>Estado:</strong> <span class="badge" [class]="amb.activo ? 'badge-green' : 'badge-red'">{{ amb.activo ? 'Activo' : 'Inactivo' }}</span></p>
         </div>
         @if (subUbicaciones().length > 0) {

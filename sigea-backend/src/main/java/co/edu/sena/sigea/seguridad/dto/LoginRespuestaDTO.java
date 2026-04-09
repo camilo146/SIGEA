@@ -11,6 +11,8 @@ import lombok.Setter;
 @Builder
 
 public class LoginRespuestaDTO {
+    private Long id;
+
     // El token JWT generado para JWTProveedor
     // El frontend lo alamacena y lo envia en cada peticion
     private String token;
@@ -25,6 +27,8 @@ public class LoginRespuestaDTO {
     // Rol del usuario autenticado3 6
     // El front lo usara para mostrar opciones basadas en el rol del usuario
     private String rol;
+
+    private String correoElectronico;
 
     private Boolean esSuperAdmin;
 }
