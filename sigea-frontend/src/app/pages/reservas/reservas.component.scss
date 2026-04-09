@@ -324,6 +324,32 @@
   }
 }
 
+.apc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.apc-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.34rem 0.62rem;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.73rem;
+  font-weight: 700;
+
+  &.primary {
+    background: rgba(57,169,0,0.1);
+    color: var(--color-primary);
+    border-color: rgba(57,169,0,0.22);
+  }
+}
+
 .selected-ambiente-shell {
   margin-bottom: 1rem;
 }

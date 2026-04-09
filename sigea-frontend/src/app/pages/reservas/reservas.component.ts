@@ -377,8 +377,9 @@ export class ReservasComponent implements OnInit {
     if (parsed > 0) this.cargarAgendaAmbiente(parsed);
   }
 
-  selectAmbienteCard(ambiente: Ambiente) {
+  selectAmbienteCard(ambiente: Ambiente, abrirCalendario = true) {
     this.onSelectAmbienteReserva(ambiente.id);
+    this.mostrarCalendarioAmbiente.set(abrirCalendario);
   }
 
   toggleCalendarioAmbiente() {
