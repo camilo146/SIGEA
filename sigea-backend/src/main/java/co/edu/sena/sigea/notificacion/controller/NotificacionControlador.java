@@ -69,6 +69,11 @@ public class NotificacionControlador {
     public ResponseEntity<Map<String, String>> probarCorreo(
             @Valid @RequestBody PruebaCorreoDTO dto,
             @AuthenticationPrincipal UserDetails userDetails) {
+        if (Boolean.TRUE.equals(dto.getSuiteCompleta())) {
+            notificacionServicio.enviarSuiteCorreosUsuario(userDetails.getUsername(), dto.getDestinatario());
+            return ResponseEntity.ok(Map.of("mensaje", "Suite de correos enviada correctamente"));
+        }
+
         notificacionServicio.enviarCorreoPrueba(userDetails.getUsername(), dto.getDestinatario());
         return ResponseEntity.ok(Map.of("mensaje", "Correo de prueba enviado correctamente"));
     }

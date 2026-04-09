@@ -5,24 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alerta: Equipo requiere mantenimiento - SIGEA</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .header { background: #c0392b; padding: 24px; text-align: center; }
-    .header img { max-height: 60px; }
-    .header h1 { color: #fff; font-size: 22px; margin: 8px 0 0; }
-    .body { padding: 32px; color: #333; }
-    .alerta-box { background: #fdecea; border-left: 4px solid #c0392b; border-radius: 4px; padding: 16px; margin: 16px 0; }
-    .detalle-tabla { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    .detalle-tabla td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    body { font-family: Arial, sans-serif; background: #f5efef; margin: 0; padding: 24px; color: #2f2626; }
+    .container { max-width: 660px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 16px 38px rgba(67, 19, 19, 0.10); border: 1px solid #ecd6d6; }
+    .header { background: linear-gradient(135deg, #7b1f1f 0%, #b72f2f 55%, #de6b5b 100%); padding: 28px 32px; color: #fff; }
+    .header img { max-height: 56px; }
+    .header .eyebrow { margin: 12px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.9; }
+    .header h1 { font-size: 28px; margin: 0; }
+    .body { padding: 32px; color: #493737; }
+    .alerta-box { background: #fdecea; border-left: 4px solid #c0392b; border-radius: 12px; padding: 16px; margin: 18px 0; }
+    .detalle-tabla { width: 100%; border-collapse: collapse; margin: 18px 0; background: #fcf7f7; border-radius: 12px; overflow: hidden; }
+    .detalle-tabla td { padding: 10px 14px; border-bottom: 1px solid #f0dfdf; }
     .detalle-tabla td:first-child { font-weight: bold; color: #555; width: 40%; }
-    .footer { background: #f4f4f4; padding: 16px; text-align: center; font-size: 12px; color: #888; }
+    .footer { background: #f8f3f3; padding: 18px 32px 24px; text-align: center; font-size: 12px; color: #7f6a6a; }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
-    <h1>⚠️ Alerta — Equipo en Estado Crítico</h1>
+    <p class="eyebrow">Mantenimiento preventivo y correctivo</p>
+    <h1>Alerta de equipo en estado crítico</h1>
   </div>
   <div class="body">
     <p>Hola, <strong th:text="${nombreUsuario}">Administrador</strong>,</p>
@@ -43,7 +45,7 @@
     <p>Por favor revise el equipo y actualice su estado en SIGEA una vez resuelto el problema.</p>
   </div>
   <div class="footer">
-    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2025</p>
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2026</p>
     <p>Este es un mensaje automático generado por la evaluación mensual de SIGEA.</p>
   </div>
 </div>

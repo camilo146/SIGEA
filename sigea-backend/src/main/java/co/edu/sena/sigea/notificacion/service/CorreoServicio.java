@@ -114,4 +114,8 @@ public class CorreoServicio {
                         "remitente", remitente,
                         "fecha", java.time.LocalDateTime.now().toString()));
     }
+
+    public boolean enviarCorreoNotificacion(String destinatario, String asunto, Map<String, Object> variables) {
+        return enviarCorreoHtml(destinatario, asunto, "correos/correo-notificacion-usuario", variables);
+    }
 }

@@ -5,31 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Préstamo de ambiente - SIGEA</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .header { background: #39A900; padding: 24px; text-align: center; }
-    .header img { max-height: 60px; }
-    .header h1 { color: #fff; font-size: 22px; margin: 8px 0 0; }
-    .body { padding: 32px; color: #333; }
+    body { font-family: Arial, sans-serif; background: #eef3ee; margin: 0; padding: 24px; color: #233328; }
+    .container { max-width: 660px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 16px 38px rgba(20,44,27,0.08); border: 1px solid #d9e5d8; }
+    .header { background: linear-gradient(135deg, #16566a 0%, #1d7f9b 50%, #60b8cb 100%); padding: 28px 32px; color: #fff; }
+    .header img { max-height: 56px; }
+    .header .eyebrow { margin: 12px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.9; }
+    .header h1 { font-size: 28px; margin: 0; }
+    .header p { margin: 10px 0 0; font-size: 14px; line-height: 1.5; }
+    .body { padding: 32px; color: #33463a; }
     .estado-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: bold; }
     .estado-APROBADO { background: #d4edda; color: #155724; }
     .estado-RECHAZADO { background: #f8d7da; color: #721c24; }
     .estado-SOLICITADO { background: #fff3cd; color: #856404; }
-    .detalle-tabla { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    .detalle-tabla td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    .estado-CANCELADO, .estado-DEVUELTO { background: #e8f3ff; color: #1a5ea8; }
+    .detalle-tabla { width: 100%; border-collapse: collapse; margin: 18px 0; background: #f7faf7; border-radius: 12px; overflow: hidden; }
+    .detalle-tabla td { padding: 10px 14px; border-bottom: 1px solid #e4ece4; }
     .detalle-tabla td:first-child { font-weight: bold; color: #555; width: 40%; }
-    .footer { background: #f4f4f4; padding: 16px; text-align: center; font-size: 12px; color: #888; }
+    .footer { background: #f4f7f4; padding: 18px 32px 24px; text-align: center; font-size: 12px; color: #667766; }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
-    <h1>SIGEA - Préstamo de Ambiente</h1>
+    <p class="eyebrow">Ambientes y espacios</p>
+    <h1>Actualización de tu préstamo de ambiente</h1>
+    <p>Este correo resume el estado actual de la solicitud o del cierre del ambiente reservado en SIGEA.</p>
   </div>
   <div class="body">
     <p>Hola, <strong th:text="${nombreUsuario}">Usuario</strong>,</p>
-    <p>Actualización sobre la solicitud de préstamo del ambiente:</p>
+    <p>Se registró una novedad sobre el préstamo del ambiente solicitado.</p>
 
     <p>
       Estado:
@@ -48,7 +53,7 @@
     </table>
   </div>
   <div class="footer">
-    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2025</p>
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2026</p>
     <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
   </div>
 </div>

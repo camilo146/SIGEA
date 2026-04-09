@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${tituloCorreo}">Notificación SIGEA</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #eef3ee; color: #213126; font-family: Arial, sans-serif; }
+    .card { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #d9e5d8; box-shadow: 0 16px 38px rgba(20, 44, 27, 0.08); }
+    .hero { background: linear-gradient(135deg, #1d6f2b 0%, #39A900 58%, #9ed84a 100%); color: #ffffff; padding: 28px 32px; }
+    .eyebrow { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.9; }
+    .hero h1 { margin: 0; font-size: 28px; line-height: 1.2; }
+    .hero p { margin: 10px 0 0; font-size: 14px; line-height: 1.5; max-width: 520px; }
+    .body { padding: 32px; }
+    .saludo { margin: 0 0 18px; font-size: 18px; }
+    .badge { display: inline-block; margin-bottom: 18px; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
+    .badge.info { background: #e8f3ff; color: #1a5ea8; }
+    .badge.success { background: #e8f7ea; color: #1f7a34; }
+    .badge.warning { background: #fff4da; color: #8a5a00; }
+    .badge.danger { background: #fde9e9; color: #a12323; }
+    .summary { margin: 0 0 20px; font-size: 16px; line-height: 1.65; color: #33463a; }
+    .panel { margin: 22px 0; padding: 20px; border-radius: 14px; background: #f7faf7; border: 1px solid #dfeadf; }
+    .panel h2 { margin: 0 0 12px; font-size: 15px; color: #1d3622; }
+    .panel ul { margin: 0; padding-left: 18px; color: #425547; }
+    .panel li { margin: 8px 0; line-height: 1.5; }
+    .tip { margin-top: 20px; padding: 16px 18px; border-radius: 12px; background: #f1f7ef; border-left: 4px solid #39A900; color: #325236; }
+    .footer { padding: 20px 32px 28px; background: #f4f7f4; color: #607163; font-size: 12px; line-height: 1.6; }
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .hero, .body, .footer { padding-left: 20px; padding-right: 20px; }
+      .hero h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="hero">
+      <p class="eyebrow" th:text="${subtituloCorreo}">SIGEA SENA</p>
+      <h1 th:text="${tituloCorreo}">Notificación</h1>
+      <p th:text="${descripcionCorreo}">Se registró un movimiento en tu cuenta dentro del sistema.</p>
+    </div>
+    <div class="body">
+      <p class="saludo">Hola, <strong th:text="${nombreUsuario}">Usuario</strong>.</p>
+      <span class="badge" th:classappend="' ' + ${estiloEstado}" th:text="${estadoEtiqueta}">Actualización</span>
+      <p class="summary" th:text="${resumen}">Aquí encontrarás un resumen de la novedad registrada.</p>
+
+      <div class="panel" th:if="${detalleTitulo != null or lineasDetalle != null}">
+        <h2 th:if="${detalleTitulo != null}" th:text="${detalleTitulo}">Detalle</h2>
+        <ul th:if="${lineasDetalle != null}">
+          <li th:each="linea : ${lineasDetalle}" th:text="${linea}">Detalle de ejemplo</li>
+        </ul>
+      </div>
+
+      <div class="tip" th:if="${notaFinal != null and !#strings.isEmpty(notaFinal)}" th:text="${notaFinal}">
+        Revisa la información y toma las acciones necesarias dentro de SIGEA.
+      </div>
+    </div>
+    <div class="footer">
+      <div>SENA — Servicio Nacional de Aprendizaje | SIGEA © 2026</div>
+      <div>Correo automático del sistema. No requiere respuesta.</div>
+    </div>
+  </div>
+</body>
+</html>
