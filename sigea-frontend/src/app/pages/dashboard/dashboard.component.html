@@ -1,13 +1,21 @@
-<div class="content-header">
-  <div>
-    <h2 class="page-title">{{ isAdmin() ? 'Dashboard' : 'Mi Panel' }}</h2>
-    <p class="page-subtitle">
-      {{ isAdmin() ? 'Resumen general del sistema' : 'Bienvenido(a), aquí puedes ver tu actividad' }}
-      &nbsp;·&nbsp; <small>Última actualización: {{ lastUpdated() | date:'HH:mm' }}</small>
+<!-- =============================== HERO BIENVENIDA =============================== -->
+<div class="welcome-hero">
+  <div class="hero-body">
+    <div class="hero-pill">
+      <span class="status-dot"></span>
+      <span>Sistema operativo</span>
+    </div>
+    <h1 class="hero-title">{{ getGreeting() }}, <span class="hero-name">{{ getFirstName() }}</span></h1>
+    <p class="hero-sub">
+      {{ isAdmin() ? 'Aquí está el resumen completo del sistema SIGEA.' : 'Aquí está tu actividad y préstamos más recientes.' }}
+      <span class="hero-date"><i class="fas fa-calendar-alt"></i> {{ today | date:'dd/MM/yyyy' }}</span>
     </p>
   </div>
-  <div class="content-actions">
-    <button type="button" class="btn btn-outline" (click)="load()" [disabled]="loading()">
+  <div class="hero-actions">
+    <span class="last-update-chip">
+      <i class="fas fa-clock"></i> {{ lastUpdated() | date:'HH:mm' }}
+    </span>
+    <button type="button" class="btn btn-sm btn-outline" (click)="load()" [disabled]="loading()">
       <i class="fas fa-sync-alt" [class.fa-spin]="loading()"></i> Actualizar
     </button>
   </div>
@@ -18,37 +26,64 @@
 }
 
 @if (loading()) {
-  <div class="spinner-wrap"><i class="fas fa-spinner fa-spin"></i> Cargando estadísticas...</div>
+  <!-- ============ SKELETON LOADING ============ -->
+  <div class="metrics-grid">
+    @for (i of [1,2,3,4]; track i) {
+      <div class="metric-card">
+        <div class="skeleton" style="width:48px;height:48px;border-radius:12px;flex-shrink:0"></div>
+        <div class="metric-info" style="flex:1">
+          <div class="skeleton skeleton-text" style="width:55%;margin-bottom:.5rem"></div>
+          <div class="skeleton skeleton-text" style="width:35%;height:2rem;border-radius:6px"></div>
+        </div>
+      </div>
+    }
+  </div>
+  <div class="skeleton-section-row">
+    @for (i of [1,2,3,4,5,6]; track i) {
+      <div class="skeleton" style="height:68px;border-radius:10px"></div>
+    }
+  </div>
+  <div class="skeleton-charts-row">
+    <div class="skeleton" style="height:260px;border-radius:12px;flex:2"></div>
+    <div class="skeleton" style="height:260px;border-radius:12px;flex:1"></div>
+  </div>
 } @else if (stats()) {
 
   <!-- Tarjetas principales -->
   <div class="metrics-grid">
-    <div class="metric-card">
+    <div class="metric-card mc-blue">
       <div class="metric-icon total"><i class="fas fa-boxes"></i></div>
       <div class="metric-info">
         <span class="metric-label">Total Equipos</span>
         <span class="metric-value">{{ stats()!.totalEquipos }}</span>
+        <span class="metric-trend neutral">en inventario</span>
       </div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card mc-green">
       <div class="metric-icon available"><i class="fas fa-check-circle"></i></div>
       <div class="metric-info">
         <span class="metric-label">Disponibles</span>
         <span class="metric-value">{{ stats()!.equiposActivos }}</span>
+        <span class="metric-trend up"><i class="fas fa-arrow-up"></i> listos para préstamo</span>
       </div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card mc-purple">
       <div class="metric-icon borrowed"><i class="fas fa-exchange-alt"></i></div>
       <div class="metric-info">
         <span class="metric-label">Prestados</span>
         <span class="metric-value">{{ stats()!.prestamosActivos }}</span>
+        <span class="metric-trend neutral">préstamos activos</span>
       </div>
     </div>
-    <div class="metric-card warn">
+    <div class="metric-card mc-orange" [class.mc-alert]="stats()!.prestamosEnMora > 0">
       <div class="metric-icon overdue"><i class="fas fa-exclamation-triangle"></i></div>
       <div class="metric-info">
         <span class="metric-label">En Mora</span>
         <span class="metric-value">{{ stats()!.prestamosEnMora }}</span>
+        <span class="metric-trend" [class.down]="stats()!.prestamosEnMora > 0" [class.neutral]="stats()!.prestamosEnMora === 0">
+          @if (stats()!.prestamosEnMora > 0) { <i class="fas fa-arrow-up"></i> requieren atención }
+          @else { todo al día }
+        </span>
       </div>
     </div>
   </div>

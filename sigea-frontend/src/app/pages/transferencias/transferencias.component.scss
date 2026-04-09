@@ -30,3 +30,72 @@
 
 .num     { text-align: right !important; }
 .actions { text-align: right !important; }
+
+/* ---- Mejoras visuales ---- */
+.transfer-route {
+  white-space: nowrap;
+
+  .route-from, .route-to {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .arrow {
+    color: var(--color-primary);
+    font-size: 0.75rem;
+  }
+}
+
+/* Código de transferencia ---- */
+.transfer-id {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.78rem;
+  background: rgba(37,99,235,0.08);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(37,99,235,0.2);
+  color: #2563eb;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+html.dark .transfer-id {
+  background: rgba(96,165,250,0.12);
+  border-color: rgba(96,165,250,0.25);
+  color: #93c5fd;
+}
+
+/* Solicitante con inicial ---- */
+.solicitante-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  .user-initial {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--border-radius-full);
+    background: rgba(37,99,235,0.1);
+    color: #2563eb;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+}
+
+/* Responsive ---- */
+@media (max-width: 900px) {
+  .inv-toolbar { flex-wrap: wrap; }
+  .transfer-route { flex-wrap: wrap; gap: 0.25rem; }
+}

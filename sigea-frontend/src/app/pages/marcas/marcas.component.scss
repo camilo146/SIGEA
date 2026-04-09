@@ -3,7 +3,13 @@
 }
 
 .page-loader {
-  padding: 2rem;
+  padding: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .grow {
@@ -15,14 +21,61 @@
   flex: 1;
   padding: 0.62rem 0.8rem;
   border-radius: var(--border-radius-md);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   background: var(--bg-input);
   color: var(--text-primary);
   font: inherit;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 
   &:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-primary-light);
+    background: var(--bg-card);
   }
+}
+
+/* ---- Tarjeta contenedora ---- */
+.inv-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* ---- Toolbar (filtros + búsqueda) ---- */
+.inv-toolbar {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+/* ---- Marca name con ícono visual ---- */
+.marca-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.marca-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--border-radius-md);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+  .filter-input { min-width: 180px; }
 }

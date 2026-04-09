@@ -143,3 +143,53 @@
   align-items: center;
   margin-bottom: 0.75rem;
 }
+
+/* ---- Mejoras visuales ---- */
+.equipo-chip {
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+  &:hover {
+    background: var(--color-primary-light);
+    border-color: rgba(57,169,0,0.25);
+    color: var(--color-primary);
+  }
+}
+
+.id-code {
+  letter-spacing: 0.04em;
+  cursor: default;
+  user-select: all;
+}
+
+/* Fila en mora visual ---- */
+.data-table tbody tr.fila-mora {
+  background: rgba(239,68,68,0.04);
+  td:first-child { border-left: 3px solid var(--color-danger); }
+}
+
+/* Columna solicitante con avatar inicial ---- */
+.solicitante-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  .user-initial {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--border-radius-full);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+}
+
+/* Responsive ---- */
+@media (max-width: 900px) {
+  .inv-toolbar { flex-wrap: wrap; }
+  .prestamo-detail-grid { grid-template-columns: 1fr; }
+}

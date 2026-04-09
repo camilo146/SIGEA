@@ -245,3 +245,63 @@
 /* ---- Alineación de columnas numéricas ---- */
 .num     { text-align: right !important; }
 .actions { text-align: right !important; white-space: nowrap; }
+
+/* ---- Foto mejorada en tabla ---- */
+.foto-cell {
+  width: 58px;
+  padding: 0.4rem 0.5rem !important;
+  vertical-align: middle;
+}
+
+.equipo-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid var(--border-color);
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast), border-color var(--duration-fast);
+  cursor: zoom-in;
+
+  &:hover {
+    transform: scale(1.12);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+    z-index: 1;
+    position: relative;
+  }
+
+  &.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-hover);
+    color: var(--text-light);
+    font-size: 1.1rem;
+  }
+}
+
+/* ---- Skeleton loading en tabla ---- */
+.skeleton-table-row td {
+  padding: 0.9rem 1rem !important;
+}
+
+.skeleton-cell {
+  height: 1em;
+  border-radius: var(--border-radius-full);
+  display: inline-block;
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-card) 50%, var(--bg-hover) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ---- Responsive tabla inventario ---- */
+@media (max-width: 900px) {
+  .hide-tablet { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  .inv-card .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

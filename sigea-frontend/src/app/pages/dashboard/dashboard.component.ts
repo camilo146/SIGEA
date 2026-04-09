@@ -166,4 +166,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
     return m[estado] ?? estado;
   }
+
+  /** Saludo según la hora actual */
+  getGreeting(): string {
+    const h = new Date().getHours();
+    if (h < 12) return 'Buenos días';
+    if (h < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
+
+  /** Primer nombre del usuario autenticado */
+  getFirstName(): string {
+    return this.auth.user()?.nombreCompleto?.split(' ')[0] ?? 'Usuario';
+  }
+
+  /** Fecha actual para mostrar en el hero */
+  readonly today = new Date();
+
+  /** Indicador de actividad para el usuario (préstamos activos + pendientes) */
+  get actividadUsuario(): number {
+    return (this.stats()?.prestamosActivos ?? 0) + (this.stats()?.prestamosEnMora ?? 0);
+  }
 }
