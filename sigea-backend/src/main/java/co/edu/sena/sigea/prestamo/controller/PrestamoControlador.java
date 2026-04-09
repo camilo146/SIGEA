@@ -65,7 +65,8 @@ import jakarta.validation.Valid;
 
 @RequestMapping("/prestamos")
 // Todas las rutas de este controlador empiezan con /prestamos.
-// Ruta completa: /api/v1/prestamos (porque /api/v1 está en application.properties).
+// Ruta completa: /api/v1/prestamos (porque /api/v1 está en
+// application.properties).
 public class PrestamoControlador {
 
     // Inyección por constructor (forma recomendada).
@@ -127,9 +128,9 @@ public class PrestamoControlador {
     // El servicio usa el correo del token para filtrar por usuario.
     //
     // ¿Por qué no /prestamos/{usuarioId} para esto?
-    //   Porque no debes confiar en que el usuario envíe su propio ID.
-    //   Alguien podría enviar el ID de otra persona y ver sus préstamos.
-    //   Al usar el correo del token, el servidor determina quién eres, no tú.
+    // Porque no debes confiar en que el usuario envíe su propio ID.
+    // Alguien podría enviar el ID de otra persona y ver sus préstamos.
+    // Al usar el correo del token, el servidor determina quién eres, no tú.
     // =========================================================================
     @GetMapping("/mis-prestamos")
     @PreAuthorize("isAuthenticated()")
@@ -146,10 +147,12 @@ public class PrestamoControlador {
     // El admin puede filtrar: SOLICITADO, APROBADO, ACTIVO, DEVUELTO, etc.
     //
     // @PathVariable → extrae el valor de {estado} de la URL.
-    //   URL: GET /prestamos/estado/ACTIVO → estado = EstadoPrestamo.ACTIVO
+    // URL: GET /prestamos/estado/ACTIVO → estado = EstadoPrestamo.ACTIVO
     //
-    // EstadoPrestamo es un enum. Spring lo convierte automáticamente del String "ACTIVO"
-    // al valor del enum EstadoPrestamo.ACTIVO gracias a los convertidores por defecto.
+    // EstadoPrestamo es un enum. Spring lo convierte automáticamente del String
+    // "ACTIVO"
+    // al valor del enum EstadoPrestamo.ACTIVO gracias a los convertidores por
+    // defecto.
     // =========================================================================
     @GetMapping("/estado/{estado}")
     @PreAuthorize("isAuthenticated()")
@@ -192,9 +195,10 @@ public class PrestamoControlador {
     // El servicio cambia el estado a APROBADO y registra quién aprobó y cuándo.
     //
     // ¿Por qué PATCH y no PUT?
-    //   PUT = reemplaza el recurso COMPLETO (como hacer un UPDATE de todos los campos)
-    //   PATCH = modifica PARCIALMENTE el recurso (solo el campo "estado" cambia)
-    //   En este caso solo cambiamos el estado → PATCH es correcto.
+    // PUT = reemplaza el recurso COMPLETO (como hacer un UPDATE de todos los
+    // campos)
+    // PATCH = modifica PARCIALMENTE el recurso (solo el campo "estado" cambia)
+    // En este caso solo cambiamos el estado → PATCH es correcto.
     // =========================================================================
     @PatchMapping("/{id}/aprobar")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")

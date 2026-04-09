@@ -65,13 +65,13 @@ public class VerificacionEmailServicio {
 
         String asunto = "Código de verificación - SIGEA";
         correoServicio.enviarCorreoHtmlObligatorio(
-            usuario.getCorreoElectronico(),
-            asunto,
-            "correos/correo-verificacion",
-            Map.of(
-                "nombreUsuario", usuario.getNombreCompleto(),
-                "codigo", codigo,
-                "horasValidez", HORAS_VALIDEZ_CODIGO));
+                usuario.getCorreoElectronico(),
+                asunto,
+                "correos/correo-verificacion",
+                Map.of(
+                        "nombreUsuario", usuario.getNombreCompleto(),
+                        "codigo", codigo,
+                        "horasValidez", HORAS_VALIDEZ_CODIGO));
     }
 
     /**

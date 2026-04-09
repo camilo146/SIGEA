@@ -30,7 +30,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     List<Usuario> findByActivoTrue();
 
-        Optional<Usuario> findFirstByEsSuperAdminTrueAndActivoTrue();
+    Optional<Usuario> findFirstByEsSuperAdminTrueAndActivoTrue();
 
     Optional<Usuario> findByTokenVerificacion(String tokenVerificacion);
 

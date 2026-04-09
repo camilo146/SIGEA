@@ -17,29 +17,29 @@ public interface PrestamoAmbienteRepository extends JpaRepository<PrestamoAmbien
 
         List<PrestamoAmbiente> findAllByOrderByFechaSolicitudDesc();
 
-    List<PrestamoAmbiente> findBySolicitanteIdOrderByFechaSolicitudDesc(Long solicitanteId);
+        List<PrestamoAmbiente> findBySolicitanteIdOrderByFechaSolicitudDesc(Long solicitanteId);
 
-    List<PrestamoAmbiente> findByPropietarioAmbienteIdOrderByFechaSolicitudDesc(Long propietarioId);
+        List<PrestamoAmbiente> findByPropietarioAmbienteIdOrderByFechaSolicitudDesc(Long propietarioId);
 
-    List<PrestamoAmbiente> findByAmbienteIdOrderByFechaInicioDesc(Long ambienteId);
+        List<PrestamoAmbiente> findByAmbienteIdOrderByFechaInicioDesc(Long ambienteId);
 
-    List<PrestamoAmbiente> findByEstadoOrderByFechaSolicitudDesc(EstadoPrestamoAmbiente estado);
+        List<PrestamoAmbiente> findByEstadoOrderByFechaSolicitudDesc(EstadoPrestamoAmbiente estado);
 
-    /**
-     * Verifica si existe un préstamo de ambiente que se solape con el horario
-     * solicitado, para los estados activos (APROBADO o ACTIVO).
-     */
-    @Query("SELECT COUNT(p) > 0 FROM PrestamoAmbiente p " +
-            "WHERE p.ambiente.id = :ambienteId " +
-            "AND p.estado IN ('APROBADO', 'ACTIVO') " +
-            "AND p.fechaInicio <= :fechaFin AND p.fechaFin >= :fechaInicio " +
-            "AND p.horaInicio < :horaFin AND p.horaFin > :horaInicio " +
-            "AND (:excludeId IS NULL OR p.id <> :excludeId)")
-    boolean existeSolapamiento(
-            @Param("ambienteId") Long ambienteId,
-            @Param("fechaInicio") LocalDate fechaInicio,
-            @Param("fechaFin") LocalDate fechaFin,
-            @Param("horaInicio") LocalTime horaInicio,
-            @Param("horaFin") LocalTime horaFin,
-            @Param("excludeId") Long excludeId);
+        /**
+         * Verifica si existe un préstamo de ambiente que se solape con el horario
+         * solicitado, para los estados activos (APROBADO o ACTIVO).
+         */
+        @Query("SELECT COUNT(p) > 0 FROM PrestamoAmbiente p " +
+                        "WHERE p.ambiente.id = :ambienteId " +
+                        "AND p.estado IN ('APROBADO', 'ACTIVO') " +
+                        "AND p.fechaInicio <= :fechaFin AND p.fechaFin >= :fechaInicio " +
+                        "AND p.horaInicio < :horaFin AND p.horaFin > :horaInicio " +
+                        "AND (:excludeId IS NULL OR p.id <> :excludeId)")
+        boolean existeSolapamiento(
+                        @Param("ambienteId") Long ambienteId,
+                        @Param("fechaInicio") LocalDate fechaInicio,
+                        @Param("fechaFin") LocalDate fechaFin,
+                        @Param("horaInicio") LocalTime horaInicio,
+                        @Param("horaFin") LocalTime horaFin,
+                        @Param("excludeId") Long excludeId);
 }

@@ -141,7 +141,7 @@ public class AutenticacionServicio {
                 .tipo("Bearer")
                 .nombreCompleto(usuario.getNombreCompleto())
                 .rol(usuario.getRol().name())
-            .esSuperAdmin(Boolean.TRUE.equals(usuario.getEsSuperAdmin()))
+                .esSuperAdmin(Boolean.TRUE.equals(usuario.getEsSuperAdmin()))
                 .build();
     }
 

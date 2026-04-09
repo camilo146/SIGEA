@@ -397,23 +397,23 @@ public class PrestamoServicio {
                         "Usuario no encontrado: " + correoAdmin));
 
         List<DetallePrestamo> pendientes = prestamo.getDetalles().stream()
-            .filter(detalle -> !Boolean.TRUE.equals(detalle.getDevuelto()))
-            .filter(detalle -> detalle.getEquipo().getTipoUso() != TipoUsoEquipo.CONSUMIBLE)
-            .toList();
+                .filter(detalle -> !Boolean.TRUE.equals(detalle.getDevuelto()))
+                .filter(detalle -> detalle.getEquipo().getTipoUso() != TipoUsoEquipo.CONSUMIBLE)
+                .toList();
 
         Map<Long, PrestamoDevolucionDetalleDTO> devolucionesPorDetalle = dto.getDetalles().stream()
-            .collect(Collectors.toMap(
-                PrestamoDevolucionDetalleDTO::getDetalleId,
-                Function.identity(),
-                (primero, segundo) -> {
-                    throw new OperacionNoPermitidaException(
-                        "No puedes registrar dos veces el mismo equipo en la devolución.");
-                }));
+                .collect(Collectors.toMap(
+                        PrestamoDevolucionDetalleDTO::getDetalleId,
+                        Function.identity(),
+                        (primero, segundo) -> {
+                            throw new OperacionNoPermitidaException(
+                                    "No puedes registrar dos veces el mismo equipo en la devolución.");
+                        }));
 
         if (pendientes.size() != devolucionesPorDetalle.size()
-            || pendientes.stream().anyMatch(detalle -> !devolucionesPorDetalle.containsKey(detalle.getId()))) {
+                || pendientes.stream().anyMatch(detalle -> !devolucionesPorDetalle.containsKey(detalle.getId()))) {
             throw new OperacionNoPermitidaException(
-                "Debes calificar y describir el estado de todos los equipos pendientes por devolver.");
+                    "Debes calificar y describir el estado de todos los equipos pendientes por devolver.");
         }
 
         // Reponer stock de CADA equipo y marcar como devuelto (RF-PRE-10).

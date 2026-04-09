@@ -76,7 +76,10 @@ public class EquipoCrearDTO {
      */
     private Long subUbicacionId;
 
-    /** Solo para ALIMENTADOR_EQUIPOS: asigna el instructor dueño original del equipo. */
+    /**
+     * Solo para ALIMENTADOR_EQUIPOS: asigna el instructor dueño original del
+     * equipo.
+     */
     private Long propietarioId;
 
     @NotNull(message = "La cantidad total es obligatoria")
