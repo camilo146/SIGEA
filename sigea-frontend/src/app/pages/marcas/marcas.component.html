@@ -1,7 +1,12 @@
 <div class="content-header">
-  <div>
-    <h2 class="page-title">Marcas</h2>
-    <p class="page-subtitle">Administra las marcas disponibles para el inventario de equipos</p>
+  <div class="ch-left">
+    <div class="ch-icon-wrap">
+      <i class="fas fa-tags"></i>
+    </div>
+    <div>
+      <h2 class="page-title">Marcas</h2>
+      <p class="page-subtitle">Administra las marcas disponibles para el inventario de equipos</p>
+    </div>
   </div>
   <div class="content-actions">
     <button type="button" class="btn btn-primary" (click)="openCreate()">
@@ -14,95 +19,132 @@
   <div class="alert alert-danger page-alert">{{ error() }}</div>
 }
 
-<div class="inv-card">
-  <div class="inv-toolbar">
-    <div class="toolbar-filters grow">
-      <input
-        type="text"
-        class="filter-input"
-        [ngModel]="searchTerm()"
-        (ngModelChange)="searchTerm.set($event)"
-        placeholder="Buscar por nombre o descripción"
-      />
-      <select class="filter-select" [ngModel]="filterEstado()" (ngModelChange)="filterEstado.set($event)">
-        <option value="todos">Todas</option>
-        <option value="activas">Activas</option>
-        <option value="inactivas">Inactivas</option>
-      </select>
-    </div>
+<!-- ---- Filtros ---- -->
+<div class="marcas-toolbar">
+  <div class="toolbar-search">
+    <i class="fas fa-search toolbar-search-icon"></i>
+    <input
+      type="text"
+      class="toolbar-search-input"
+      [ngModel]="searchTerm()"
+      (ngModelChange)="searchTerm.set($event)"
+      placeholder="Buscar marca..."
+    />
   </div>
-
-  @if (loading()) {
-    <div class="spinner-wrap page-loader"><i class="fas fa-spinner fa-spin"></i> Cargando marcas...</div>
-  } @else {
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th class="actions">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (marca of filteredMarcas(); track marca.id) {
-            <tr>
-              <td><strong>{{ marca.nombre }}</strong></td>
-              <td>{{ marca.descripcion || '—' }}</td>
-              <td>
-                <span class="badge" [class]="estadoBadgeClass(marca.activo)">
-                  {{ marca.activo ? 'Activa' : 'Inactiva' }}
-                </span>
-              </td>
-              <td class="actions">
-                <button type="button" class="btn-icon" title="Editar" (click)="openEdit(marca)">
-                  <i class="fas fa-pen"></i>
-                </button>
-                @if (marca.activo) {
-                  <button
-                    type="button"
-                    class="btn-icon danger"
-                    title="Desactivar"
-                    (click)="desactivar(marca)"
-                    [disabled]="actionPending()['desactivar-' + marca.id]"
-                  >
-                    @if (actionPending()['desactivar-' + marca.id]) { <i class="fas fa-spinner fa-spin"></i> }
-                    @else { <i class="fas fa-eye-slash"></i> }
-                  </button>
-                } @else {
-                  <button
-                    type="button"
-                    class="btn-icon success"
-                    title="Activar"
-                    (click)="activar(marca)"
-                    [disabled]="actionPending()['activar-' + marca.id]"
-                  >
-                    @if (actionPending()['activar-' + marca.id]) { <i class="fas fa-spinner fa-spin"></i> }
-                    @else { <i class="fas fa-check"></i> }
-                  </button>
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="4" class="empty">
-                <i class="fas fa-tags" style="font-size:1.4rem; display:block; margin-bottom:0.45rem"></i>
-                No hay marcas registradas con los filtros actuales.
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
+  <div class="filter-tabs">
+    <button type="button" class="filter-tab" [class.active]="filterEstado() === 'todos'" (click)="filterEstado.set('todos')">
+      Todas <span class="tab-count">{{ marcas().length }}</span>
+    </button>
+    <button type="button" class="filter-tab" [class.active]="filterEstado() === 'activas'" (click)="filterEstado.set('activas')">
+      Activas <span class="tab-count">{{ totalActivas() }}</span>
+    </button>
+    <button type="button" class="filter-tab" [class.active]="filterEstado() === 'inactivas'" (click)="filterEstado.set('inactivas')">
+      Inactivas <span class="tab-count">{{ totalInactivas() }}</span>
+    </button>
+  </div>
 </div>
 
+<!-- ---- Grid de tarjetas ---- -->
+@if (loading()) {
+  <div class="marcas-grid">
+    @for (i of [1,2,3,4,5,6]; track i) {
+      <div class="marca-card skeleton-card">
+        <div class="skeleton" style="width:52px;height:52px;border-radius:14px;flex-shrink:0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:.5rem">
+          <div class="skeleton skeleton-text" style="width:55%"></div>
+          <div class="skeleton skeleton-text" style="width:80%;height:12px"></div>
+        </div>
+      </div>
+    }
+  </div>
+} @else if (filteredMarcas().length === 0) {
+  <div class="marcas-empty">
+    <div class="empty-icon-wrap">
+      <i class="fas fa-tags"></i>
+    </div>
+    <h3>Sin resultados</h3>
+    <p>No hay marcas que coincidan con los filtros actuales.</p>
+    <button type="button" class="btn btn-outline" (click)="searchTerm.set(''); filterEstado.set('todos')">
+      <i class="fas fa-times"></i> Limpiar filtros
+    </button>
+  </div>
+} @else {
+  <div class="marcas-results-info">
+    <span>{{ filteredMarcas().length }} marca{{ filteredMarcas().length !== 1 ? 's' : '' }}</span>
+  </div>
+  <div class="marcas-grid">
+    @for (marca of filteredMarcas(); track marca.id) {
+      <div class="marca-card" [class.inactive]="!marca.activo">
+        <!-- Cabecera de color con inicial -->
+        <div class="marca-card-head" [class.head-inactive]="!marca.activo">
+          <div class="marca-initial">{{ marca.nombre.charAt(0).toUpperCase() }}</div>
+          <span class="badge" [ngClass]="marca.activo ? 'badge-activa' : 'badge-inactivo'">
+            <i class="fas" [ngClass]="marca.activo ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
+            {{ marca.activo ? 'Activa' : 'Inactiva' }}
+          </span>
+        </div>
+        <!-- Cuerpo -->
+        <div class="marca-card-body">
+          <h3 class="marca-nombre">{{ marca.nombre }}</h3>
+          @if (marca.descripcion) {
+            <p class="marca-desc">{{ marca.descripcion }}</p>
+          } @else {
+            <p class="marca-desc muted">Sin descripción</p>
+          }
+        </div>
+        <!-- Acciones -->
+        <div class="marca-card-actions">
+          <button type="button" class="mca-btn mca-edit" title="Editar marca" (click)="openEdit(marca)">
+            <i class="fas fa-pen"></i> Editar
+          </button>
+          @if (marca.activo) {
+            <button
+              type="button"
+              class="mca-btn mca-deactivate"
+              title="Desactivar"
+              (click)="desactivar(marca)"
+              [disabled]="actionPending()['desactivar-' + marca.id]"
+            >
+              @if (actionPending()['desactivar-' + marca.id]) {
+                <i class="fas fa-spinner fa-spin"></i>
+              } @else {
+                <i class="fas fa-eye-slash"></i>
+              }
+              Desactivar
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="mca-btn mca-activate"
+              title="Activar"
+              (click)="activar(marca)"
+              [disabled]="actionPending()['activar-' + marca.id]"
+            >
+              @if (actionPending()['activar-' + marca.id]) {
+                <i class="fas fa-spinner fa-spin"></i>
+              } @else {
+                <i class="fas fa-check"></i>
+              }
+              Activar
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- ---- Modal crear / editar ---- -->
 @if (modalOpen()) {
   <div class="modal-overlay" (click)="closeModal()">
     <div class="modal-box" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>{{ editingId() == null ? 'Registrar marca' : 'Editar marca' }}</h3>
+        <div class="modal-header-left">
+          <div class="modal-header-icon">
+            <i class="fas fa-tag"></i>
+          </div>
+          <h3>{{ editingId() == null ? 'Registrar marca' : 'Editar marca' }}</h3>
+        </div>
         <button type="button" class="btn-close" (click)="closeModal()">&times;</button>
       </div>
       <form class="modal-body" (ngSubmit)="submitForm()">
@@ -110,15 +152,17 @@
           <div class="alert alert-danger">{{ error() }}</div>
         }
         <div class="form-group">
-          <label>Nombre *</label>
-          <input type="text" [(ngModel)]="form.nombre" name="nombre" maxlength="100" required />
+          <label>Nombre <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="form.nombre" name="nombre" maxlength="100" required placeholder="Ej: HP, Dell, Lenovo..." />
         </div>
         <div class="form-group">
           <label>Descripción</label>
-          <textarea [(ngModel)]="form.descripcion" name="descripcion" rows="4" maxlength="2000"></textarea>
+          <textarea [(ngModel)]="form.descripcion" name="descripcion" rows="3" maxlength="2000" placeholder="Descripción opcional de la marca..."></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
+          <button type="button" class="btn btn-outline" (click)="closeModal()">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
           <button type="submit" class="btn btn-primary" [disabled]="saving()">
             @if (saving()) { <i class="fas fa-spinner fa-spin"></i> Guardando... }
             @else { <i class="fas fa-save"></i> Guardar }
@@ -128,3 +172,4 @@
     </div>
   </div>
 }
+

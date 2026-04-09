@@ -187,4 +187,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get actividadUsuario(): number {
     return (this.stats()?.prestamosActivos ?? 0) + (this.stats()?.prestamosEnMora ?? 0);
   }
+
+  getRolLabel(rol: string): string {
+    const map: Record<string, string> = {
+      ADMINISTRADOR: 'Administrador',
+      INSTRUCTOR: 'Instructor',
+      ALIMENTADOR_EQUIPOS: 'Alimentador de equipos',
+      APRENDIZ: 'Aprendiz',
+      FUNCIONARIO: 'Funcionario',
+    };
+    return map[rol] ?? rol;
+  }
 }

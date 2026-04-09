@@ -663,3 +663,100 @@
   .user-info-header { display: none; }
   .main-content { padding: 0.85rem; }
 }
+
+@media (max-width: 440px) {
+  .main-header { padding: 0 0.75rem; gap: 0.25rem; }
+  .system-name { font-size: 0.95rem; }
+  .main-content { padding: 0.65rem; }
+}
+
+/* ============================================================
+   MODAL SESIÓN EXPIRADA
+   ============================================================ */
+.sep-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 25, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: sepFadeIn 0.3s ease;
+}
+
+@keyframes sepFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sep-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  animation: sepSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes sepSlideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.sep-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.sep-icon-ring {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(217,119,6,0.15), rgba(220,38,38,0.12));
+  border: 2px solid rgba(217,119,6,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: var(--color-warning);
+  animation: sepIconPulse 2s ease-in-out infinite;
+}
+
+@keyframes sepIconPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.2); }
+  50%       { box-shadow: 0 0 0 12px rgba(217,119,6,0); }
+}
+
+.sep-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.sep-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: 0 0 1.75rem;
+}
+
+.sep-btn {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 14px rgba(57,169,0,0.3);
+  &:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(57,169,0,0.4);
+  }
+}
+

@@ -14,10 +14,12 @@ import { UiFeedbackService } from '../../core/services/ui-feedback.service';
   styleUrl: './main-layout.component.scss',
 })
 export class MainLayoutComponent implements OnInit {
-  private auth = inject(AuthService);
   private router = inject(Router);
   private notificacionService = inject(NotificacionService);
   private ui = inject(UiFeedbackService);
+
+  // Expuesto para el template
+  auth = inject(AuthService);
 
   sidebarOpen = signal(true);
   notificationOpen = signal(false);
@@ -34,7 +36,6 @@ export class MainLayoutComponent implements OnInit {
   isInstructor = this.auth.isInstructor;
   isOperativo = this.auth.isOperativo;
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
-
   ngOnInit() {
     this.loadContador();
     this.loadNotificaciones();
@@ -86,8 +87,10 @@ export class MainLayoutComponent implements OnInit {
     });
   }
 
-  toggleSidebar() {
+  toggleSidebar(event?: Event) {
     this.sidebarOpen.update((v) => !v);
+    // Quitar el foco del botón de toggle para evitar problemas de accesibilidad/UX
+    (event?.currentTarget as HTMLElement)?.blur();
   }
 
   toggleUserMenu(event?: Event) {
@@ -103,6 +106,12 @@ export class MainLayoutComponent implements OnInit {
 
   logout() {
     this.auth.logout();
+  }
+
+  /** Desde el modal de sesión expirada: ir al login. */
+  goToLogin() {
+    this.auth.clearSessionExpired();
+    this.router.navigate(['/login']);
   }
 
   getBreadcrumb(): string {

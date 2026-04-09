@@ -1533,3 +1533,36 @@ html.dark textarea:focus-visible {
 html.dark .content-header::after {
   background: var(--color-primary);
 }
+/* =====================================================
+   38. ALIAS DE BADGES ADICIONALES
+   ===================================================== */
+.badge-success  { background: #d1fae5; color: #065f46; }
+.badge-danger   { background: #fee2e2; color: #991b1b; }
+.badge-inactiva { background: #f1f5f9; color: #475569; }
+
+html.dark {
+  .badge-success  { background: rgba(34, 197, 94, 0.15);  color: #86efac; }
+  .badge-danger   { background: rgba(248, 113, 113, 0.15); color: #fca5a5; }
+  .badge-inactiva { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+}
+
+/* =====================================================
+   39. ANIMACIONES GLOBALES DE ENTRADA
+   ===================================================== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s var(--ease-standard, cubic-bezier(.4,0,.2,1)) both;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.3s var(--ease-standard, cubic-bezier(.4,0,.2,1)) both;
+}

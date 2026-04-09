@@ -89,8 +89,7 @@
   </div>
 
   @if (isAdmin()) {
-    <!-- Tarjetas secundarias -->
-    <div class="metrics-secondary">
+    <!-- Tarjetas secundarias -->    <div class="metrics-secondary">
       <div class="metric-sm">
         <i class="fas fa-tag"></i>
         <div>
@@ -189,6 +188,137 @@
         <i class="fas fa-exclamation-triangle"></i>
         <strong>{{ stats()!.equiposStockBajo }} equipos</strong> con stock bajo. Revisa el inventario.
         <a routerLink="/inventario" class="link-alert">Ver inventario</a>
+      </div>
+    }
+  }
+
+  <!-- =========== SECCIÓN USUARIO ESTÁNDAR (no admin) =========== -->
+  @if (!isAdmin()) {
+    <!-- Tarjeta de bienvenida personalizada -->
+    <div class="user-welcome-card">
+      <div class="uwc-deco"></div>
+      <div class="uwc-content">
+        <div class="uwc-icon-area">
+          <div class="uwc-avatar">{{ getFirstName().charAt(0).toUpperCase() }}</div>
+          <div class="uwc-badge-role">{{ auth.user()?.rol ? getRolLabel(auth.user()!.rol) : '' }}</div>
+        </div>
+        <div class="uwc-text">
+          <h3 class="uwc-title">¡Bienvenido a SIGEA, {{ getFirstName() }}!</h3>
+          <p class="uwc-desc">
+            Desde aquí puedes gestionar tus préstamos de equipos, hacer reservas, consultar el inventario
+            disponible y hacer seguimiento de tu actividad. Este es tu espacio personalizado.
+          </p>
+          <div class="uwc-stats-inline">
+            <div class="uwc-stat">
+              <i class="fas fa-exchange-alt"></i>
+              <span>{{ stats()!.prestamosActivos }} activo{{ stats()!.prestamosActivos !== 1 ? 's' : '' }}</span>
+            </div>
+            <div class="uwc-stat" [class.alert]="stats()!.prestamosEnMora > 0">
+              <i class="fas fa-clock"></i>
+              <span>{{ stats()!.prestamosEnMora }} en mora</span>
+            </div>
+            <div class="uwc-stat">
+              <i class="fas fa-boxes"></i>
+              <span>{{ stats()!.equiposActivos }} disponibles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="section-header-row">
+      <h3 class="section-title"><i class="fas fa-bolt"></i> Acciones rápidas</h3>
+    </div>    <div class="quick-actions-grid">
+      <a routerLink="/prestamos" class="qa-card qa-blue">
+        <div class="qa-icon"><i class="fas fa-exchange-alt"></i></div>
+        <div class="qa-text">
+          <strong>Mis Préstamos</strong>
+          <span>Ver y gestionar mis préstamos</span>
+        </div>
+        <i class="fas fa-arrow-right qa-arrow"></i>
+      </a>
+      <a routerLink="/reservas" class="qa-card qa-green">
+        <div class="qa-icon"><i class="fas fa-calendar-plus"></i></div>
+        <div class="qa-text">
+          <strong>Mis Reservas</strong>
+          <span>Consultar mis reservas activas</span>
+        </div>
+        <i class="fas fa-arrow-right qa-arrow"></i>
+      </a>
+      <a routerLink="/inventario" class="qa-card qa-purple">
+        <div class="qa-icon"><i class="fas fa-search"></i></div>
+        <div class="qa-text">
+          <strong>Ver Equipos</strong>
+          <span>Explorar equipos disponibles</span>
+        </div>
+        <i class="fas fa-arrow-right qa-arrow"></i>
+      </a>
+    </div>
+
+    <!-- Acerca de SIGEA (tarjeta informativa) -->
+    <div class="about-sigea-card">
+      <div class="asc-header">
+        <div class="asc-logo">
+          <i class="fas fa-graduation-cap"></i>
+        </div>
+        <div>
+          <h3 class="asc-title">¿Qué es SIGEA?</h3>
+          <p class="asc-sub">Sistema Integral de Gestión de Equipos y Activos — SENA</p>
+        </div>
+      </div>
+      <div class="asc-features">
+        <div class="asc-feat">
+          <div class="asc-feat-icon green"><i class="fas fa-boxes"></i></div>
+          <div>
+            <strong>Control de inventario</strong>
+            <p>Registro y seguimiento centralizado de todos los equipos y activos tecnológicos del SENA.</p>
+          </div>
+        </div>
+        <div class="asc-feat">
+          <div class="asc-feat-icon blue"><i class="fas fa-handshake"></i></div>
+          <div>
+            <strong>Préstamos y reservas</strong>
+            <p>Solicita equipos en préstamo o reserva un ambiente de manera ágil y transparente.</p>
+          </div>
+        </div>
+        <div class="asc-feat">
+          <div class="asc-feat-icon orange"><i class="fas fa-wrench"></i></div>
+          <div>
+            <strong>Mantenimiento</strong>
+            <p>Registra y da seguimiento a mantenimientos preventivos y correctivos de cada activo.</p>
+          </div>
+        </div>
+        <div class="asc-feat">
+          <div class="asc-feat-icon purple"><i class="fas fa-chart-bar"></i></div>
+          <div>
+            <strong>Reportes y trazabilidad</strong>
+            <p>Genera reportes en tiempo real para decisiones informadas y auditorías fáciles.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actividad reciente del usuario -->
+    @if (ultimosPrestamos().length > 0) {
+      <div class="section-header-row">
+        <h3 class="section-title"><i class="fas fa-clock"></i> Mi actividad reciente</h3>
+        <a routerLink="/prestamos" class="link-all">Ver todos <i class="fas fa-arrow-right"></i></a>
+      </div>      <div class="bottom-card">
+        <div class="prestamos-list">
+          @for (p of ultimosPrestamos(); track p.id) {
+            <div class="prestamo-row">
+              <div class="p-icon">
+                <i class="fas fa-exchange-alt"></i>
+              </div>
+              <div class="p-info">
+                <strong>{{ (p.detalles && p.detalles[0]) ? p.detalles[0].nombreEquipo : 'Equipo' }}</strong>
+                <span>{{ p.fechaHoraSolicitud | date:'dd/MM/yy, HH:mm' }}</span>
+              </div>
+              <span class="badge" [class]="'badge-' + p.estado.toLowerCase()">{{ estadoLabel(p.estado) }}</span>
+            </div>
+          }
+        </div>
       </div>
     }
   }

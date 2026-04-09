@@ -13,6 +13,7 @@ export class AuthService {
   private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   private currentUser = signal<UserSession | null>(this.loadStoredUser());
+  sessionExpired = signal(false);
   isLoggedIn = computed(() => !!this.currentUser());
   user = computed(() => this.currentUser());
   isAdmin = computed(() => this.currentUser()?.rol === 'ADMINISTRADOR');
@@ -57,7 +58,20 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     this.currentUser.set(null);
+    this.sessionExpired.set(false);
     this.router.navigate(['/login']);
+  }
+
+  /** Marca la sesión como expirada (401) sin navegar — deja que el modal lo gestione. */
+  markSessionExpired(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    this.currentUser.set(null);
+    this.sessionExpired.set(true);
+  }
+
+  clearSessionExpired(): void {
+    this.sessionExpired.set(false);
   }
 
   getToken(): string | null {

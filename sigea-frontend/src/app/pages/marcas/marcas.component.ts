@@ -31,6 +31,9 @@ export class MarcasComponent implements OnInit {
     descripcion: '',
   };
 
+  totalActivas   = computed(() => this.marcas().filter(m => m.activo).length);
+  totalInactivas  = computed(() => this.marcas().filter(m => !m.activo).length);
+
   filteredMarcas = computed(() => {
     const q = this.searchTerm().trim().toLowerCase();
     const estado = this.filterEstado();

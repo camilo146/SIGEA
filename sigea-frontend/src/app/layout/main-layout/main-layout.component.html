@@ -1,10 +1,10 @@
 <header class="main-header">
   <div class="header-left">
-    <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" title="Menú">
+    <button type="button" class="sidebar-toggle" (click)="toggleSidebar($event)" title="Menú">
       <i class="fas fa-bars"></i>
     </button>
     <div class="logo-small">
-      <img src="/assets/logo-sena.png" alt="SENA" class="sena-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
+      <img src="/assets/logo-sena.svg" alt="SENA" class="sena-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
       <i class="fas fa-graduation-cap" style="display:none"></i>
     </div>
     <span class="system-name">SIGEA</span>
@@ -192,3 +192,25 @@
 @if (!sidebarOpen()) {
   <div class="sidebar-overlay" id="sidebarOverlay" (click)="toggleSidebar()"></div>
 }
+
+<!-- ======= MODAL SESIÓN EXPIRADA ======= -->
+@if (auth.sessionExpired()) {
+  <div class="sep-overlay" role="dialog" aria-modal="true" aria-labelledby="sepTitle">
+    <div class="sep-card">
+      <div class="sep-icon-wrap">
+        <div class="sep-icon-ring">
+          <i class="fas fa-clock"></i>
+        </div>
+      </div>
+      <h2 id="sepTitle" class="sep-title">Sesión expirada</h2>
+      <p class="sep-desc">
+        Tu sesión ha expirado por inactividad o porque iniciaste sesión en otro dispositivo.<br>
+        Por favor, inicia sesión de nuevo para continuar usando SIGEA.
+      </p>
+      <button type="button" class="btn btn-primary btn-lg sep-btn" (click)="goToLogin()">
+        <i class="fas fa-sign-in-alt"></i> Iniciar sesión de nuevo
+      </button>
+    </div>
+  </div>
+}
+

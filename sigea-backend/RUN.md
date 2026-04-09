@@ -29,7 +29,11 @@ SIGEA usa SMTP nativo de Spring Boot, así que no necesita APIs de pago.
 
 1. En la cuenta sigeasena@gmail.com activa la verificación en dos pasos.
 2. Genera una contraseña de aplicación para Correo.
-3. Configura estas variables antes de iniciar el backend:
+3. Configura estas variables antes de iniciar el backend.
+
+También puedes guardarlas en un archivo .env en la raíz del workspace o dentro de sigea-backend. Spring Boot las cargará automáticamente si el archivo existe.
+
+Ejemplo en PowerShell:
 
 ```powershell
 $env:SIGEA_SMTP_HOST="smtp.gmail.com"
@@ -41,6 +45,20 @@ $env:SIGEA_SMTP_STARTTLS="true"
 $env:SIGEA_SMTP_SSL_TRUST="smtp.gmail.com"
 $env:SIGEA_MAIL_FROM_NAME="SIGEA SENA"
 $env:SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION="true"
+```
+
+Ejemplo en .env:
+
+```dotenv
+SIGEA_SMTP_HOST=smtp.gmail.com
+SIGEA_SMTP_PORT=587
+SIGEA_SMTP_USERNAME=sigeasena@gmail.com
+SIGEA_SMTP_PASSWORD=TU_CONTRASENA_DE_APLICACION
+SIGEA_SMTP_AUTH=true
+SIGEA_SMTP_STARTTLS=true
+SIGEA_SMTP_SSL_TRUST=smtp.gmail.com
+SIGEA_MAIL_FROM_NAME=SIGEA SENA
+SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION=true
 ```
 
 4. Inicia el backend.
