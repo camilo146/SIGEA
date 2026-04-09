@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MAIN LAYOUT — Diseño SaaS Profesional SIGEA
    ============================================================ */
 
@@ -421,9 +421,12 @@
   .notification-panel,
   .user-dropdown {
     position: fixed;
+    top: calc(var(--header-height) + 0.5rem);
     right: 0.75rem;
     left: 0.75rem;
     width: auto;
+    max-height: calc(100vh - var(--header-height) - 1.25rem);
+    overflow: auto;
   }
 
   .user-menu {

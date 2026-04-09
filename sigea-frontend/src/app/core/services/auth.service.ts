@@ -3,7 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { LoginRequest, LoginResponse, UserSession, RegisterRequest } from '../models/auth.model';
+import type {
+  LoginRequest,
+  LoginResponse,
+  UserSession,
+  RegisterRequest,
+  PasswordRecoveryRequest,
+  PasswordResetRequest,
+} from '../models/auth.model';
 
 const TOKEN_KEY = 'sigea_token';
 const USER_KEY = 'sigea_user';
@@ -81,6 +88,18 @@ export class AuthService {
 
   register(data: RegisterRequest): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/registro`, data);
+  }
+
+  recuperarContrasena(data: PasswordRecoveryRequest): Observable<string> {
+    return this.http.post<{ mensaje: string }>(`${this.apiUrl}/recuperar-contrasena`, data).pipe(
+      map((res) => res.mensaje ?? 'Si el correo existe en SIGEA, enviaremos un codigo de recuperacion.')
+    );
+  }
+
+  restablecerContrasena(data: PasswordResetRequest): Observable<string> {
+    return this.http.post<{ mensaje: string }>(`${this.apiUrl}/restablecer-contrasena`, data).pipe(
+      map((res) => res.mensaje ?? 'La contrasena fue restablecida correctamente.')
+    );
   }
 
   /** Verifica el correo con el código de 6 dígitos enviado por email. */

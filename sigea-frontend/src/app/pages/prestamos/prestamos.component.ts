@@ -151,6 +151,12 @@ export class PrestamosComponent implements OnInit {
 
   agregarDetalle() {
     if (this.detalleEquipoId <= 0 || this.detalleCantidad < 1) return;
+    const disponible = this.getEquipoDisponible(this.detalleEquipoId);
+    const yaSolicitado = this.getCantidadSolicitada(this.detalleEquipoId);
+    if (yaSolicitado + this.detalleCantidad > disponible) {
+      this.error.set(`No puedes solicitar mas de ${disponible} unidad(es) de ${this.getEquipoName(this.detalleEquipoId)}.`);
+      return;
+    }
     const existing = this.form.detalles?.find((d) => d.equipoId === this.detalleEquipoId);
     if (existing) { existing.cantidad += this.detalleCantidad; return; }
     this.form.detalles = [...(this.form.detalles ?? []), { equipoId: this.detalleEquipoId, cantidad: this.detalleCantidad }];
@@ -164,11 +170,35 @@ export class PrestamosComponent implements OnInit {
     return this.equipos().find((e) => e.id === id)?.nombre ?? `Equipo #${id}`;
   }
 
+  getEquipoDisponible(id: number): number {
+    return this.equipos().find((e) => e.id === id)?.cantidadDisponible ?? 0;
+  }
+
+  getCantidadSolicitada(id: number): number {
+    return (this.form.detalles ?? [])
+      .filter((detalle) => detalle.equipoId === id)
+      .reduce((total, detalle) => total + detalle.cantidad, 0);
+  }
+
   submitSolicitud() {
     if (!this.form.fechaHoraDevolucionEstimada || !this.form.detalles?.length) {
       this.error.set('Seleccione fecha de devolución y al menos un equipo.');
       return;
     }
+
+    const cantidadesSolicitadas = (this.form.detalles ?? []).reduce<Record<number, number>>((acc, detalle) => {
+      acc[detalle.equipoId] = (acc[detalle.equipoId] ?? 0) + detalle.cantidad;
+      return acc;
+    }, {});
+
+    for (const [equipoId, cantidad] of Object.entries(cantidadesSolicitadas)) {
+      const disponibles = this.getEquipoDisponible(+equipoId);
+      if (cantidad > disponibles) {
+        this.error.set(`No puedes solicitar ${cantidad} unidades de ${this.getEquipoName(+equipoId)} porque solo hay ${disponibles} disponibles.`);
+        return;
+      }
+    }
+
     this.submitSaving.set(true);
     this.prestamoService.solicitar(this.form).subscribe({
       next: () => {
@@ -290,6 +320,22 @@ export class PrestamosComponent implements OnInit {
 
   tipoUsoLabel(tipoUso: string | undefined): string {
     return tipoUso === 'CONSUMIBLE' ? 'Consumible' : 'No consumible';
+  }
+
+  estadoCondicionLabel(estado: string | undefined): string {
+    const map: Record<string, string> = {
+      EXCELENTE: 'Excelente',
+      BUENO: 'Bueno',
+      REGULAR: 'Regular',
+      MALO: 'Malo',
+    };
+    return estado ? (map[estado] ?? estado) : 'Sin registrar';
+  }
+
+  estadoCondicionClass(estado: string | undefined): string {
+    if (estado === 'EXCELENTE' || estado === 'BUENO') return 'is-good';
+    if (estado === 'REGULAR') return 'is-warn';
+    return 'is-bad';
   }
 
   isOverdue(p: Prestamo): boolean {

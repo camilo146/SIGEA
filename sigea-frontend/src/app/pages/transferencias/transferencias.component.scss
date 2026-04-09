@@ -1,10 +1,45 @@
-﻿/* TRANSFERENCIAS — estilos específicos */
-.transferencias-card {
+﻿.transferencias-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
+}
+
+.transferencias-shell {
+  display: grid;
+  gap: 1rem;
   overflow: hidden;
+}
+
+.transferencias-hero {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(57, 169, 0, 0.12), rgba(15, 118, 110, 0.08));
+  border-bottom: 1px solid var(--border-color);
+}
+
+.transferencias-stat {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+
+  span {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  strong {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+  }
 }
 
 .inv-toolbar {
@@ -16,86 +51,130 @@
   flex-wrap: wrap;
 }
 
-.toolbar-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.num { text-align: right !important; }
 
-.transfer-route {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  .arrow { color: var(--text-light); }
-  strong { color: var(--text-primary); font-weight: 600; }
-}
-
-.num     { text-align: right !important; }
-.actions { text-align: right !important; }
-
-/* ---- Mejoras visuales ---- */
-.transfer-route {
-  white-space: nowrap;
-
-  .route-from, .route-to {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    background: var(--bg-hover);
-    border: 1px solid var(--border-color);
-    padding: 0.15rem 0.5rem;
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-xs);
-    font-weight: 500;
-    color: var(--text-secondary);
-  }
-
-  .arrow {
-    color: var(--color-primary);
-    font-size: 0.75rem;
-  }
-}
-
-/* Código de transferencia ---- */
-.transfer-id {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.78rem;
-  background: rgba(37,99,235,0.08);
-  padding: 0.15rem 0.45rem;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid rgba(37,99,235,0.2);
-  color: #2563eb;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-html.dark .transfer-id {
-  background: rgba(96,165,250,0.12);
-  border-color: rgba(96,165,250,0.25);
-  color: #93c5fd;
-}
-
-/* Solicitante con inicial ---- */
-.solicitante-cell {
+.transfer-route-pill {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  flex-wrap: wrap;
+}
 
-  .user-initial {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--border-radius-full);
-    background: rgba(37,99,235,0.1);
-    color: #2563eb;
-    font-size: 0.7rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+.transfer-person-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  &.origen {
+    background: rgba(15, 23, 42, 0.06);
+    color: var(--text-secondary);
+  }
+
+  &.destino {
+    background: rgba(57, 169, 0, 0.12);
+    color: var(--color-primary-dark);
   }
 }
 
-/* Responsive ---- */
-@media (max-width: 900px) {
-  .inv-toolbar { flex-wrap: wrap; }
-  .transfer-route { flex-wrap: wrap; gap: 0.25rem; }
+.arrow-icon {
+  color: var(--color-primary);
+}
+
+.transfer-qty-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.transferencias-mobile-list {
+  display: none;
+}
+
+.transfer-card-mobile {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.transfer-card-mobile-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: start;
+
+  div {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  span {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+}
+
+.transfer-route-visual {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.transfer-card-mobile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+
+  span {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+}
+
+.transfer-card-mobile-note {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.mobile-empty {
+  padding: 1.5rem;
+}
+
+@media (max-width: 980px) {
+  .transferencias-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .transferencias-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .transferencias-mobile-list {
+    display: grid;
+  }
 }

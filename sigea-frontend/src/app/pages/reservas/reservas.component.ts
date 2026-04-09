@@ -413,6 +413,9 @@ export class ReservasComponent implements OnInit {
     const next = !this.mostrarCalendarioAmbiente();
     this.mostrarCalendarioAmbiente.set(next);
     if (next) {
+      if (!this.loadingAgendaAmbiente() && this.agendaAmbiente().length === 0) {
+        this.cargarAgendaAmbiente(this.formAmbiente.ambienteId);
+      }
       this.scrollToReservaSection('calendar');
     }
   }
@@ -775,10 +778,17 @@ export class ReservasComponent implements OnInit {
   }
 
   private scrollToReservaSection(target: 'selected' | 'calendar') {
-    setTimeout(() => {
+    let attempts = 0;
+    const tryScroll = () => {
       const targetRef = target === 'calendar' ? this.agendaCalendarCardRef() : this.selectedAmbienteShellRef();
       const element = targetRef?.nativeElement;
-      if (!element) return;
+      if (!element) {
+        attempts += 1;
+        if (attempts < 6) {
+          setTimeout(tryScroll, 90);
+        }
+        return;
+      }
 
       const scrollContainer = element.closest('.modal-box');
       if (scrollContainer instanceof HTMLElement) {
@@ -788,6 +798,7 @@ export class ReservasComponent implements OnInit {
       }
 
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+    };
+    setTimeout(tryScroll, 80);
   }
 }

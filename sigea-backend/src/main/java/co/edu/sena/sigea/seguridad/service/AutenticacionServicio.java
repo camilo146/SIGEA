@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.sena.sigea.common.enums.EstadoAprobacion;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
+import co.edu.sena.sigea.notificacion.service.CorreoServicio;
 import co.edu.sena.sigea.seguridad.dto.LoginDTO;
 import co.edu.sena.sigea.seguridad.dto.LoginRespuestaDTO;
 import co.edu.sena.sigea.seguridad.dto.RegistroDTO;
@@ -33,6 +34,7 @@ public class AutenticacionServicio {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final VerificacionEmailServicio verificacionEmailServicio;
+    private final CorreoServicio correoServicio;
     private final boolean requireEmailVerification;
 
     // constantes de configuracion ---
@@ -45,6 +47,8 @@ public class AutenticacionServicio {
 
     private static final int MINUTOS_BLOQUEO_SEGUNDO = 15;
 
+    private static final int MINUTOS_VALIDEZ_RECUPERACION = 30;
+
     // constructor para inyectar las dependencias
     // Spring inyecta las dependecias automaticamente
     public AutenticacionServicio(AuthenticationManager authenticationManager,
@@ -52,12 +56,14 @@ public class AutenticacionServicio {
             UsuarioRepository usuarioRepository,
             PasswordEncoder passwordEncoder,
             VerificacionEmailServicio verificacionEmailServicio,
+            CorreoServicio correoServicio,
             @Value("${sigea.auth.require-email-verification:false}") boolean requireEmailVerification) {
         this.authenticationManager = authenticationManager;
         this.jwtProveedor = jwtProveedor;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.verificacionEmailServicio = verificacionEmailServicio;
+        this.correoServicio = correoServicio;
         this.requireEmailVerification = requireEmailVerification;
     }
 
@@ -253,6 +259,81 @@ public class AutenticacionServicio {
             verificacionEmailServicio.enviarEmailVerificacion(nuevoUsuario);
         }
 
+    }
+
+    @Transactional
+    public String solicitarRecuperacionContrasena(String correo) {
+        if (correo == null || correo.isBlank()) {
+            throw new OperacionNoPermitidaException("El correo es obligatorio para recuperar la contrasena.");
+        }
+
+        Usuario usuario = usuarioRepository.findByCorreoElectronico(correo.trim()).orElse(null);
+        if (usuario == null || usuario.getCorreoElectronico() == null || usuario.getCorreoElectronico().isBlank()) {
+            return "Si el correo existe en SIGEA, enviaremos un codigo de recuperacion.";
+        }
+
+        String codigo = verificacionEmailServicio.generarCodigoVerificacion();
+        usuario.setTokenVerificacion(codigo);
+        usuario.setTokenVerificacionExpira(LocalDateTime.now().plusMinutes(MINUTOS_VALIDEZ_RECUPERACION));
+        usuarioRepository.save(usuario);
+
+        String cuerpo = String.join("\n",
+                "Hola " + usuario.getNombreCompleto() + ",",
+                "",
+                "Recibimos una solicitud para restablecer tu contrasena en SIGEA.",
+                "Codigo de recuperacion: " + codigo,
+                "Este codigo vence en " + MINUTOS_VALIDEZ_RECUPERACION + " minutos.",
+                "",
+                "Si no solicitaste este cambio, puedes ignorar este mensaje.");
+
+        correoServicio.enviarCorreoObligatorio(
+                usuario.getCorreoElectronico(),
+                "Codigo de recuperacion de contrasena - SIGEA",
+                cuerpo);
+
+        return "Si el correo existe en SIGEA, enviaremos un codigo de recuperacion.";
+    }
+
+    @Transactional
+    public String restablecerContrasena(String correo, String codigo, String nuevaContrasena) {
+        if (correo == null || correo.isBlank() || codigo == null || codigo.isBlank() || nuevaContrasena == null
+                || nuevaContrasena.isBlank()) {
+            throw new OperacionNoPermitidaException("Correo, codigo y nueva contrasena son obligatorios.");
+        }
+
+        validarContrasenaSegura(nuevaContrasena);
+
+        Usuario usuario = usuarioRepository.findByCorreoElectronico(correo.trim())
+                .orElseThrow(() -> new OperacionNoPermitidaException("El codigo de recuperacion no es valido."));
+
+        String codigoLimpio = codigo.trim();
+        if (usuario.getTokenVerificacion() == null || !usuario.getTokenVerificacion().equals(codigoLimpio)) {
+            throw new OperacionNoPermitidaException("El codigo de recuperacion no es valido.");
+        }
+
+        if (usuario.getTokenVerificacionExpira() == null
+                || usuario.getTokenVerificacionExpira().isBefore(LocalDateTime.now())) {
+            throw new OperacionNoPermitidaException("El codigo de recuperacion expiro. Solicita uno nuevo.");
+        }
+
+        usuario.setContrasenaHash(passwordEncoder.encode(nuevaContrasena));
+        usuario.setTokenVerificacion(null);
+        usuario.setTokenVerificacionExpira(null);
+        usuario.setIntentosFallidos(0);
+        usuario.setCuentaBloqueadaHasta(null);
+        usuarioRepository.save(usuario);
+
+        return "La contrasena fue restablecida correctamente. Ya puedes iniciar sesion.";
+    }
+
+    private void validarContrasenaSegura(String contrasena) {
+        if (contrasena.length() < 8
+                || !contrasena.chars().anyMatch(Character::isUpperCase)
+                || !contrasena.chars().anyMatch(Character::isDigit)
+                || contrasena.chars().noneMatch(ch -> !Character.isLetterOrDigit(ch))) {
+            throw new OperacionNoPermitidaException(
+                    "La nueva contrasena debe tener minimo 8 caracteres, una mayuscula, un numero y un caracter especial.");
+        }
     }
 
 }

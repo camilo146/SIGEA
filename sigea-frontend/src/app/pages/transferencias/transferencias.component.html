@@ -14,8 +14,26 @@
   <div class="alert alert-danger" style="margin-bottom:1rem">{{ error() }}</div>
 }
 
-<div class="trans-card">
-  <!-- Toolbar -->
+<div class="transferencias-card transferencias-shell">
+  <div class="transferencias-hero">
+    <div class="transferencias-stat">
+      <span>Total movimientos</span>
+      <strong>{{ filteredTransferencias().length }}</strong>
+    </div>
+    <div class="transferencias-stat">
+      <span>Unidades trasladadas</span>
+      <strong>{{ totalUnidades() }}</strong>
+    </div>
+    <div class="transferencias-stat">
+      <span>Inventarios destino</span>
+      <strong>{{ totalDestinos() }}</strong>
+    </div>
+    <div class="transferencias-stat">
+      <span>Propietarios impactados</span>
+      <strong>{{ totalPropietarios() }}</strong>
+    </div>
+  </div>
+
   <div class="inv-toolbar">
     <div class="search-input-wrap" style="flex:1; max-width:360px">
       <i class="fas fa-search search-icon"></i>
@@ -36,14 +54,44 @@
       <i class="fas fa-spinner fa-spin"></i> Cargando transferencias...
     </div>
   } @else {
+    <div class="transferencias-mobile-list">
+      @for (t of filteredTransferencias(); track t.id) {
+        <article class="transfer-card-mobile">
+          <div class="transfer-card-mobile-head">
+            <div>
+              <strong>{{ t.nombreEquipo }}</strong>
+              <span>{{ t.codigoEquipo }}</span>
+            </div>
+            <span class="transfer-qty-chip">{{ t.cantidad }} ud.</span>
+          </div>
+          <div class="transfer-route-visual">
+            <div class="transfer-person-pill origen"><i class="fas fa-user"></i> {{ t.nombreInventarioOrigenInstructor }}</div>
+            <i class="fas fa-arrow-right-long"></i>
+            <div class="transfer-person-pill destino"><i class="fas fa-user"></i> {{ t.nombreInventarioDestinoInstructor }}</div>
+          </div>
+          <div class="transfer-card-mobile-meta">
+            <span><i class="fas fa-key"></i> {{ t.nombrePropietarioEquipo || 'Sin propietario' }}</span>
+            <span><i class="fas fa-user-shield"></i> {{ t.nombreAdministrador }}</span>
+            <span><i class="fas fa-calendar-days"></i> {{ formatDate(t.fechaTransferencia) }}</span>
+          </div>
+          @if (t.motivo) {
+            <p class="transfer-card-mobile-note">{{ t.motivo }}</p>
+          }
+        </article>
+      } @empty {
+        <div class="empty mobile-empty">
+          <i class="fas fa-truck"></i>
+          No hay transferencias registradas
+        </div>
+      }
+    </div>
+
     <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
             <th>Equipo</th>
-            <th>Inventario origen</th>
-            <th></th>
-            <th>Inventario destino</th>
+            <th>Ruta</th>
             <th>Dueño</th>
             <th class="num">Cant.</th>
             <th>Fecha</th>
@@ -64,16 +112,10 @@
                 </div>
               </td>
               <td>
-                <div class="ambiente-chip origen">
-                  <i class="fas fa-user"></i> {{ t.nombreInventarioOrigenInstructor }}
-                </div>
-              </td>
-              <td>
-                <i class="fas fa-long-arrow-alt-right arrow-icon"></i>
-              </td>
-              <td>
-                <div class="ambiente-chip destino">
-                  <i class="fas fa-user"></i> {{ t.nombreInventarioDestinoInstructor }}
+                <div class="transfer-route-pill">
+                  <span class="transfer-person-pill origen"><i class="fas fa-user"></i> {{ t.nombreInventarioOrigenInstructor }}</span>
+                  <i class="fas fa-arrow-right-long arrow-icon"></i>
+                  <span class="transfer-person-pill destino"><i class="fas fa-user"></i> {{ t.nombreInventarioDestinoInstructor }}</span>
                 </div>
               </td>
               <td>{{ t.nombrePropietarioEquipo || '—' }}</td>
@@ -88,7 +130,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="9" class="empty">
+              <td colspan="7" class="empty">
                 <i class="fas fa-truck" style="font-size:1.5rem; display:block; margin-bottom:0.4rem"></i>
                 No hay transferencias registradas
               </td>
@@ -165,8 +207,12 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="modalOpen.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-paper-plane"></i> Registrar
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            @if (saving()) {
+              <i class="fas fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              <i class="fas fa-paper-plane"></i> Registrar
+            }
           </button>
         </div>
       </form>

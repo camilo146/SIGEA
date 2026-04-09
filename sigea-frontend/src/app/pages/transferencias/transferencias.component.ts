@@ -5,6 +5,7 @@ import { TransferenciaService } from '../../core/services/transferencia.service'
 import { EquipoService } from '../../core/services/equipo.service';
 import { AmbienteService } from '../../core/services/ambiente.service';
 import { UsuarioService } from '../../core/services/usuario.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import type { Transferencia, TransferenciaCrear } from '../../core/models/transferencia.model';
 
 @Component({
@@ -19,6 +20,7 @@ export class TransferenciasComponent implements OnInit {
   private equipoService = inject(EquipoService);
   private ambienteService = inject(AmbienteService);
   private usuarioService = inject(UsuarioService);
+  private ui = inject(UiFeedbackService);
 
   transferencias = signal<Transferencia[]>([]);
   equipos = signal<{ id: number; nombre: string; codigoUnico: string }[]>([]);
@@ -28,6 +30,7 @@ export class TransferenciasComponent implements OnInit {
   error = signal('');
   modalOpen = signal(false);
   searchTerm = signal('');
+  saving = signal(false);
 
   form: TransferenciaCrear = {
     equipoId: 0,
@@ -50,6 +53,10 @@ export class TransferenciasComponent implements OnInit {
         (t.nombreAdministrador ?? '').toLowerCase().includes(q)
     );
   });
+
+  totalUnidades = computed(() => this.transferencias().reduce((total, item) => total + item.cantidad, 0));
+  totalDestinos = computed(() => new Set(this.transferencias().map((item) => item.nombreInventarioDestinoInstructor)).size);
+  totalPropietarios = computed(() => new Set(this.transferencias().map((item) => item.nombrePropietarioEquipo).filter(Boolean)).size);
 
   ngOnInit() {
     this.loadTransferencias();
@@ -99,12 +106,20 @@ export class TransferenciasComponent implements OnInit {
       this.error.set('Complete equipo e instructor destino.');
       return;
     }
+    this.saving.set(true);
     this.transferenciaService.crear(this.form).subscribe({
       next: () => {
+        this.saving.set(false);
         this.modalOpen.set(false);
         this.loadTransferencias();
+        this.ui.success('La transferencia fue registrada correctamente.', 'Transferencias');
       },
-      error: (err) => this.error.set(err.error?.message ?? 'Error al registrar transferencia'),
+      error: (err) => {
+        this.saving.set(false);
+        const message = err.error?.message ?? 'Error al registrar transferencia';
+        this.error.set(message);
+        this.ui.error(message, 'Transferencias');
+      },
     });
   }
 

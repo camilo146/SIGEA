@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.sena.sigea.seguridad.dto.LoginDTO;
 import co.edu.sena.sigea.seguridad.dto.LoginRespuestaDTO;
+import co.edu.sena.sigea.seguridad.dto.RestablecerContrasenaDTO;
 import co.edu.sena.sigea.seguridad.dto.RegistroDTO;
+import co.edu.sena.sigea.seguridad.dto.SolicitarRecuperacionDTO;
 import co.edu.sena.sigea.seguridad.dto.VerificarCodigoDTO;
 import co.edu.sena.sigea.seguridad.service.AutenticacionServicio;
 import co.edu.sena.sigea.seguridad.service.VerificacionEmailServicio;
@@ -84,6 +86,23 @@ public class AuthControlador{
     public ResponseEntity<java.util.Map<String, String>> verificarEmailPorCodigo(
             @Valid @RequestBody VerificarCodigoDTO dto) {
         String mensaje = verificacionEmailServicio.verificarCodigo(dto.getCorreo(), dto.getCodigo());
+        return ResponseEntity.ok(java.util.Map.of("mensaje", mensaje));
+    }
+
+    @PostMapping("/recuperar-contrasena")
+    public ResponseEntity<java.util.Map<String, String>> solicitarRecuperacion(
+            @Valid @RequestBody SolicitarRecuperacionDTO dto) {
+        String mensaje = autenticacionServicio.solicitarRecuperacionContrasena(dto.getCorreo());
+        return ResponseEntity.ok(java.util.Map.of("mensaje", mensaje));
+    }
+
+    @PostMapping("/restablecer-contrasena")
+    public ResponseEntity<java.util.Map<String, String>> restablecerContrasena(
+            @Valid @RequestBody RestablecerContrasenaDTO dto) {
+        String mensaje = autenticacionServicio.restablecerContrasena(
+                dto.getCorreo(),
+                dto.getCodigo(),
+                dto.getNuevaContrasena());
         return ResponseEntity.ok(java.util.Map.of("mensaje", mensaje));
     }
 }

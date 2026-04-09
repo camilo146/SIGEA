@@ -101,14 +101,16 @@
               </td>
               <td>{{ e.categoriaNombre }}</td>
               <td>
-                <span class="badge" [class]="e.tipoUso === 'CONSUMIBLE' ? 'badge-yellow' : 'badge-blue'">
-                  {{ tipoUsoLabel(e.tipoUso) }}
-                </span>
+                <span class="badge" [class]="'badge-' + e.estado.toLowerCase()">{{ estadoLabel(e.estado) }}</span>
               </td>
-              <td><span class="badge" [class]="'badge-' + e.estado.toLowerCase()">{{ estadoLabel(e.estado) }}</span></td>
               <td class="num">{{ e.cantidadTotal }}</td>
               <td class="num" [class.text-danger]="e.cantidadDisponible === 0">{{ e.cantidadDisponible }}</td>
-              <td>{{ e.ambienteNombre }}</td>
+              <td>
+                <strong>{{ e.ambienteNombre }}</strong>
+                @if (e.subUbicacionNombre) {
+                  <div class="text-muted" style="font-size:0.78rem"><i class="fas fa-map-pin"></i> {{ e.subUbicacionNombre }}</div>
+                }
+              </td>
               <td>{{ e.propietarioNombre || '—' }}</td>
               <td>
                 {{ e.inventarioActualInstructorNombre || '—' }}

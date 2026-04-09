@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.sena.sigea.common.enums.EstadoEquipo;
+import co.edu.sena.sigea.common.enums.TipoUsoEquipo;
 import co.edu.sena.sigea.common.enums.TipoMantenimiento;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
@@ -64,9 +65,9 @@ public class MantenimientoServicio {
 
         Mantenimiento guardado = mantenimientoRepository.save(m);
 
-        // Al registrar mantenimiento, el equipo pasa a estado EN_MANTENIMIENTO en inventario
-        equipo.setEstado(EstadoEquipo.EN_MANTENIMIENTO);
-        equipoRepository.save(equipo);
+        if (dto.getFechaFin() == null) {
+            marcarEquipoEnMantenimiento(equipo);
+        }
 
         return mapear(guardado);
     }
@@ -96,12 +97,18 @@ public class MantenimientoServicio {
         }
         mantenimientoRepository.save(m);
 
-        // Al cerrar el mantenimiento, el equipo vuelve a ACTIVO si no tiene otros en curso
+        if (m.getEquipo().getTipoUso() == TipoUsoEquipo.NO_CONSUMIBLE) {
+            m.getEquipo().setCantidadDisponible(
+                    Math.min(m.getEquipo().getCantidadTotal(), m.getEquipo().getCantidadDisponible() + 1));
+        }
+
         long enCurso = mantenimientoRepository.countByEquipoIdAndFechaFinIsNull(m.getEquipo().getId());
         if (enCurso == 0) {
             m.getEquipo().setEstado(EstadoEquipo.ACTIVO);
-            equipoRepository.save(m.getEquipo());
+        } else {
+            m.getEquipo().setEstado(EstadoEquipo.EN_MANTENIMIENTO);
         }
+        equipoRepository.save(m.getEquipo());
 
         return mapear(m);
     }
@@ -179,10 +186,31 @@ public class MantenimientoServicio {
         if (enCurso == 0) {
             var equipo = equipoRepository.findById(equipoId).orElse(null);
             if (equipo != null && equipo.getEstado() == EstadoEquipo.EN_MANTENIMIENTO) {
+                if (equipo.getTipoUso() == TipoUsoEquipo.NO_CONSUMIBLE) {
+                    equipo.setCantidadDisponible(Math.min(equipo.getCantidadTotal(), equipo.getCantidadDisponible() + 1));
+                }
                 equipo.setEstado(EstadoEquipo.ACTIVO);
                 equipoRepository.save(equipo);
             }
+        } else {
+            var equipo = equipoRepository.findById(equipoId).orElse(null);
+            if (equipo != null && equipo.getTipoUso() == TipoUsoEquipo.NO_CONSUMIBLE) {
+                equipo.setCantidadDisponible(Math.min(equipo.getCantidadTotal(), equipo.getCantidadDisponible() + 1));
+                equipoRepository.save(equipo);
+            }
         }
+    }
+
+    private void marcarEquipoEnMantenimiento(co.edu.sena.sigea.equipo.entity.Equipo equipo) {
+        if (equipo.getTipoUso() == TipoUsoEquipo.NO_CONSUMIBLE) {
+            if (equipo.getCantidadDisponible() == null || equipo.getCantidadDisponible() < 1) {
+                throw new OperacionNoPermitidaException(
+                        "No hay unidades disponibles para enviar a mantenimiento el equipo '" + equipo.getNombre() + "'.");
+            }
+            equipo.setCantidadDisponible(Math.max(0, equipo.getCantidadDisponible() - 1));
+        }
+        equipo.setEstado(EstadoEquipo.EN_MANTENIMIENTO);
+        equipoRepository.save(equipo);
     }
 
     private MantenimientoRespuestaDTO mapear(Mantenimiento m) {

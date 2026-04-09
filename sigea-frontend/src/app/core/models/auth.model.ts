@@ -33,3 +33,13 @@ export interface RegisterRequest {
   numeroFicha?: string;
   contrasena: string;
 }
+
+export interface PasswordRecoveryRequest {
+  correo: string;
+}
+
+export interface PasswordResetRequest {
+  correo: string;
+  codigo: string;
+  nuevaContrasena: string;
+}

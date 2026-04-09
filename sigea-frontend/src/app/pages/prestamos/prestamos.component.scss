@@ -64,6 +64,51 @@
   white-space: nowrap;
 }
 
+.prestamo-equipos-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.prestamo-equipo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.devolucion-mini-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-hover) 80%, var(--bg-card) 20%);
+  border: 1px solid var(--border-color);
+
+  p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+  }
+}
+
+.devolucion-mini-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.devolucion-mini-score {
+  font-size: 0.78rem;
+  font-weight: 700;
+
+  &.is-good { color: var(--color-success); }
+  &.is-warn { color: var(--color-warning); }
+  &.is-bad { color: var(--color-danger); }
+}
+
 /* ---- Código de préstamo ---- */
 .id-code {
   font-family: 'Courier New', Courier, monospace;

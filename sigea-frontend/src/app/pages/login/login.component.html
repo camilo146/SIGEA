@@ -23,7 +23,7 @@
           <i class="fas fa-user-plus"></i> Registrarse
         </button>
       </div>
-
+  
       <!-- Mensajes globales -->
       @if (error) {
         <div class="alert alert-danger">
@@ -65,6 +65,75 @@
             Volver al registro / inicio de sesión
           </button>
         </div>
+      } @else if (recoveryStep) {
+        <div class="verificar-codigo-box recovery-box">
+          @if (recoveryStep === 'request') {
+            <p class="verificar-codigo-label">Ingresa el correo registrado para recuperar tu contrasena.</p>
+            <div class="input-group">
+              <span class="input-icon"><i class="fas fa-envelope"></i></span>
+              <input
+                type="email"
+                [(ngModel)]="recoveryCorreo"
+                name="recoveryCorreo"
+                placeholder="Correo electronico"
+                autocomplete="email"
+              />
+            </div>
+            <button type="button" class="btn-submit" (click)="solicitarRecuperacion()" [disabled]="loading">
+              @if (loading) {
+                <i class="fas fa-spinner fa-spin"></i> Enviando codigo...
+              } @else {
+                <i class="fas fa-paper-plane"></i> Enviar codigo de recuperacion
+              }
+            </button>
+          } @else {
+            <p class="verificar-codigo-label">Restablece tu contrasena con el codigo enviado a:</p>
+            <p class="verificar-codigo-email"><strong>{{ recoveryCorreo }}</strong></p>
+            <div class="input-group">
+              <span class="input-icon"><i class="fas fa-key"></i></span>
+              <input
+                type="text"
+                [(ngModel)]="recoveryCodigo"
+                name="recoveryCodigo"
+                placeholder="Codigo de 6 digitos"
+                maxlength="6"
+                inputmode="numeric"
+                (input)="onRecoveryCodigoInput()"
+              />
+            </div>
+            <div class="input-group">
+              <span class="input-icon"><i class="fas fa-lock"></i></span>
+              <input
+                [type]="showRecoveryPassword ? 'text' : 'password'"
+                [(ngModel)]="recoveryNuevaContrasena"
+                name="recoveryNuevaContrasena"
+                placeholder="Nueva contrasena"
+              />
+              <button type="button" class="toggle-pw" (click)="showRecoveryPassword = !showRecoveryPassword">
+                <i class="fas" [ngClass]="showRecoveryPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+              </button>
+            </div>
+            <div class="input-group">
+              <span class="input-icon"><i class="fas fa-lock"></i></span>
+              <input
+                [type]="showRecoveryPassword ? 'text' : 'password'"
+                [(ngModel)]="recoveryConfirmPassword"
+                name="recoveryConfirmPassword"
+                placeholder="Confirmar nueva contrasena"
+              />
+            </div>
+            <button type="button" class="btn-submit" (click)="restablecerContrasena()" [disabled]="loading">
+              @if (loading) {
+                <i class="fas fa-spinner fa-spin"></i> Restableciendo...
+              } @else {
+                <i class="fas fa-unlock-keyhole"></i> Restablecer contrasena
+              }
+            </button>
+          }
+          <button type="button" class="link-secondary" (click)="cancelRecovery()">
+            Volver al inicio de sesion
+          </button>
+        </div>
       } @else if (activeTab === 'login') {
       <!-- ======================== LOGIN ======================== -->
         <form class="auth-form" (ngSubmit)="login()">
@@ -102,7 +171,7 @@
             }
           </button>
 
-          <a href="#" class="link-secondary">¿Olvidó su contraseña?</a>
+          <button type="button" class="link-secondary" (click)="openRecovery()">¿Olvidaste tu contrasena?</button>
         </form>
 
         <div class="roles-info">

@@ -54,10 +54,10 @@
         </thead>
         <tbody>
           @for (p of filteredPrestamos(); track p.id) {
-            <tr>
+            <tr [class.fila-mora]="isOverdue(p)">
               <td><code class="id-code">PR-{{ p.id.toString().padStart(3, '0') }}</code></td>
               <td>
-                <div class="user-cell">
+                <div class="solicitante-cell">
                   <div class="avatar sm">{{ (p.nombreUsuarioSolicitante || 'NA').slice(0,2).toUpperCase() }}</div>
                   <div>
                     <strong>{{ p.nombreUsuarioSolicitante }}</strong>
@@ -66,12 +66,24 @@
                 </div>
               </td>
               <td>
-                @for (d of (p.detalles || []).slice(0,2); track d.equipoId) {
-                  <span class="equipo-chip">{{ d.nombreEquipo }} ×{{ d.cantidad }} · {{ tipoUsoLabel(d.tipoUso) }}</span>
-                }
-                @if ((p.detalles || []).length > 2) {
-                  <span class="text-muted" style="font-size:0.78rem"> +{{ p.detalles.length - 2 }} más</span>
-                }
+                <div class="prestamo-equipos-stack">
+                  @for (d of (p.detalles || []); track d.id) {
+                    <div class="prestamo-equipo-item">
+                      <span class="equipo-chip">{{ d.nombreEquipo }} ×{{ d.cantidad }} · {{ tipoUsoLabel(d.tipoUso) }}</span>
+                      @if (d.devuelto && (d.observacionesDevolucion || d.estadoEquipoDevolucion)) {
+                        <div class="devolucion-mini-card">
+                          <span class="devolucion-mini-label">Devolucion</span>
+                          <span class="devolucion-mini-score" [class]="estadoCondicionClass(d.estadoEquipoDevolucion)">
+                            {{ estadoCondicionLabel(d.estadoEquipoDevolucion) }}
+                          </span>
+                          @if (d.observacionesDevolucion) {
+                            <p>{{ d.observacionesDevolucion }}</p>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
               </td>
               <td>{{ p.fechaHoraSolicitud | dateFormat }}</td>
               <td [class.overdue-date]="isOverdue(p)">{{ p.fechaHoraDevolucionEstimada | dateFormat }}</td>

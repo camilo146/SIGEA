@@ -26,6 +26,12 @@ export class LoginComponent implements OnInit {
   correoPendienteVerificar = '';
   codigoVerificacion = '';
   showVerificacionCodigo = false;
+  recoveryStep: 'request' | 'reset' | null = null;
+  recoveryCorreo = '';
+  recoveryCodigo = '';
+  recoveryNuevaContrasena = '';
+  recoveryConfirmPassword = '';
+  showRecoveryPassword = false;
 
   /* ---- Login ---- */
   numeroDocumento = '';
@@ -50,13 +56,7 @@ export class LoginComponent implements OnInit {
 
   /** Comprueba requisitos de la contraseña para el indicador visual. */
   get passwordStrength(): { upperCase: boolean; number: boolean; special: boolean; length: boolean } {
-    const p = this.reg.contrasena ?? '';
-    return {
-      length: p.length >= 8,
-      upperCase: /[A-Z]/.test(p),
-      number: /\d/.test(p),
-      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p),
-    };
+    return this.getPasswordStrength(this.reg.contrasena ?? '');
   }
 
   get passwordStrengthScore(): number {
@@ -81,10 +81,94 @@ export class LoginComponent implements OnInit {
     this.showVerificacionCodigo = false;
     this.correoPendienteVerificar = '';
     this.codigoVerificacion = '';
+    this.resetRecoveryState();
   }
 
   onCodigoInput() {
     this.codigoVerificacion = this.codigoVerificacion.replace(/\D/g, '').slice(0, 6);
+  }
+
+  onRecoveryCodigoInput() {
+    this.recoveryCodigo = this.recoveryCodigo.replace(/\D/g, '').slice(0, 6);
+  }
+
+  openRecovery() {
+    this.error = '';
+    this.successMsg = '';
+    this.showVerificacionCodigo = false;
+    this.recoveryStep = 'request';
+    this.recoveryCorreo = '';
+    this.recoveryCodigo = '';
+    this.recoveryNuevaContrasena = '';
+    this.recoveryConfirmPassword = '';
+  }
+
+  cancelRecovery() {
+    this.resetRecoveryState();
+    this.error = '';
+  }
+
+  solicitarRecuperacion() {
+    this.error = '';
+    this.successMsg = '';
+    const correo = this.recoveryCorreo.trim().toLowerCase();
+    if (!correo || !correo.includes('@')) {
+      this.error = 'Ingrese un correo electronico valido.';
+      return;
+    }
+
+    this.loading = true;
+    this.auth.recuperarContrasena({ correo }).subscribe({
+      next: (mensaje) => {
+        this.loading = false;
+        this.recoveryCorreo = correo;
+        this.recoveryStep = 'reset';
+        this.successMsg = mensaje;
+      },
+      error: (err) => {
+        this.loading = false;
+        this.error = err.error?.message ?? 'No fue posible iniciar la recuperacion de contrasena.';
+      },
+    });
+  }
+
+  restablecerContrasena() {
+    this.error = '';
+    this.successMsg = '';
+    const codigo = this.recoveryCodigo.replace(/\D/g, '').slice(0, 6);
+    if (codigo.length !== 6) {
+      this.error = 'El codigo debe tener 6 digitos.';
+      return;
+    }
+
+    const strength = this.getPasswordStrength(this.recoveryNuevaContrasena);
+    if (!strength.length || !strength.upperCase || !strength.number || !strength.special) {
+      this.error = 'La nueva contrasena debe tener minimo 8 caracteres, una mayuscula, un numero y un caracter especial.';
+      return;
+    }
+
+    if (this.recoveryNuevaContrasena !== this.recoveryConfirmPassword) {
+      this.error = 'Las contrasenas no coinciden.';
+      return;
+    }
+
+    this.loading = true;
+    this.auth.restablecerContrasena({
+      correo: this.recoveryCorreo.trim().toLowerCase(),
+      codigo,
+      nuevaContrasena: this.recoveryNuevaContrasena,
+    }).subscribe({
+      next: (mensaje) => {
+        this.loading = false;
+        this.resetRecoveryState();
+        this.activeTab = 'login';
+        this.successMsg = mensaje;
+      },
+      error: (err) => {
+        this.loading = false;
+        this.error = err.error?.message ?? 'No fue posible restablecer la contrasena.';
+      },
+    });
   }
 
   enviarCodigoVerificacion() {
@@ -185,5 +269,23 @@ export class LoginComponent implements OnInit {
         this.error = err.error?.message ?? 'Error al registrarse. Intente de nuevo.';
       },
     });
+  }
+
+  private getPasswordStrength(password: string): { upperCase: boolean; number: boolean; special: boolean; length: boolean } {
+    return {
+      length: password.length >= 8,
+      upperCase: /[A-Z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    };
+  }
+
+  private resetRecoveryState() {
+    this.recoveryStep = null;
+    this.recoveryCorreo = '';
+    this.recoveryCodigo = '';
+    this.recoveryNuevaContrasena = '';
+    this.recoveryConfirmPassword = '';
+    this.showRecoveryPassword = false;
   }
 }

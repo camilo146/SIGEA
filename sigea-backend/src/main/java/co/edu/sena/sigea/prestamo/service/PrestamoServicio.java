@@ -148,12 +148,17 @@ public class PrestamoServicio {
         // Si algún equipo no tiene stock suficiente → lanzamos excepción
         // INMEDIATAMENTE.
         // Así no creamos un préstamo a medias.
-        for (DetallePrestamoDTO detalleDto : dto.getDetalles()) {
+        Map<Long, Integer> cantidadesSolicitadas = dto.getDetalles().stream()
+            .collect(Collectors.groupingBy(
+                DetallePrestamoDTO::getEquipoId,
+                Collectors.summingInt(DetallePrestamoDTO::getCantidad)));
+
+        for (Map.Entry<Long, Integer> entry : cantidadesSolicitadas.entrySet()) {
 
             // Buscar el equipo. Si no existe → 404.
-            Equipo equipo = equipoRepository.findById(detalleDto.getEquipoId())
+            Equipo equipo = equipoRepository.findById(entry.getKey())
                     .orElseThrow(() -> new RecursoNoEncontradoException(
-                            "Equipo no encontrado con ID: " + detalleDto.getEquipoId()));
+                    "Equipo no encontrado con ID: " + entry.getKey()));
 
             // Verificar que el equipo esté activo (no dado de baja).
             // Boolean con B mayúscula → Lombok genera getActivo() (no isActivo()).
@@ -164,11 +169,11 @@ public class PrestamoServicio {
 
             // Verificar stock (RN-01).
             // cantidadDisponible < cantidad solicitada → no hay suficientes unidades.
-            if (equipo.getCantidadDisponible() < detalleDto.getCantidad()) {
+            if (equipo.getCantidadDisponible() < entry.getValue()) {
                 throw new OperacionNoPermitidaException(
                         "Stock insuficiente para '" + equipo.getNombre() + "'. " +
                                 "Disponible: " + equipo.getCantidadDisponible() +
-                                ", Solicitado: " + detalleDto.getCantidad());
+                                ", Solicitado: " + entry.getValue());
             }
         }
 

@@ -373,7 +373,11 @@ export class AmbientesComponent implements OnInit {
   }
 
   getEquiposSubUbicacion(subId: number): Equipo[] {
-    return this.subEquipos().filter((equipo) => equipo.subUbicacionId === subId);
+    const sub = this.subUbicaciones().find((item) => item.id === subId);
+    return this.subEquipos().filter((equipo) =>
+      Number(equipo.subUbicacionId) === Number(subId)
+      || (!!sub && equipo.subUbicacionNombre?.trim().toLowerCase() === sub.nombre.trim().toLowerCase())
+    );
   }
 
   getEquiposSubUbicacionCount(subId: number): number {

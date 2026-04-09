@@ -214,23 +214,23 @@ public class PrestamoAmbienteServicio {
                 .stream().map(this::convertirADTO).toList();
     }
 
-        @Transactional(readOnly = true)
-        public List<PrestamoAmbienteRespuestaDTO> listarVisiblesParaUsuario(String correoUsuario) {
-                Usuario usuario = usuarioRepository.findByCorreoElectronico(correoUsuario)
-                                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoUsuario));
+    @Transactional(readOnly = true)
+    public List<PrestamoAmbienteRespuestaDTO> listarVisiblesParaUsuario(String correoUsuario) {
+        Usuario usuario = usuarioRepository.findByCorreoElectronico(correoUsuario)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoUsuario));
 
-                if (usuario.getRol() == Rol.ADMINISTRADOR) {
-                        return listarTodos();
-                }
-
-                if (usuario.getRol() == Rol.INSTRUCTOR) {
-                        return prestamoAmbienteRepository.findByPropietarioAmbienteIdOrderByFechaSolicitudDesc(usuario.getId())
-                                        .stream().map(this::convertirADTO).toList();
-                }
-
-                return prestamoAmbienteRepository.findBySolicitanteIdOrderByFechaSolicitudDesc(usuario.getId())
-                                .stream().map(this::convertirADTO).toList();
+        if (usuario.getRol() == Rol.ADMINISTRADOR) {
+            return listarTodos();
         }
+
+        if (usuario.getRol() == Rol.INSTRUCTOR) {
+            return prestamoAmbienteRepository.findByPropietarioAmbienteIdOrderByFechaSolicitudDesc(usuario.getId())
+                    .stream().map(this::convertirADTO).toList();
+        }
+
+        return prestamoAmbienteRepository.findBySolicitanteIdOrderByFechaSolicitudDesc(usuario.getId())
+                .stream().map(this::convertirADTO).toList();
+    }
 
     @Transactional(readOnly = true)
     public List<PrestamoAmbienteRespuestaDTO> listarMisSolicitudes(String correoSolicitante) {
@@ -287,7 +287,7 @@ public class PrestamoAmbienteServicio {
         boolean esPropietario = prestamo.getPropietarioAmbiente().getId().equals(usuario.getId());
         boolean esAdmin = usuario.getRol() == Rol.ADMINISTRADOR;
 
-                if (!esPropietario && !esAdmin) {
+        if (!esPropietario && !esAdmin) {
             throw new OperacionNoPermitidaException(
                     "Solo el propietario del ambiente o un administrador puede realizar esta acción");
         }
@@ -298,18 +298,18 @@ public class PrestamoAmbienteServicio {
      * Debe existir un instructor responsable activo en el ambiente.
      */
     private Usuario resolverPropietarioAmbiente(Ambiente ambiente) {
-                Usuario propietario = ambiente.getPropietario() != null
-                                ? ambiente.getPropietario()
-                                : ambiente.getInstructorResponsable();
-                if (propietario == null) {
+        Usuario propietario = ambiente.getPropietario() != null
+                ? ambiente.getPropietario()
+                : ambiente.getInstructorResponsable();
+        if (propietario == null) {
             throw new OperacionNoPermitidaException(
-                                        "El ambiente seleccionado no tiene un propietario asignado");
+                    "El ambiente seleccionado no tiene un propietario asignado");
         }
-                if (!Boolean.TRUE.equals(propietario.getActivo())) {
+        if (!Boolean.TRUE.equals(propietario.getActivo())) {
             throw new OperacionNoPermitidaException(
-                                        "El propietario del ambiente se encuentra inactivo");
+                    "El propietario del ambiente se encuentra inactivo");
         }
-                return propietario;
+        return propietario;
     }
 
     private PrestamoAmbienteRespuestaDTO convertirADTO(PrestamoAmbiente p) {
