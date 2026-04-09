@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prueba SMTP - SIGEA</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f6f8f7; margin: 0; padding: 24px; color: #243024; }
+    .card { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #dbe7db; overflow: hidden; }
+    .header { background: #39A900; color: white; padding: 24px; }
+    .body { padding: 28px; }
+    .ok { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #e8f5e9; color: #1b5e20; font-weight: 700; }
+    .meta { background: #f7faf7; border: 1px solid #dce8dc; border-radius: 10px; padding: 16px; margin-top: 20px; }
+    .footer { padding: 18px 28px; font-size: 12px; color: #5f6f5f; background: #f7faf7; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1 style="margin:0;font-size:22px;">SIGEA SENA</h1>
+      <p style="margin:8px 0 0;">Prueba de envío SMTP</p>
+    </div>
+    <div class="body">
+      <p><span class="ok">SMTP operativo</span></p>
+      <p>Este correo confirma que la configuración SMTP del backend de SIGEA está funcionando correctamente.</p>
+      <div class="meta">
+        <p style="margin:0 0 8px;"><strong>Destinatario:</strong> <span th:text="${destinatario}">destino@correo.com</span></p>
+        <p style="margin:0 0 8px;"><strong>Remitente configurado:</strong> <span th:text="${remitente}">sigeasena@gmail.com</span></p>
+        <p style="margin:0;"><strong>Fecha de prueba:</strong> <span th:text="${fecha}">2026-04-09T10:00:00</span></p>
+      </div>
+    </div>
+    <div class="footer">Mensaje automático de validación SMTP. No requiere respuesta.</div>
+  </div>
+</body>
+</html>

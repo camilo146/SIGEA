@@ -1,6 +1,7 @@
 package co.edu.sena.sigea.seguridad.service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.stereotype.Service;
@@ -63,14 +64,14 @@ public class VerificacionEmailServicio {
         }
 
         String asunto = "Código de verificación - SIGEA";
-        String cuerpo = "Hola " + usuario.getNombreCompleto() + ",\n\n"
-                + "Gracias por registrarte en SIGEA. Tu código de verificación es:\n\n"
-                + "  " + codigo + "\n\n"
-                + "Ingresa este código en la aplicación para activar tu cuenta. El código es válido por "
-                + HORAS_VALIDEZ_CODIGO + " horas.\n\n"
-                + "Si no creaste esta cuenta, puedes ignorar este mensaje.\n\n"
-                + "Sistema SIGEA - SENA";
-        correoServicio.enviarCorreoObligatorio(usuario.getCorreoElectronico(), asunto, cuerpo);
+        correoServicio.enviarCorreoHtmlObligatorio(
+            usuario.getCorreoElectronico(),
+            asunto,
+            "correos/correo-verificacion",
+            Map.of(
+                "nombreUsuario", usuario.getNombreCompleto(),
+                "codigo", codigo,
+                "horasValidez", HORAS_VALIDEZ_CODIGO));
     }
 
     /**

@@ -32,8 +32,30 @@ public enum TipoNotificacion {
     // Reserva creada: el usuario recibe confirmación por correo
     RESERVA_CREADA,
 
+    // Reserva cancelada antes de la entrega
+    RESERVA_CANCELADA,
+
+    // Reserva expirada por no recogida
+    RESERVA_EXPIRADA,
+
     // Equipo recogido: el usuario recibe confirmación de que su reserva pasó a préstamo
     EQUIPO_RECOGIDO,
+
+    // Movimiento de salida del préstamo
+    PRESTAMO_SALIDA,
+
+    // Solicitud de préstamo cancelada
+    PRESTAMO_CANCELADO,
+
+    // Movimiento de devolución del préstamo
+    PRESTAMO_DEVUELTO,
+
+    // Flujo de ambientes
+    SOLICITUD_PRESTAMO_AMBIENTE,
+    PRESTAMO_AMBIENTE_APROBADO,
+    PRESTAMO_AMBIENTE_RECHAZADO,
+    PRESTAMO_AMBIENTE_CANCELADO,
+    PRESTAMO_AMBIENTE_DEVUELTO,
 
     // Notificaciones genéricas del sistema
     GENERAL

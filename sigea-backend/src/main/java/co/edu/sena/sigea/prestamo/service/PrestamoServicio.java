@@ -361,7 +361,12 @@ public class PrestamoServicio {
             prestamo.setEstado(EstadoPrestamo.ACTIVO);
         }
 
-        return mapearPrestamo(prestamoRepository.save(prestamo));
+        Prestamo guardado = prestamoRepository.save(prestamo);
+        try {
+            notificacionServicio.notificarSalidaPrestamo(guardado);
+        } catch (Exception ignored) {
+        }
+        return mapearPrestamo(guardado);
     }
 
     // =========================================================================
@@ -476,7 +481,12 @@ public class PrestamoServicio {
             }
         }
 
-        return mapearPrestamo(prestamoRepository.save(prestamo));
+        Prestamo guardado = prestamoRepository.save(prestamo);
+        try {
+            notificacionServicio.notificarPrestamoDevuelto(guardado);
+        } catch (Exception ignored) {
+        }
+        return mapearPrestamo(guardado);
     }
 
     // =========================================================================
@@ -505,7 +515,11 @@ public class PrestamoServicio {
         }
 
         prestamo.setEstado(EstadoPrestamo.CANCELADO);
-        prestamoRepository.save(prestamo);
+        Prestamo guardado = prestamoRepository.save(prestamo);
+        try {
+            notificacionServicio.notificarPrestamoCancelado(guardado);
+        } catch (Exception ignored) {
+        }
     }
 
     // =========================================================================

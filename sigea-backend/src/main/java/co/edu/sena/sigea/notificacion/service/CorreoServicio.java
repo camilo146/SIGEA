@@ -22,8 +22,11 @@ public class CorreoServicio {
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
 
-    @Value("${spring.mail.username:sigea@sena.edu.co}")
+    @Value("${spring.mail.username:sigeasena@gmail.com}")
     private String remitente;
+
+    @Value("${sigea.mail.from-name:SIGEA SENA}")
+    private String remitenteNombre;
 
     public CorreoServicio(JavaMailSender mailSender, TemplateEngine templateEngine) {
         this.mailSender = mailSender;
@@ -79,7 +82,7 @@ public class CorreoServicio {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setTo(destinatario);
             helper.setSubject(asunto);
-            helper.setFrom(remitente);
+            helper.setFrom(remitente, remitenteNombre);
             helper.setText(contenidoHtml, true);
 
             mailSender.send(mimeMessage);
@@ -99,5 +102,16 @@ public class CorreoServicio {
             throw new ServicioCorreoException(
                     "No fue posible enviar el correo. Revise la configuracion SMTP del backend e intente de nuevo.");
         }
+    }
+
+    public void enviarCorreoPruebaObligatorio(String destinatario) {
+        enviarCorreoHtmlObligatorio(
+                destinatario,
+                "Prueba SMTP SIGEA",
+                "correos/correo-prueba-smtp",
+                Map.of(
+                        "destinatario", destinatario,
+                        "remitente", remitente,
+                        "fecha", java.time.LocalDateTime.now().toString()));
     }
 }

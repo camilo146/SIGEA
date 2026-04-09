@@ -1,7 +1,9 @@
 package co.edu.sena.sigea.notificacion.controller;
 
 import co.edu.sena.sigea.notificacion.dto.NotificacionRespuestaDTO;
+import co.edu.sena.sigea.notificacion.dto.PruebaCorreoDTO;
 import co.edu.sena.sigea.notificacion.service.NotificacionServicio;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -60,5 +62,14 @@ public class NotificacionControlador {
             @AuthenticationPrincipal UserDetails userDetails) {
         notificacionServicio.marcarComoLeida(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/probar-correo")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<Map<String, String>> probarCorreo(
+            @Valid @RequestBody PruebaCorreoDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        notificacionServicio.enviarCorreoPrueba(userDetails.getUsername(), dto.getDestinatario());
+        return ResponseEntity.ok(Map.of("mensaje", "Correo de prueba enviado correctamente"));
     }
 }

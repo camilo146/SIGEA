@@ -179,6 +179,11 @@ public class ReservaServicio {
 
         reserva.setEstado(EstadoReserva.CANCELADA);
         reservaRepository.save(reserva);
+        try {
+            notificacionServicio.notificarReservaCancelada(reserva);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar notificación de reserva cancelada: {}", e.getMessage());
+        }
     }
 
     // =========================================================================
@@ -261,6 +266,11 @@ public class ReservaServicio {
         for (Reserva r : aExpirar) {
             r.setEstado(EstadoReserva.EXPIRADA);
             reservaRepository.save(r);
+            try {
+                notificacionServicio.notificarReservaExpirada(r);
+            } catch (Exception e) {
+                log.warn("No se pudo enviar notificación de reserva expirada: {}", e.getMessage());
+            }
             log.info("Reserva ID {} expirada por no recogida en ventana de 2h.", r.getId());
         }
     }

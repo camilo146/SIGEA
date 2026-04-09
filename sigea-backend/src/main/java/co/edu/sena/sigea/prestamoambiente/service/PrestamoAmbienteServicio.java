@@ -11,7 +11,7 @@ import co.edu.sena.sigea.ambiente.repository.AmbienteRepository;
 import co.edu.sena.sigea.common.enums.Rol;
 import co.edu.sena.sigea.common.exception.OperacionNoPermitidaException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
-import co.edu.sena.sigea.notificacion.service.CorreoServicio;
+import co.edu.sena.sigea.notificacion.service.NotificacionServicio;
 import co.edu.sena.sigea.prestamoambiente.dto.PrestamoAmbienteDevolucionDTO;
 import co.edu.sena.sigea.prestamoambiente.dto.PrestamoAmbienteRespuestaDTO;
 import co.edu.sena.sigea.prestamoambiente.dto.PrestamoAmbienteSolicitudDTO;
@@ -29,7 +29,7 @@ public class PrestamoAmbienteServicio {
     private final PrestamoAmbienteRepository prestamoAmbienteRepository;
     private final AmbienteRepository ambienteRepository;
     private final UsuarioRepository usuarioRepository;
-    private final CorreoServicio correoServicio;
+    private final NotificacionServicio notificacionServicio;
 
     @Transactional
     public PrestamoAmbienteRespuestaDTO solicitar(PrestamoAmbienteSolicitudDTO dto, String correoSolicitante) {
@@ -85,15 +85,11 @@ public class PrestamoAmbienteServicio {
 
         PrestamoAmbiente guardado = prestamoAmbienteRepository.save(prestamo);
 
-        // Notificar al propietario del ambiente
-        correoServicio.enviarCorreo(
-                propietario.getCorreoElectronico(),
-                "Nueva solicitud de préstamo de ambiente: " + ambiente.getNombre(),
-                String.format(
-                        "El usuario %s ha solicitado préstamo del ambiente '%s' para el %s de %s a %s.\nPropósito: %s",
-                        solicitante.getNombreCompleto(), ambiente.getNombre(),
-                        dto.getFechaInicio(), dto.getHoraInicio(), dto.getHoraFin(),
-                        dto.getProposito()));
+        notificacionServicio.notificarSolicitudPrestamoAmbiente(
+            solicitante,
+            propietario,
+            ambiente.getNombre(),
+            dto.getFechaInicio().atTime(dto.getHoraInicio()));
 
         return convertirADTO(guardado);
     }
@@ -124,11 +120,10 @@ public class PrestamoAmbienteServicio {
         prestamo.setFechaAprobacion(LocalDateTime.now());
         PrestamoAmbiente actualizado = prestamoAmbienteRepository.save(prestamo);
 
-        correoServicio.enviarCorreo(
-                prestamo.getSolicitante().getCorreoElectronico(),
-                "Préstamo de ambiente aprobado: " + prestamo.getAmbiente().getNombre(),
-                String.format("Su solicitud de préstamo del ambiente '%s' para el %s ha sido APROBADA.",
-                        prestamo.getAmbiente().getNombre(), prestamo.getFechaInicio()));
+        notificacionServicio.notificarPrestamoAmbienteAprobado(
+            prestamo.getSolicitante(),
+            prestamo.getPropietarioAmbiente(),
+            prestamo.getAmbiente().getNombre());
 
         return convertirADTO(actualizado);
     }
@@ -149,11 +144,11 @@ public class PrestamoAmbienteServicio {
                         + "Motivo de rechazo: " + motivo);
         PrestamoAmbiente actualizado = prestamoAmbienteRepository.save(prestamo);
 
-        correoServicio.enviarCorreo(
-                prestamo.getSolicitante().getCorreoElectronico(),
-                "Préstamo de ambiente rechazado: " + prestamo.getAmbiente().getNombre(),
-                String.format("Su solicitud de préstamo del ambiente '%s' para el %s fue RECHAZADA.\nMotivo: %s",
-                        prestamo.getAmbiente().getNombre(), prestamo.getFechaInicio(), motivo));
+        notificacionServicio.notificarPrestamoAmbienteRechazado(
+            prestamo.getSolicitante(),
+            prestamo.getPropietarioAmbiente(),
+            prestamo.getAmbiente().getNombre(),
+            motivo);
 
         return convertirADTO(actualizado);
     }
@@ -174,6 +169,11 @@ public class PrestamoAmbienteServicio {
         prestamo.setEstadoDevolucionAmbiente(dto.getEstadoDevolucionAmbiente());
         prestamo.setFechaDevolucion(LocalDateTime.now());
         PrestamoAmbiente actualizado = prestamoAmbienteRepository.save(prestamo);
+
+        notificacionServicio.notificarPrestamoAmbienteDevuelto(
+            prestamo.getSolicitante(),
+            prestamo.getPropietarioAmbiente(),
+            prestamo.getAmbiente().getNombre());
 
         return convertirADTO(actualizado);
     }
@@ -198,7 +198,12 @@ public class PrestamoAmbienteServicio {
         }
 
         prestamo.setEstado(EstadoPrestamoAmbiente.CANCELADO);
-        return convertirADTO(prestamoAmbienteRepository.save(prestamo));
+    PrestamoAmbiente actualizado = prestamoAmbienteRepository.save(prestamo);
+    notificacionServicio.notificarPrestamoAmbienteCancelado(
+        prestamo.getSolicitante(),
+        prestamo.getPropietarioAmbiente(),
+        prestamo.getAmbiente().getNombre());
+    return convertirADTO(actualizado);
     }
 
     @Transactional(readOnly = true)
