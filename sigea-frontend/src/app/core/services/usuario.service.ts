@@ -38,6 +38,10 @@ export class UsuarioService {
     return this.http.patch<Usuario>(`${this.apiUrl}/${id}/rol`, { nuevoRol: rol });
   }
 
+  restablecerContrasena(id: number, nuevaContrasena: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/restablecer-contrasena`, { nuevaContrasena });
+  }
+
   activar(id: number): Observable<void> {
     return this.http.patch<void>(`${this.apiUrl}/${id}/activar`, {});
   }

@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../core/services/auth.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { PrestamoService } from '../../core/services/prestamo.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -16,6 +17,7 @@ type VistaUsuarios = 'todos' | 'pendientes';
   styleUrl: './usuarios.component.scss',
 })
 export class UsuariosComponent implements OnInit {
+  private auth = inject(AuthService);
   private usuarioService = inject(UsuarioService);
   private prestamoService = inject(PrestamoService);
   private ui = inject(UiFeedbackService);
@@ -28,23 +30,30 @@ export class UsuariosComponent implements OnInit {
   error = signal('');
   modalOpen = signal(false);
   modalEditOpen = signal(false);
+  modalPasswordOpen = signal(false);
   editingUser = signal<Usuario | null>(null);
+  passwordUser = signal<Usuario | null>(null);
   createSaving = signal(false);
   editSaving = signal(false);
+  passwordSaving = signal(false);
   actionPending = signal<Record<string, boolean>>({});
   filterRol = signal('');
   filterEstado = signal('');
   searchTerm = signal('');
+  showResetPassword = false;
 
   form: UsuarioCrear = {
     nombreCompleto: '', tipoDocumento: 'CC', numeroDocumento: '',
     correoElectronico: '', programaFormacion: '', numeroFicha: '', telefono: '', contrasena: '', rol: 'USUARIO_ESTANDAR',
   };
   editForm: Partial<Usuario> & { numeroTelefono?: string; numeroFicha?: string } = {};
+  passwordForm = { nuevaContrasena: '', confirmarContrasena: '' };
   showPassword = false;
+  isSuperAdmin = this.auth.isSuperAdmin;
 
   readonly ROLES = [
     { value: 'ADMINISTRADOR', label: 'Administrador', color: 'green' },
+    { value: 'ALIMENTADOR_EQUIPOS', label: 'Alimentador de equipos', color: 'cyan' },
     { value: 'INSTRUCTOR', label: 'Instructor', color: 'blue' },
     { value: 'APRENDIZ', label: 'Aprendiz', color: 'purple' },
     { value: 'FUNCIONARIO', label: 'Funcionario', color: 'orange' },
@@ -185,6 +194,7 @@ export class UsuariosComponent implements OnInit {
           this.usuarios.set(copy);
         }
         this.loadUsuarios();
+        this.ui.success(`El rol de ${u.nombreCompleto} fue actualizado a ${this.getRolLabel(actualizado.rol)}.`, 'Usuarios');
       },
       error: (e) => this.error.set(e.error?.message ?? 'Error'),
     });
@@ -226,6 +236,54 @@ export class UsuariosComponent implements OnInit {
     this.editingUser.set(null);
     this.error.set('');
     this.editSaving.set(false);
+  }
+
+  openPasswordReset(u: Usuario) {
+    this.passwordUser.set(u);
+    this.passwordForm = { nuevaContrasena: '', confirmarContrasena: '' };
+    this.showResetPassword = false;
+    this.error.set('');
+    this.modalPasswordOpen.set(true);
+  }
+
+  closePasswordResetModal() {
+    this.modalPasswordOpen.set(false);
+    this.passwordUser.set(null);
+    this.passwordForm = { nuevaContrasena: '', confirmarContrasena: '' };
+    this.showResetPassword = false;
+    this.passwordSaving.set(false);
+    this.error.set('');
+  }
+
+  submitPasswordReset() {
+    const usuario = this.passwordUser();
+    if (!usuario) return;
+
+    const nuevaContrasena = this.passwordForm.nuevaContrasena.trim();
+    if (!this.passwordEsSegura(nuevaContrasena)) {
+      this.error.set('La nueva contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un caracter especial.');
+      return;
+    }
+
+    if (nuevaContrasena !== this.passwordForm.confirmarContrasena.trim()) {
+      this.error.set('La confirmación de contraseña no coincide.');
+      return;
+    }
+
+    this.passwordSaving.set(true);
+    this.usuarioService.restablecerContrasena(usuario.id, nuevaContrasena).subscribe({
+      next: () => {
+        this.passwordSaving.set(false);
+        this.closePasswordResetModal();
+        this.ui.success(`La contraseña de ${usuario.nombreCompleto} fue restablecida.`, 'Usuarios');
+      },
+      error: (e) => {
+        this.passwordSaving.set(false);
+        const message = e.error?.message ?? 'No fue posible restablecer la contraseña.';
+        this.error.set(message);
+        this.ui.error(message, 'Usuarios');
+      },
+    });
   }
 
   submitEdit() {
@@ -273,8 +331,18 @@ export class UsuariosComponent implements OnInit {
   }
 
   getRolColor(rol: string): string {
-    const map: Record<string, string> = { ADMINISTRADOR: 'green', INSTRUCTOR: 'blue', APRENDIZ: 'purple', FUNCIONARIO: 'orange' };
+    const map: Record<string, string> = {
+      ADMINISTRADOR: 'green',
+      ALIMENTADOR_EQUIPOS: 'cyan',
+      INSTRUCTOR: 'blue',
+      APRENDIZ: 'purple',
+      FUNCIONARIO: 'orange',
+    };
     return map[rol] ?? 'gray';
+  }
+
+  getRolLabel(rol: string): string {
+    return this.ROLES.find((item) => item.value === rol)?.label ?? rol;
   }
 
   getPrestamoCount(userId: number): number {
@@ -294,6 +362,13 @@ export class UsuariosComponent implements OnInit {
 
   isActionPending(action: string, id: number): boolean {
     return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private passwordEsSegura(password: string): boolean {
+    return password.length >= 8
+      && /[A-Z]/.test(password)
+      && /\d/.test(password)
+      && /[^A-Za-z0-9]/.test(password);
   }
 
   private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, onSuccess: () => void, successMessage: string) {

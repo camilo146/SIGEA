@@ -33,6 +33,7 @@ import co.edu.sena.sigea.usuario.dto.UsuarioActualizadoDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarContrasenaDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarRolDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCrearDTO;
+import co.edu.sena.sigea.usuario.dto.UsuarioRestablecerContrasenaDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioRespuestaDTO;
 import co.edu.sena.sigea.usuario.entity.Usuario;
 import co.edu.sena.sigea.usuario.repository.UsuarioRepository;
@@ -221,9 +222,45 @@ public class UsuarioService {
                     "La contraseña actual es incorrecta");
         }
 
+        validarContrasenaSegura(dto.getNuevaContrasena());
         usuario.setContrasenaHash(passwordEncoder.encode(dto.getNuevaContrasena()));
+        usuario.setIntentosFallidos(0);
+        usuario.setCuentaBloqueadaHasta(null);
+        usuario.setTokenVerificacion(null);
+        usuario.setTokenVerificacionExpira(null);
         usuarioRepository.save(usuario);
     }
+
+        @Transactional
+        public void restablecerContrasenaAdministrativa(String correoAdministrador, Long id,
+            UsuarioRestablecerContrasenaDTO dto) {
+
+        Usuario administrador = usuarioRepository.findByCorreoElectronico(correoAdministrador)
+            .orElseThrow(() -> new RecursoNoEncontradoException(
+                "Usuario no encontrado con correo: " + correoAdministrador));
+
+        if (administrador.getRol() != Rol.ADMINISTRADOR) {
+            throw new OperacionNoPermitidaException(
+                "Solo un administrador puede restablecer contraseñas de otros usuarios.");
+        }
+
+        Usuario usuario = usuarioRepository.findById(id)
+            .orElseThrow(() -> new RecursoNoEncontradoException(
+                "Usuario no encontrado con ID: " + id));
+
+        if (Boolean.TRUE.equals(usuario.getEsSuperAdmin()) && !Boolean.TRUE.equals(administrador.getEsSuperAdmin())) {
+            throw new OperacionNoPermitidaException(
+                "Solo el superadministrador puede restablecer la contraseña de otro superadministrador.");
+        }
+
+        validarContrasenaSegura(dto.getNuevaContrasena());
+        usuario.setContrasenaHash(passwordEncoder.encode(dto.getNuevaContrasena()));
+        usuario.setIntentosFallidos(0);
+        usuario.setCuentaBloqueadaHasta(null);
+        usuario.setTokenVerificacion(null);
+        usuario.setTokenVerificacionExpira(null);
+        usuarioRepository.save(usuario);
+        }
 
     // Metodo para cambiar el rol de un usuario (solo admin)
     @Transactional
@@ -399,6 +436,16 @@ public class UsuarioService {
                 .fechaCreacion(usuario.getFechaCreacion())
                 .fechaActualizacion(usuario.getFechaActualizacion())
                 .build();
+    }
+
+    private void validarContrasenaSegura(String contrasena) {
+        if (contrasena == null || contrasena.length() < 8
+                || !contrasena.chars().anyMatch(Character::isUpperCase)
+                || !contrasena.chars().anyMatch(Character::isDigit)
+                || contrasena.chars().noneMatch(ch -> !Character.isLetterOrDigit(ch))) {
+            throw new OperacionNoPermitidaException(
+                    "La nueva contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un caracter especial.");
+        }
     }
 
 }

@@ -59,6 +59,7 @@ import co.edu.sena.sigea.usuario.dto.UsuarioActualizadoDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarContrasenaDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarRolDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCrearDTO;
+import co.edu.sena.sigea.usuario.dto.UsuarioRestablecerContrasenaDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioRespuestaDTO;
 import co.edu.sena.sigea.usuario.service.UsuarioService;
 
@@ -211,6 +212,19 @@ public class UsuarioControlador {
 
         UsuarioRespuestaDTO respuesta = usuarioServicio.cambiarRol(id, dto);
         return ResponseEntity.ok(respuesta);
+    }
+
+    @PatchMapping("/{id}/restablecer-contrasena")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<Void> restablecerContrasena(
+            @PathVariable Long id,
+            @Valid @RequestBody UsuarioRestablecerContrasenaDTO dto) {
+
+        Authentication autenticacion = SecurityContextHolder.getContext().getAuthentication();
+        String correo = autenticacion.getName();
+
+        usuarioServicio.restablecerContrasenaAdministrativa(correo, id, dto);
+        return ResponseEntity.noContent().build();
     }
 
     // =========================================================================
