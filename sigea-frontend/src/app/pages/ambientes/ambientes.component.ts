@@ -85,7 +85,7 @@ export class AmbientesComponent implements OnInit {
     const sub = this.selectedSubUbicacion();
     const equipos = this.equiposAmbiente();
     if (!sub) return equipos;
-    return equipos.filter((e) => e.subUbicacionId === sub.id);
+    return equipos.filter((equipo) => this.perteneceASubUbicacion(equipo, sub.id, sub.nombre));
   });
 
   /** Usuarios aptos como responsables: instructores y administradores */
@@ -374,14 +374,23 @@ export class AmbientesComponent implements OnInit {
 
   getEquiposSubUbicacion(subId: number): Equipo[] {
     const sub = this.subUbicaciones().find((item) => item.id === subId);
-    return this.subEquipos().filter((equipo) =>
-      Number(equipo.subUbicacionId) === Number(subId)
-      || (!!sub && equipo.subUbicacionNombre?.trim().toLowerCase() === sub.nombre.trim().toLowerCase())
-    );
+    return this.subEquipos().filter((equipo) => this.perteneceASubUbicacion(equipo, subId, sub?.nombre));
   }
 
   getEquiposSubUbicacionCount(subId: number): number {
     return this.getEquiposSubUbicacion(subId).length;
+  }
+
+  private perteneceASubUbicacion(equipo: Equipo, subId: number, subNombre?: string): boolean {
+    if (Number(equipo.subUbicacionId) === Number(subId)) {
+      return true;
+    }
+
+    if (!subNombre || !equipo.subUbicacionNombre) {
+      return false;
+    }
+
+    return equipo.subUbicacionNombre.trim().toLowerCase() === subNombre.trim().toLowerCase();
   }
 
   private loadSubUbicaciones(padreId: number) {

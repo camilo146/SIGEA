@@ -199,7 +199,9 @@ export class InventarioComponent implements OnInit {
   }
 
   submitForm() {
-    if (!this.form.nombre?.trim() || !this.form.categoriaId || !this.form.ambienteId) {
+    const payload = this.normalizarFormulario();
+
+    if (!payload.nombre?.trim() || !payload.categoriaId || !payload.ambienteId) {
       this.error.set('Complete nombre, categoría y ubicación.');
       return;
     }
@@ -211,7 +213,7 @@ export class InventarioComponent implements OnInit {
     }
     this.savingForm.set(true);
     if (esCrear) {
-      this.equipoService.crear(this.form).subscribe({
+      this.equipoService.crear(payload).subscribe({
         next: (nuevo) => {
           if (this.fotoArchivo) {
             this.equipoService.subirFoto(nuevo.id, this.fotoArchivo).subscribe({
@@ -244,7 +246,7 @@ export class InventarioComponent implements OnInit {
         },
       });
     } else {
-      this.equipoService.actualizar(id!, this.form).subscribe({
+      this.equipoService.actualizar(id!, payload).subscribe({
         next: () => {
           this.savingForm.set(false);
           this.closeModal();
@@ -374,6 +376,38 @@ export class InventarioComponent implements OnInit {
 
   isActionPending(action: string, id: number): boolean {
     return !!this.actionPending()[`${action}-${id}`];
+  }
+
+  private normalizarFormulario(): EquipoCrear {
+    const ambienteId = Number(this.form.ambienteId);
+    const categoriaId = Number(this.form.categoriaId);
+    const cantidadTotal = Number(this.form.cantidadTotal);
+    const umbralMinimo = Number(this.form.umbralMinimo);
+    const marcaId = this.form.marcaId != null ? Number(this.form.marcaId) : null;
+    const propietarioId = this.form.propietarioId != null ? Number(this.form.propietarioId) : null;
+    const subUbicacionId = this.form.subUbicacionId != null
+      ? Number(this.form.subUbicacionId)
+      : null;
+
+    const subUbicacionValida = subUbicacionId != null
+      && this.subUbicacionesAmbiente().some((sub) => Number(sub.id) === subUbicacionId);
+
+    return {
+      ...this.form,
+      nombre: this.form.nombre?.trim() ?? '',
+      descripcion: this.form.descripcion?.trim() ?? '',
+      codigoUnico: this.form.codigoUnico?.trim() ?? '',
+      placa: this.form.placa?.trim() ?? '',
+      serial: this.form.serial?.trim() ?? '',
+      modelo: this.form.modelo?.trim() ?? '',
+      categoriaId,
+      ambienteId,
+      cantidadTotal,
+      umbralMinimo,
+      marcaId,
+      propietarioId,
+      subUbicacionId: subUbicacionValida ? subUbicacionId : null,
+    };
   }
 
   private runAction(action: string, id: number, request: () => import('rxjs').Observable<unknown>, successMessage: string) {
