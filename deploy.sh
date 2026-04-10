@@ -23,6 +23,20 @@ info()    { echo -e "${GREEN}[SIGEA]${NC} $1"; }
 warning() { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
+compose_up() {
+  local compose_frontend_port
+  compose_frontend_port="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
+
+  if [ -n "$compose_frontend_port" ] \
+    && [ "$compose_frontend_port" = "443" ] \
+    && grep -q 'container_name: sigea-caddy' docker-compose.yml 2>/dev/null; then
+    warning "Caddy ya publica el puerto 443. El contenedor frontend se levantará sin tomar 443 en el host para evitar el conflicto."
+    FRONTEND_PORT=4043 docker compose up -d --build
+  else
+    docker compose up -d --build
+  fi
+}
+
 frontend_url() {
   local host domain frontend_port
   host="$(hostname -I | awk '{print $1}')"
@@ -94,7 +108,7 @@ if [ "$ACTION" = "install" ]; then
 
   # Construir y levantar
   info "Construyendo imágenes y levantando contenedores (puede tardar 5-10 min la primera vez)..."
-  docker compose up -d --build
+  compose_up
 
   # Verificar
   info "Esperando que los contenedores inicien..."
@@ -134,7 +148,7 @@ elif [ "$ACTION" = "update" ]; then
 
   # Reconstruir y reiniciar
   info "Reconstruyendo contenedores..."
-  docker compose up -d --build
+  compose_up
 
   info "Verificando estado..."
   docker compose ps
