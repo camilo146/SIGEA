@@ -30,10 +30,10 @@ compose_up() {
   if [ -n "$compose_frontend_port" ] \
     && [ "$compose_frontend_port" = "443" ] \
     && grep -q 'container_name: sigea-caddy' docker-compose.yml 2>/dev/null; then
-    warning "Caddy ya publica el puerto 443. El contenedor frontend se levantará sin tomar 443 en el host para evitar el conflicto."
-    FRONTEND_PORT=4043 docker compose up -d --build
+    warning "Caddy ya publica el puerto 443. Se ignorarán overrides locales y el frontend se levantará sin tomar 443 en el host para evitar el conflicto."
+    FRONTEND_PORT=4043 docker compose -f docker-compose.yml up -d --build
   else
-    docker compose up -d --build
+    docker compose -f docker-compose.yml up -d --build
   fi
 }
 
