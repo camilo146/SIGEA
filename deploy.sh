@@ -28,10 +28,12 @@ frontend_url() {
   host="$(hostname -I | awk '{print $1}')"
   domain="$(grep -E '^SIGEA_DOMAIN=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
   frontend_port="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
-  [ -n "$frontend_port" ] || frontend_port="4043"
+  [ -n "$frontend_port" ] || frontend_port="443"
 
   if [ -n "$domain" ] && [ "$domain" != "localhost" ]; then
     echo "https://$domain"
+  elif [ "$frontend_port" = "443" ]; then
+    echo "https://$host"
   else
     echo "http://$host:$frontend_port"
   fi
