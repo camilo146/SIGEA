@@ -33,6 +33,9 @@ import co.edu.sena.sigea.reporte.service.ReporteServicio;
 @RestController
 @RequestMapping("/reportes")
 @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+// Controlador de reportes para generar archivos XLSX o PDF con información de
+// inventario,
+// préstamos, equipos más solicitados y usuarios en mora.
 public class ReporteControlador {
 
     private final ReporteServicio reporteServicio;
