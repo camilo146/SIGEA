@@ -38,8 +38,11 @@ free_port_80() {
 }
 
 compose_up() {
+  # Eliminar contenedores huérfanos (ej: sigea-caddy de deploys anteriores)
+  # que podrían estar ocupando el puerto 80 antes de levantar los nuevos.
+  docker compose -f docker-compose.yml down --remove-orphans 2>/dev/null || true
   free_port_80
-  docker compose -f docker-compose.yml up -d --build
+  docker compose -f docker-compose.yml up -d --build --remove-orphans
 }
 
 frontend_url() {
