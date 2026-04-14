@@ -26,6 +26,8 @@ import co.edu.sena.sigea.ambiente.dto.AmbienteRespuestaDTO;
 import co.edu.sena.sigea.ambiente.service.AmbienteService;
 import jakarta.validation.Valid;
 
+// Metodos para gestionar ambientes: crear, listar, buscar por id, actualizar, activar/desactivar. Incluye endpoints específicos para sub-ubicaciones
+// (hijas) y para listar ambientes por instructor responsable.
 @RestController
 @RequestMapping("/ambientes")
 public class AmbienteControlador {

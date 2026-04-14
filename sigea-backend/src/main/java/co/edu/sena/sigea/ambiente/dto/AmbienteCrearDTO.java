@@ -13,6 +13,8 @@ import lombok.Setter;
 @NoArgsConstructor // genera cponstructor vacio
 @AllArgsConstructor // genera constructor con todos lo campos
 
+// Dto para la creacion de un nuevo ambiente, incluye validaciones de campos
+// obligatorios y limites de caracteres
 public class AmbienteCrearDTO {
 
     @NotBlank(message = "El nombre del ambiente es obligatorio")

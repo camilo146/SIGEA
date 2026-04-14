@@ -14,6 +14,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
+// Dta de respueta para el detalle de un ambiente, incluye informacion de su
+// ambiente padre y sub-ubicaciones hijas (si las tiene)
 public class AmbienteRespuestaDTO {
 
     private long id;

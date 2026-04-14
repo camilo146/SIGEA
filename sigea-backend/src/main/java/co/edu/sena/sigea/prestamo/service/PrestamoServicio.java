@@ -149,16 +149,16 @@ public class PrestamoServicio {
         // INMEDIATAMENTE.
         // Así no creamos un préstamo a medias.
         Map<Long, Integer> cantidadesSolicitadas = dto.getDetalles().stream()
-            .collect(Collectors.groupingBy(
-                DetallePrestamoDTO::getEquipoId,
-                Collectors.summingInt(DetallePrestamoDTO::getCantidad)));
+                .collect(Collectors.groupingBy(
+                        DetallePrestamoDTO::getEquipoId,
+                        Collectors.summingInt(DetallePrestamoDTO::getCantidad)));
 
         for (Map.Entry<Long, Integer> entry : cantidadesSolicitadas.entrySet()) {
 
             // Buscar el equipo. Si no existe → 404.
             Equipo equipo = equipoRepository.findById(entry.getKey())
                     .orElseThrow(() -> new RecursoNoEncontradoException(
-                    "Equipo no encontrado con ID: " + entry.getKey()));
+                            "Equipo no encontrado con ID: " + entry.getKey()));
 
             // Verificar que el equipo esté activo (no dado de baja).
             // Boolean con B mayúscula → Lombok genera getActivo() (no isActivo()).

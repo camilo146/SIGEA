@@ -231,26 +231,26 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
-        @Transactional
-        public void restablecerContrasenaAdministrativa(String correoAdministrador, Long id,
+    @Transactional
+    public void restablecerContrasenaAdministrativa(String correoAdministrador, Long id,
             UsuarioRestablecerContrasenaDTO dto) {
 
         Usuario administrador = usuarioRepository.findByCorreoElectronico(correoAdministrador)
-            .orElseThrow(() -> new RecursoNoEncontradoException(
-                "Usuario no encontrado con correo: " + correoAdministrador));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado con correo: " + correoAdministrador));
 
         if (administrador.getRol() != Rol.ADMINISTRADOR) {
             throw new OperacionNoPermitidaException(
-                "Solo un administrador puede restablecer contraseñas de otros usuarios.");
+                    "Solo un administrador puede restablecer contraseñas de otros usuarios.");
         }
 
         Usuario usuario = usuarioRepository.findById(id)
-            .orElseThrow(() -> new RecursoNoEncontradoException(
-                "Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado con ID: " + id));
 
         if (Boolean.TRUE.equals(usuario.getEsSuperAdmin()) && !Boolean.TRUE.equals(administrador.getEsSuperAdmin())) {
             throw new OperacionNoPermitidaException(
-                "Solo el superadministrador puede restablecer la contraseña de otro superadministrador.");
+                    "Solo el superadministrador puede restablecer la contraseña de otro superadministrador.");
         }
 
         validarContrasenaSegura(dto.getNuevaContrasena());
@@ -260,7 +260,7 @@ public class UsuarioService {
         usuario.setTokenVerificacion(null);
         usuario.setTokenVerificacionExpira(null);
         usuarioRepository.save(usuario);
-        }
+    }
 
     // Metodo para cambiar el rol de un usuario (solo admin)
     @Transactional

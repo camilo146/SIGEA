@@ -32,7 +32,7 @@ public class MantenimientoServicio {
     private final EquipoRepository equipoRepository;
 
     public MantenimientoServicio(MantenimientoRepository mantenimientoRepository,
-                                EquipoRepository equipoRepository) {
+            EquipoRepository equipoRepository) {
         this.mantenimientoRepository = mantenimientoRepository;
         this.equipoRepository = equipoRepository;
     }
@@ -45,7 +45,8 @@ public class MantenimientoServicio {
 
         if (!Boolean.TRUE.equals(equipo.getActivo())) {
             throw new OperacionNoPermitidaException(
-                    "No se puede registrar mantenimiento para el equipo '" + equipo.getNombre() + "' porque no está activo.");
+                    "No se puede registrar mantenimiento para el equipo '" + equipo.getNombre()
+                            + "' porque no está activo.");
         }
 
         if (dto.getFechaFin() != null && dto.getFechaFin().isBefore(dto.getFechaInicio())) {
@@ -171,7 +172,10 @@ public class MantenimientoServicio {
         return mapear(mantenimientoRepository.save(m));
     }
 
-    /** Elimina un mantenimiento solo si aún no está cerrado. Ajusta estado del equipo si aplica. */
+    /**
+     * Elimina un mantenimiento solo si aún no está cerrado. Ajusta estado del
+     * equipo si aplica.
+     */
     public void eliminar(Long id) {
         Mantenimiento m = mantenimientoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
@@ -187,7 +191,8 @@ public class MantenimientoServicio {
             var equipo = equipoRepository.findById(equipoId).orElse(null);
             if (equipo != null && equipo.getEstado() == EstadoEquipo.EN_MANTENIMIENTO) {
                 if (equipo.getTipoUso() == TipoUsoEquipo.NO_CONSUMIBLE) {
-                    equipo.setCantidadDisponible(Math.min(equipo.getCantidadTotal(), equipo.getCantidadDisponible() + 1));
+                    equipo.setCantidadDisponible(
+                            Math.min(equipo.getCantidadTotal(), equipo.getCantidadDisponible() + 1));
                 }
                 equipo.setEstado(EstadoEquipo.ACTIVO);
                 equipoRepository.save(equipo);
@@ -205,7 +210,8 @@ public class MantenimientoServicio {
         if (equipo.getTipoUso() == TipoUsoEquipo.NO_CONSUMIBLE) {
             if (equipo.getCantidadDisponible() == null || equipo.getCantidadDisponible() < 1) {
                 throw new OperacionNoPermitidaException(
-                        "No hay unidades disponibles para enviar a mantenimiento el equipo '" + equipo.getNombre() + "'.");
+                        "No hay unidades disponibles para enviar a mantenimiento el equipo '" + equipo.getNombre()
+                                + "'.");
             }
             equipo.setCantidadDisponible(Math.max(0, equipo.getCantidadDisponible() - 1));
         }

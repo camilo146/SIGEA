@@ -1,0 +1,29 @@
+﻿flowchart TB
+    classDef frontend fill:#e2e8f0,stroke:#334155,color:#0f172a
+    classDef backend  fill:#dcfce7,stroke:#166534,color:#14532d
+    classDef data     fill:#fef9c3,stroke:#a16207,color:#713f12
+    classDef ext      fill:#ede9fe,stroke:#5b21b6,color:#4c1d95
+    subgraph FE[Frontend Angular 17]
+        FE_PAGES[Pages and Components]:::frontend
+        FE_SERV[Core Services]:::frontend
+        FE_GUARD[Guards and JWT Interceptor]:::frontend
+    end
+    subgraph BE[Backend Spring Boot 3 Java 21]
+        BE_SEC[Security and JWT Filter]:::backend
+        BE_CTRL[REST Controllers /api/v1]:::backend
+        BE_SVC[Business Services]:::backend
+        BE_REPO[JPA Repositories]:::backend
+    end
+    subgraph DATA[Persistence]
+        DB[(MariaDB 11)]:::data
+        FS[(Uploads Storage)]:::data
+    end
+    subgraph EXT[External Services]
+        SMTP[SMTP]:::ext
+        WA[WhatsApp API]:::ext
+    end
+    FE_PAGES --> FE_SERV --> FE_GUARD --> BE_SEC
+    BE_SEC --> BE_CTRL --> BE_SVC --> BE_REPO --> DB
+    BE_SVC --> FS
+    BE_SVC --> SMTP
+    BE_SVC --> WA

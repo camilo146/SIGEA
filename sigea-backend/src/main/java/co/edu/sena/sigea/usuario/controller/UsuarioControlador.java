@@ -59,10 +59,9 @@ import co.edu.sena.sigea.usuario.dto.UsuarioActualizadoDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarContrasenaDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCambiarRolDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioCrearDTO;
-import co.edu.sena.sigea.usuario.dto.UsuarioRestablecerContrasenaDTO;
 import co.edu.sena.sigea.usuario.dto.UsuarioRespuestaDTO;
+import co.edu.sena.sigea.usuario.dto.UsuarioRestablecerContrasenaDTO;
 import co.edu.sena.sigea.usuario.service.UsuarioService;
-
 import jakarta.validation.Valid;
 
 @RestController

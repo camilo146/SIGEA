@@ -4,22 +4,16 @@ services:
     container_name: sigea-db
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: ${MARIADB_DATABASE:-sigea_db}
-      MARIADB_USER: ${MARIADB_USER:-sigea_user}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-sigea_password_2026}
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root_sigea_2026}
-      TZ: ${TZ:-America/Bogota}
+      MARIADB_DATABASE: sigea_db
+      MARIADB_USER: sigea_user
+      MARIADB_PASSWORD: sigea_password_2026
+      MARIADB_ROOT_PASSWORD: root_sigea_2026
     ports:
       - "3305:3306"
     volumes:
-      - sigea_db_data:/var/lib/mysql
-    networks:
-      sigea-net:
-        ipv4_address: 172.28.10.10
-        aliases:
-          - db
+      - sigea-db-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -uroot -proot_sigea_2026"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -27,96 +21,43 @@ services:
   backend:
     build:
       context: ./sigea-backend
-      dockerfile: Dockerfile
     container_name: sigea-backend
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    links:
-      - db:db
-      - db:sigea-db
     environment:
-      TZ: ${TZ:-America/Bogota}
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://172.28.10.10:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-sigea_user}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-sigea_password_2026}
-      SIGEA_UPLOADS_PATH: ${SIGEA_UPLOADS_PATH:-/app/uploads}
-      SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION: ${SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION:-false}
-      SIGEA_SMTP_HOST: ${SIGEA_SMTP_HOST:-localhost}
-      SIGEA_SMTP_PORT: ${SIGEA_SMTP_PORT:-587}
-      SIGEA_SMTP_USERNAME: ${SIGEA_SMTP_USERNAME:-sigea@sena.edu.co}
-      SIGEA_SMTP_PASSWORD: ${SIGEA_SMTP_PASSWORD:-password-smtp}
-      SIGEA_SMTP_AUTH: ${SIGEA_SMTP_AUTH:-true}
-      SIGEA_SMTP_STARTTLS: ${SIGEA_SMTP_STARTTLS:-true}
-      # Múltiples orígenes permitidos para CORS separados por coma.
-      # En producción usa https://tu-dominio.com,https://tu-ip-publica
-      SIGEA_APP_URL: ${SIGEA_APP_URL:-https://localhost,https://127.0.0.1,http://localhost,http://127.0.0.1}
-      HIKARI_MAX_POOL_SIZE: ${HIKARI_MAX_POOL_SIZE:-40}
-      HIKARI_MIN_IDLE: ${HIKARI_MIN_IDLE:-10}
-      HIKARI_CONNECTION_TIMEOUT: ${HIKARI_CONNECTION_TIMEOUT:-30000}
-      HIKARI_IDLE_TIMEOUT: ${HIKARI_IDLE_TIMEOUT:-600000}
-      HIKARI_MAX_LIFETIME: ${HIKARI_MAX_LIFETIME:-1800000}
-    deploy:
-      resources:
-        limits:
-          cpus: '1.5'
-          memory: 768M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1/actuator/health >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
+      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota
+      SPRING_DATASOURCE_USERNAME: sigea_user
+      SPRING_DATASOURCE_PASSWORD: sigea_password_2026
+      SERVER_PORT: 8080
+      SIGEA_APP_URL: ${SIGEA_APP_URL:-http://localhost}
+      SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION: "false"
+      SIGEA_SMTP_HOST: smtp.gmail.com
+      SIGEA_SMTP_PORT: "587"
+      SIGEA_SMTP_USERNAME: ""
+      SIGEA_SMTP_PASSWORD: ""
+      SIGEA_SMTP_AUTH: "true"
+      SIGEA_SMTP_STARTTLS: "true"
+      SIGEA_SMTP_STARTTLS_REQUIRED: "true"
+      SIGEA_SMTP_SSL_TRUST: smtp.gmail.com
+    ports:
+      - "8082:8080"
     volumes:
-      - sigea_uploads_data:/app/uploads
-    networks:
-      sigea-net:
-        ipv4_address: 172.28.10.11
+      - sigea-uploads:/app/uploads
 
   frontend:
     build:
       context: ./sigea-frontend
-      dockerfile: Dockerfile
     container_name: sigea-frontend
     restart: unless-stopped
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     ports:
-      - "${FRONTEND_PORT:-4043}:80"
-    networks:
-      sigea-net:
-        ipv4_address: 172.28.10.12
-
-  caddy:
-    image: caddy:2.8-alpine
-    container_name: sigea-caddy
-    restart: unless-stopped
-    depends_on:
-      frontend:
-        condition: service_started
-    network_mode: host
-    environment:
-      SIGEA_DOMAIN: ${SIGEA_DOMAIN}
+      - "80:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - sigea_caddy_data:/data
-      - sigea_caddy_config:/config
+      - ./docker/nginx.local.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
-  sigea_db_data:
-  sigea_uploads_data:
-  sigea_caddy_data:
-  sigea_caddy_config:
-
-networks:
-  sigea-net:
-    name: sigea-net
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.10.0/24
+  sigea-db-data:
+  sigea-uploads:

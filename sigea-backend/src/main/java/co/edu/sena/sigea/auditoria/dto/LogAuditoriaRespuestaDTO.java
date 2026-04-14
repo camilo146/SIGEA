@@ -13,6 +13,11 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
+// DTO para representar un log de auditoría en las respuestas de la API,
+// incluye información detallada sobre la acción realizada, el usuario que la
+// ejecutó, la entidad afectada, y los detalles del cambio. Este DTO se utiliza
+// para mostrar los registros de auditoría en el sistema.
 public class LogAuditoriaRespuestaDTO {
 
     private Long id;

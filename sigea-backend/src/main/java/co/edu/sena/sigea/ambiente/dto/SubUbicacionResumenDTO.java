@@ -15,6 +15,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+// Dto para representar un resumen de una sub-ubicación, utilizado en la lista
+// de sub-ubicaciones hijas
+// dentro del detalle de un ambiente. Incluye solo los campos básicos para
+// evitar recursión infinita al serializar a JSON.
 public class SubUbicacionResumenDTO {
 
     private Long id;
