@@ -23,7 +23,7 @@ warning() { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 free_port_80() {
-  # Liberar servicios del host que ocupen el puerto 80 antes de que Docker lo vincule.
+  # 1. Detener servicios del host que puedan ocupar el puerto 80.
   for svc in nginx apache2 httpd caddy; do
     if systemctl is-active --quiet "$svc" 2>/dev/null; then
       warning "Deteniendo $svc del host (ocupa el puerto 80)..."
@@ -31,9 +31,21 @@ free_port_80() {
       sudo systemctl disable "$svc" || true
     fi
   done
-  # Verificar si aún hay algo en el puerto 80
+
+  # 2. Esperar a que el kernel libere el socket (Docker tarda unos segundos).
+  sleep 4
+
+  # 3. Si el puerto sigue ocupado, matar el proceso directamente.
   if ss -tlnp 2>/dev/null | grep -q ':80 '; then
-    error "El puerto 80 sigue en uso por otro proceso. Libéralo manualmente antes de continuar."
+    warning "Puerto 80 todavía en uso. Intentando liberar con fuser..."
+    sudo fuser -k 80/tcp 2>/dev/null || true
+    sleep 2
+  fi
+
+  # 4. Verificación final.
+  if ss -tlnp 2>/dev/null | grep -q ':80 '; then
+    # Mostrar qué proceso sigue usando el puerto para facilitar el diagnóstico.
+    error "Puerto 80 aún en uso: $(ss -tlnp | grep ':80 ')"
   fi
 }
 
