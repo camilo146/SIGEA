@@ -6,9 +6,8 @@
 #   Primera vez:  bash deploy.sh
 #   Actualizar:   bash deploy.sh update
 #
-# Nota:
-#   Este script asume publicación interna del frontend en puerto 443 con certificado
-#   interno/autofirmado servido por Caddy.
+# El frontend se publica en HTTP puerto 80 mediante Nginx dentro de Docker.
+# No se usa HTTPS ni Caddy. El puerto 80 del host debe estar libre.
 # ==============================================================================
 
 set -euo pipefail
@@ -23,18 +22,24 @@ info()    { echo -e "${GREEN}[SIGEA]${NC} $1"; }
 warning() { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-compose_up() {
-  local compose_frontend_port
-  compose_frontend_port="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
-
-  if [ -n "$compose_frontend_port" ] \
-    && [ "$compose_frontend_port" = "443" ] \
-    && grep -q 'container_name: sigea-caddy' docker-compose.yml 2>/dev/null; then
-    warning "Caddy ya publica el puerto 443. Se ignorarán overrides locales y el frontend se levantará sin tomar 443 en el host para evitar el conflicto."
-    FRONTEND_PORT=4043 docker compose -f docker-compose.yml up -d --build
-  else
-    docker compose -f docker-compose.yml up -d --build
+free_port_80() {
+  # Liberar servicios del host que ocupen el puerto 80 antes de que Docker lo vincule.
+  for svc in nginx apache2 httpd caddy; do
+    if systemctl is-active --quiet "$svc" 2>/dev/null; then
+      warning "Deteniendo $svc del host (ocupa el puerto 80)..."
+      sudo systemctl stop "$svc" || true
+      sudo systemctl disable "$svc" || true
+    fi
+  done
+  # Verificar si aún hay algo en el puerto 80
+  if ss -tlnp 2>/dev/null | grep -q ':80 '; then
+    error "El puerto 80 sigue en uso por otro proceso. Libéralo manualmente antes de continuar."
   fi
+}
+
+compose_up() {
+  free_port_80
+  docker compose -f docker-compose.yml up -d --build
 }
 
 frontend_url() {
@@ -42,12 +47,12 @@ frontend_url() {
   host="$(hostname -I | awk '{print $1}')"
   domain="$(grep -E '^SIGEA_DOMAIN=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
   frontend_port="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' \r\n')"
-  [ -n "$frontend_port" ] || frontend_port="443"
+  [ -n "$frontend_port" ] || frontend_port="80"
 
   if [ -n "$domain" ] && [ "$domain" != "localhost" ]; then
-    echo "https://$domain"
-  elif [ "$frontend_port" = "443" ]; then
-    echo "https://$host"
+    echo "http://$domain"
+  elif [ "$frontend_port" = "80" ]; then
+    echo "http://$host"
   else
     echo "http://$host:$frontend_port"
   fi
@@ -95,15 +100,10 @@ if [ "$ACTION" = "install" ]; then
     [[ "$confirm" =~ ^[sS]$ ]] || { warning "Abortado. Edita el .env y ejecuta: bash deploy.sh update"; exit 0; }
   fi
 
-  # Advertencia de seguridad: APP_URL debe usar HTTPS en producción
-  if grep -Eq '^SIGEA_APP_URL=http://' .env; then
-    warning "SIGEA_APP_URL usa http://. Para proteger credenciales en tránsito, usa HTTPS (https://...)."
-  fi
-
   if ! grep -Eq '^SIGEA_DOMAIN=' .env; then
-    warning "SIGEA_DOMAIN no está definido. El acceso por dominio interno y el certificado autofirmado dependen de ese valor."
+    warning "SIGEA_DOMAIN no está definido. El acceso será por IP directa."
   elif grep -Eq '^SIGEA_DOMAIN=localhost$' .env; then
-    warning "SIGEA_DOMAIN=localhost no sirve para acceso remoto por dominio. Se usará acceso directo por IP y FRONTEND_PORT."
+    warning "SIGEA_DOMAIN=localhost no sirve para acceso remoto. Se usará IP directa."
   fi
 
   # Construir y levantar
