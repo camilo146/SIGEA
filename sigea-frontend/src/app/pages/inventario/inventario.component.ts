@@ -10,6 +10,7 @@ import { ReporteService } from '../../core/services/reporte.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { ImageUploadService } from '../../core/services/image-upload.service';
 import { environment } from '../../../environments/environment';
 import type { Equipo, EquipoCrear, TipoUsoEquipo } from '../../core/models/equipo.model';
 import type { Categoria } from '../../core/models/categoria.model';
@@ -35,6 +36,7 @@ export class InventarioComponent implements OnInit {
   private usuarioService = inject(UsuarioService);
   private router = inject(Router);
   private ui = inject(UiFeedbackService);
+  private imageUpload = inject(ImageUploadService);
 
   equipos = signal<Equipo[]>([]);
   categorias = signal<Categoria[]>([]);
@@ -46,6 +48,7 @@ export class InventarioComponent implements OnInit {
   modalOpen = signal(false);
   editingId = signal<number | null>(null);
   savingForm = signal(false);
+  fotoProcesando = signal(false);
   actionPending = signal<Record<string, boolean>>({});
   /** Observaciones del equipo en el panel de detalle. */
   observaciones = signal<ObservacionEquipo[]>([]);
@@ -191,11 +194,30 @@ export class InventarioComponent implements OnInit {
     return this.ambientes().find((a) => a.id === +id)?.nombre ?? '';
   }
 
-  onFotoSelected(event: Event) {
+  async onFotoSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (file && file.type.startsWith('image/')) this.fotoArchivo = file;
-    else this.fotoArchivo = null;
+
+    if (!file) {
+      this.fotoArchivo = null;
+      return;
+    }
+
+    this.fotoProcesando.set(true);
+    this.error.set('');
+
+    try {
+      const prepared = await this.imageUpload.prepareForUpload(file);
+      this.fotoArchivo = prepared.file;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No fue posible preparar la foto.';
+      this.fotoArchivo = null;
+      input.value = '';
+      this.error.set(message);
+      this.ui.error(message, 'Inventario');
+    } finally {
+      this.fotoProcesando.set(false);
+    }
   }
 
   submitForm() {

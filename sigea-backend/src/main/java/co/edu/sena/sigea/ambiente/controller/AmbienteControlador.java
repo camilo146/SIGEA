@@ -30,7 +30,7 @@ import jakarta.validation.Valid;
 // (hijas) y para listar ambientes por instructor responsable.
 @RestController
 @RequestMapping("/ambientes")
-public class AmbienteControlador {
+public class AmbienteControlador { 
 
     private final AmbienteService ambienteService;
 
@@ -145,7 +145,7 @@ public class AmbienteControlador {
         return ResponseEntity.ok(ambiente);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
     public ResponseEntity<AmbienteRespuestaDTO> actualizar(
             @PathVariable Long id,
@@ -153,6 +153,19 @@ public class AmbienteControlador {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         AmbienteRespuestaDTO respuesta = ambienteService.actualizar(id, dto,
+                userDetails != null ? userDetails.getUsername() : null);
+        return ResponseEntity.ok(respuesta);
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    public ResponseEntity<AmbienteRespuestaDTO> actualizarConFoto(
+            @PathVariable Long id,
+            @Valid @ModelAttribute AmbienteCrearDTO dto,
+            @RequestParam(value = "archivo", required = false) MultipartFile archivo,
+            @AuthenticationPrincipal UserDetails userDetails) throws IOException {
+
+        AmbienteRespuestaDTO respuesta = ambienteService.actualizar(id, dto, archivo,
                 userDetails != null ? userDetails.getUsername() : null);
         return ResponseEntity.ok(respuesta);
     }

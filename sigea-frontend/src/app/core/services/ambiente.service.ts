@@ -28,20 +28,15 @@ export class AmbienteService {
   }
 
   crear(dto: AmbienteCrear, archivo: File): Observable<Ambiente> {
-    const formData = new FormData();
-    formData.append('nombre', dto.nombre);
-    if (dto.ubicacion) formData.append('ubicacion', dto.ubicacion);
-    if (dto.descripcion) formData.append('descripcion', dto.descripcion);
-    if (dto.direccion) formData.append('direccion', dto.direccion);
-    if (dto.idInstructorResponsable != null) {
-      formData.append('idInstructorResponsable', String(dto.idInstructorResponsable));
-    }
-    formData.append('archivo', archivo);
-    return this.http.post<Ambiente>(this.apiUrl, formData);
+    return this.http.post<Ambiente>(this.apiUrl, this.buildFormData(dto, archivo));
   }
 
   actualizar(id: number, dto: AmbienteCrear): Observable<Ambiente> {
     return this.http.put<Ambiente>(`${this.apiUrl}/${id}`, dto);
+  }
+
+  actualizarConFoto(id: number, dto: AmbienteCrear, archivo: File): Observable<Ambiente> {
+    return this.http.put<Ambiente>(`${this.apiUrl}/${id}`, this.buildFormData(dto, archivo));
   }
 
   activar(id: number): Observable<void> {
@@ -55,6 +50,20 @@ export class AmbienteService {
   /** Crea un ambiente sin foto (solo JSON). Compatible con rol ALIMENTADOR_EQUIPOS. */
   crearSinFoto(dto: AmbienteCrear): Observable<Ambiente> {
     return this.http.post<Ambiente>(this.apiUrl, dto);
+  }
+
+  private buildFormData(dto: AmbienteCrear, archivo?: File): FormData {
+    const formData = new FormData();
+    formData.append('nombre', dto.nombre);
+    if (dto.ubicacion) formData.append('ubicacion', dto.ubicacion);
+    if (dto.descripcion) formData.append('descripcion', dto.descripcion);
+    if (dto.direccion) formData.append('direccion', dto.direccion);
+    if (dto.padreId != null) formData.append('padreId', String(dto.padreId));
+    if (dto.idInstructorResponsable != null) {
+      formData.append('idInstructorResponsable', String(dto.idInstructorResponsable));
+    }
+    if (archivo) formData.append('archivo', archivo);
+    return formData;
   }
 
   /** Lista las sub-ubicaciones hijas de un ambiente padre. */

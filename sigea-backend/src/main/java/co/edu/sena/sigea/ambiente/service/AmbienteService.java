@@ -28,7 +28,8 @@ import co.edu.sena.sigea.usuario.entity.Usuario;
 import co.edu.sena.sigea.usuario.repository.UsuarioRepository;
 
 @Service
-// Servicio para gestionar los ambientes de formación
+// Servicio para gestionar los ambientes de formación y sus sub-ubicaciones,
+// incluye lógica de negocio para creación con foto, validaciones de propiedad por instructor, y manejo de rutas de fotos.
 public class AmbienteService {
     // Inyectamos los repositorios necesarios para acceder a la base de datos
     private final AmbienteRepository ambienteRepository;
@@ -112,28 +113,6 @@ public class AmbienteService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public AmbienteRespuestaDTO crearConFoto(AmbienteCrearDTO dto, MultipartFile archivo, String correoInstructor)
             throws IOException {
-        if (archivo == null || archivo.isEmpty()) {
-            throw new OperacionNoPermitidaException("La foto de la ubicación es obligatoria.");
-        }
-
-        String nombreOriginal = archivo.getOriginalFilename();
-        if (nombreOriginal == null || nombreOriginal.isBlank()) {
-            throw new OperacionNoPermitidaException("El archivo de foto no tiene nombre.");
-        }
-        if (!nombreOriginal.contains(".")) {
-            throw new OperacionNoPermitidaException("El archivo de foto no tiene una extensión válida.");
-        }
-
-        String extension = nombreOriginal.substring(nombreOriginal.lastIndexOf('.') + 1).toLowerCase();
-        if (!List.of("jpg", "jpeg", "png").contains(extension)) {
-            throw new OperacionNoPermitidaException("Formato no permitido. Use: JPG, JPEG o PNG.");
-        }
-
-        long tamanoMaximo = 5L * 1024L * 1024L;
-        if (archivo.getSize() > tamanoMaximo) {
-            throw new OperacionNoPermitidaException("La foto excede el tamaño máximo de 5 MB.");
-        }
-
         if (ambienteRepository.existsByNombre(dto.getNombre())) {
             throw new RecursoDuplicadoException("Ya existe un ambiente con el nombre: " + dto.getNombre());
         }
@@ -146,32 +125,17 @@ public class AmbienteService {
             if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
                 instructor = actual;
             } else {
-                if (dto.getIdInstructorResponsable() == null) {
-                    throw new OperacionNoPermitidaException("El ID del instructor responsable es obligatorio.");
-                }
-                instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
-                        .orElseThrow(() -> new RecursoNoEncontradoException(
-                                "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+                instructor = resolverInstructor(dto.getIdInstructorResponsable());
             }
         } else {
-            if (dto.getIdInstructorResponsable() == null) {
-                throw new OperacionNoPermitidaException("El ID del instructor responsable es obligatorio.");
-            }
-            instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
-                    .orElseThrow(() -> new RecursoNoEncontradoException(
-                            "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
+            instructor = resolverInstructor(dto.getIdInstructorResponsable());
         }
         if (propietario == null) {
             propietario = instructor;
         }
 
-        Path directorio = Paths.get(rutaUploads).resolve("ambientes");
-        Files.createDirectories(directorio);
-
-        String nombreEnServidor = UUID.randomUUID().toString() + "_" + nombreOriginal;
-        Path rutaArchivo = directorio.resolve(nombreEnServidor);
-        Files.copy(archivo.getInputStream(), rutaArchivo, StandardCopyOption.REPLACE_EXISTING);
-        String rutaParaBD = "/uploads/ambientes/" + nombreEnServidor;
+        String rutaParaBD = guardarFotoAmbiente(archivo);
+        Path rutaArchivo = resolverRutaFisica(rutaParaBD);
 
         try {
             // Soporte de sub-ubicaciones en crearConFoto
@@ -254,6 +218,16 @@ public class AmbienteService {
 
     @Transactional
     public AmbienteRespuestaDTO actualizar(Long id, AmbienteCrearDTO dto, String correoUsuario) {
+        try {
+            return actualizar(id, dto, null, correoUsuario);
+        } catch (IOException ex) {
+            throw new OperacionNoPermitidaException("No fue posible actualizar la foto de la ubicación.");
+        }
+    }
+
+    @Transactional
+    public AmbienteRespuestaDTO actualizar(Long id, AmbienteCrearDTO dto, MultipartFile archivo, String correoUsuario)
+            throws IOException {
         Ambiente ambiente = ambienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Ambiente", id));
         verificarPropiedadInstructor(ambiente, correoUsuario, "Solo puedes editar los ambientes que tú creaste.");
@@ -264,16 +238,35 @@ public class AmbienteService {
                                 "Ya existe otro ambiente con el nombre: " + dto.getNombre());
                     }
                 });
-        Usuario instructor = usuarioRepository.findById(dto.getIdInstructorResponsable())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Instructor no encontrado con ID: " + dto.getIdInstructorResponsable()));
-        ambiente.setNombre(dto.getNombre());
-        ambiente.setUbicacion(dto.getUbicacion());
-        ambiente.setDescripcion(dto.getDescripcion());
-        ambiente.setDireccion(dto.getDireccion());
-        ambiente.setInstructorResponsable(instructor);
-        Ambiente actualizado = ambienteRepository.save(ambiente);
-        return convertirADTO(actualizado);
+        Usuario instructor = resolverInstructor(dto.getIdInstructorResponsable());
+        String rutaAnterior = ambiente.getRutaFoto();
+        String nuevaRutaFoto = rutaAnterior;
+
+        if (archivo != null && !archivo.isEmpty()) {
+            nuevaRutaFoto = guardarFotoAmbiente(archivo);
+        }
+
+        try {
+            ambiente.setNombre(dto.getNombre());
+            ambiente.setUbicacion(dto.getUbicacion());
+            ambiente.setDescripcion(dto.getDescripcion());
+            ambiente.setDireccion(dto.getDireccion());
+            ambiente.setInstructorResponsable(instructor);
+            ambiente.setRutaFoto(nuevaRutaFoto);
+            Ambiente actualizado = ambienteRepository.save(ambiente);
+
+            if (archivo != null && !archivo.isEmpty() && rutaAnterior != null && !rutaAnterior.isBlank()
+                    && !rutaAnterior.equals(nuevaRutaFoto)) {
+                eliminarArchivoSilencioso(rutaAnterior);
+            }
+
+            return convertirADTO(actualizado);
+        } catch (RuntimeException ex) {
+            if (archivo != null && !archivo.isEmpty() && nuevaRutaFoto != null && !nuevaRutaFoto.equals(rutaAnterior)) {
+                Files.deleteIfExists(resolverRutaFisica(nuevaRutaFoto));
+            }
+            throw ex;
+        }
     }
 
     @Transactional
@@ -300,6 +293,59 @@ public class AmbienteService {
         }
         ambiente.setActivo(true);
         ambienteRepository.save(ambiente);
+    }
+
+    private Usuario resolverInstructor(Long instructorId) {
+        if (instructorId == null) {
+            throw new OperacionNoPermitidaException("El ID del instructor responsable es obligatorio.");
+        }
+        return usuarioRepository.findById(instructorId)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Instructor no encontrado con ID: " + instructorId));
+    }
+
+    private String guardarFotoAmbiente(MultipartFile archivo) throws IOException {
+        if (archivo == null || archivo.isEmpty()) {
+            throw new OperacionNoPermitidaException("La foto de la ubicación es obligatoria.");
+        }
+
+        String nombreOriginal = archivo.getOriginalFilename();
+        if (nombreOriginal == null || nombreOriginal.isBlank()) {
+            throw new OperacionNoPermitidaException("El archivo de foto no tiene nombre.");
+        }
+        if (!nombreOriginal.contains(".")) {
+            throw new OperacionNoPermitidaException("El archivo de foto no tiene una extensión válida.");
+        }
+
+        String extension = nombreOriginal.substring(nombreOriginal.lastIndexOf('.') + 1).toLowerCase();
+        if (!List.of("jpg", "jpeg", "png").contains(extension)) {
+            throw new OperacionNoPermitidaException("Formato no permitido. Use: JPG, JPEG o PNG.");
+        }
+
+        long tamanoMaximo = 5L * 1024L * 1024L;
+        if (archivo.getSize() > tamanoMaximo) {
+            throw new OperacionNoPermitidaException("La foto excede el tamaño máximo de 5 MB.");
+        }
+
+        Path directorio = Paths.get(rutaUploads).resolve("ambientes");
+        Files.createDirectories(directorio);
+
+        String nombreEnServidor = UUID.randomUUID().toString() + "_" + nombreOriginal;
+        Path rutaArchivo = directorio.resolve(nombreEnServidor);
+        Files.copy(archivo.getInputStream(), rutaArchivo, StandardCopyOption.REPLACE_EXISTING);
+        return "/uploads/ambientes/" + nombreEnServidor;
+    }
+
+    private Path resolverRutaFisica(String rutaRelativa) {
+        return Paths.get(rutaUploads).resolve(rutaRelativa.replace("/uploads/", ""));
+    }
+
+    private void eliminarArchivoSilencioso(String rutaArchivo) {
+        try {
+            Files.deleteIfExists(resolverRutaFisica(rutaArchivo));
+        } catch (IOException ignored) {
+            // Si no se puede borrar la imagen anterior, no se interrumpe la operación.
+        }
     }
 
     private void verificarPropiedadInstructor(Ambiente ambiente, String correoUsuario, String mensajeError) {

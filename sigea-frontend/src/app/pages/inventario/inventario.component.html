@@ -382,17 +382,19 @@
             <input type="file" accept="image/*" (change)="onFotoSelected($event)" [required]="isAdminOrInstructor()" #fotoInput />
             <small class="text-muted">
               {{ isAdminOrInstructor() ? 'Obligatoria al crear.' : 'Opcional para el registro operativo.' }}
-              Desde PC: explorador de archivos. En celular: galería o cámara. JPG/PNG, máx. 5 MB.
+              Desde PC: explorador de archivos. En celular: galería o cámara. La imagen se optimiza automáticamente para evitar fallos al guardar.
             </small>
-            @if (fotoArchivo) {
+            @if (fotoProcesando()) {
+              <span class="file-name"><i class="fas fa-spinner fa-spin" style="color:var(--color-primary)"></i> Preparando foto...</span>
+            } @else if (fotoArchivo) {
               <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
             }
           </div>
         }
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="savingForm()">
-            @if (savingForm()) {
+          <button type="submit" class="btn btn-primary" [disabled]="savingForm() || fotoProcesando()">
+            @if (savingForm() || fotoProcesando()) {
               <i class="fas fa-spinner fa-spin btn-spinner"></i> Guardando...
             } @else {
               <i class="fas fa-save"></i> Guardar

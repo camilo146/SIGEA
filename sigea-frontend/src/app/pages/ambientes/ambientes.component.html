@@ -211,18 +211,21 @@
             placeholder="Descripción breve del espacio..."
           ></textarea>
         </div>
-        @if (!editingId()) {
-          <div class="form-group">
-            <label>Foto de la ubicación {{ isAdminOrInstructor() ? '*' : '' }}</label>
-            <input type="file" accept="image/*" (change)="onFotoSelected($event)" [required]="isAdminOrInstructor()" />
-            <small class="text-muted">
-              {{ isAdminOrInstructor() ? 'Obligatorio para crear ubicación.' : 'Opcional para el registro operativo.' }} JPG/PNG, máximo 5 MB.
-            </small>
-            @if (fotoArchivo) {
-              <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
-            }
-          </div>
-        }
+        <div class="form-group">
+          <label>Foto de la ubicación {{ !editingId() && isAdminOrInstructor() ? '*' : '(opcional)' }}</label>
+          <input type="file" accept="image/*" (change)="onFotoSelected($event)" [required]="!editingId() && isAdminOrInstructor()" />
+          <small class="text-muted">
+            {{ editingId() ? 'Si seleccionas una imagen nueva, reemplazará la foto actual.' : (isAdminOrInstructor() ? 'Obligatorio para crear ubicación.' : 'Opcional para el registro operativo.') }}
+            En celular la imagen se optimiza automáticamente para evitar fallos al guardar.
+          </small>
+          @if (fotoProcesando()) {
+            <span class="file-name"><i class="fas fa-spinner fa-spin" style="color:var(--color-primary)"></i> Preparando foto...</span>
+          } @else if (fotoArchivo) {
+            <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
+          } @else if (editingId() && fotoActualUrl()) {
+            <span class="file-name"><i class="fas fa-image" style="color:var(--color-primary)"></i> La ubicación ya tiene una foto cargada.</span>
+          }
+        </div>
         <div class="form-group">
           <label>Instructor / Responsable *</label>
           @if (isInstructor() && !editingId()) {
@@ -251,8 +254,8 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formSaving()">
-            @if (formSaving()) {
+          <button type="submit" class="btn btn-primary" [disabled]="formSaving() || fotoProcesando()">
+            @if (formSaving() || fotoProcesando()) {
               <i class="fas fa-spinner fa-spin"></i> Guardando...
             } @else {
               <i class="fas fa-save"></i> Guardar

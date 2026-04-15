@@ -6,6 +6,7 @@ import { AmbienteService } from '../../core/services/ambiente.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { EquipoService } from '../../core/services/equipo.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { ImageUploadService } from '../../core/services/image-upload.service';
 import { environment } from '../../../environments/environment';
 import type { Ambiente, AmbienteCrear, SubUbicacionResumen } from '../../core/models/ambiente.model';
 import type { Equipo } from '../../core/models/equipo.model';
@@ -23,6 +24,7 @@ export class AmbientesComponent implements OnInit {
   private usuarioService = inject(UsuarioService);
   private equipoService = inject(EquipoService);
   private ui = inject(UiFeedbackService);
+  private imageUpload = inject(ImageUploadService);
 
   isAdminOrInstructor = this.auth.isAdminOrInstructor;
   isInstructor = this.auth.isInstructor;
@@ -41,6 +43,8 @@ export class AmbientesComponent implements OnInit {
   ambienteEquiposNombre = signal('');
   loadingEquipos = signal(false);
   formSaving = signal(false);
+  fotoProcesando = signal(false);
+  fotoActualUrl = signal('');
   actionPending = signal<Record<string, boolean>>({});
   /** Ambiente seleccionado para la card de detalle (al hacer clic en Ver equipos / fila). */
   selectedAmbiente = signal<Ambiente | null>(null);
@@ -132,6 +136,7 @@ export class AmbientesComponent implements OnInit {
   openCreate() {
     this.editingId.set(null);
     this.fotoArchivo = null;
+    this.fotoActualUrl.set('');
     this.form = {
       nombre: '',
       ubicacion: '',
@@ -146,6 +151,8 @@ export class AmbientesComponent implements OnInit {
 
   openEdit(a: Ambiente) {
     this.editingId.set(a.id);
+    this.fotoArchivo = null;
+    this.fotoActualUrl.set(this.getAmbienteFotoUrl(a));
     this.form = {
       nombre: a.nombre,
       ubicacion: a.ubicacion ?? '',
@@ -160,14 +167,35 @@ export class AmbientesComponent implements OnInit {
     this.modalOpen.set(false);
     this.editingId.set(null);
     this.fotoArchivo = null;
+    this.fotoActualUrl.set('');
     this.formSaving.set(false);
+    this.fotoProcesando.set(false);
   }
 
-  onFotoSelected(event: Event) {
+  async onFotoSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (file && file.type.startsWith('image/')) this.fotoArchivo = file;
-    else this.fotoArchivo = null;
+
+    if (!file) {
+      this.fotoArchivo = null;
+      return;
+    }
+
+    this.fotoProcesando.set(true);
+    this.error.set('');
+
+    try {
+      const prepared = await this.imageUpload.prepareForUpload(file);
+      this.fotoArchivo = prepared.file;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No fue posible preparar la foto.';
+      this.fotoArchivo = null;
+      input.value = '';
+      this.error.set(message);
+      this.ui.error(message, 'Ubicaciones');
+    } finally {
+      this.fotoProcesando.set(false);
+    }
   }
 
   submitForm() {
@@ -192,7 +220,9 @@ export class AmbientesComponent implements OnInit {
 
     const obs =
       id != null
-        ? this.ambienteService.actualizar(id, this.form)
+        ? this.fotoArchivo
+          ? this.ambienteService.actualizarConFoto(id, this.form, this.fotoArchivo)
+          : this.ambienteService.actualizar(id, this.form)
         : this.fotoArchivo
           ? this.ambienteService.crear(payload, this.fotoArchivo)
           : this.ambienteService.crearSinFoto(payload);
