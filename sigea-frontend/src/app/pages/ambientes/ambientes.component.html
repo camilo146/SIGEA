@@ -232,7 +232,7 @@
             <input type="text" [value]="currentUser()?.nombreCompleto || 'Instructor actual'" readonly />
             <small class="text-muted">Como instructor, las ubicaciones que crees quedarán asociadas a tu cuenta como propietario.</small>
           } @else if (instructoresParaSelect().length > 0) {
-            <select [(ngModel)]="form.idInstructorResponsable" name="idInstructorResponsable" required>
+            <select [(ngModel)]="form.idInstructorResponsable" name="idInstructorResponsable" required (ngModelChange)="syncEncargadosWithResponsable($event)">
               <option [value]="0" disabled>Seleccione responsable</option>
               @for (u of instructoresParaSelect(); track u.id) {
                 <option [value]="u.id">{{ u.nombreCompleto }} ({{ u.rol }})</option>
@@ -250,6 +250,26 @@
               required
               placeholder="ID del responsable"
             />
+          }
+        </div>
+        <div class="form-group">
+          <label>Encargados adicionales</label>
+          @if (encargadosDisponibles().length > 0) {
+            <div style="display:grid;gap:.35rem;max-height:12rem;overflow:auto;padding:.35rem 0">
+              @for (u of encargadosDisponibles(); track u.id) {
+                <label style="display:flex;align-items:center;gap:.5rem;font-weight:400">
+                  <input
+                    type="checkbox"
+                    [checked]="isEncargadoSeleccionado(u.id)"
+                    (change)="toggleEncargado(u.id, $any($event.target).checked)"
+                  />
+                  <span>{{ u.nombreCompleto }} ({{ u.rol }})</span>
+                </label>
+              }
+            </div>
+            <small class="text-muted">Los encargados podrán administrar esta ubicación, atender reservas y recibir correos asociados.</small>
+          } @else {
+            <small class="text-muted">No hay otros usuarios activos disponibles para asignar como encargados.</small>
           }
         </div>
         <div class="modal-footer">
@@ -289,6 +309,9 @@
             <p><strong>Descripción:</strong> {{ amb.descripcion }}</p>
           }
           <p><strong>Responsable:</strong> {{ amb.instructorResponsableNombre }}</p>
+          @if (amb.encargados?.length) {
+            <p><strong>Encargados:</strong> {{ getEncargadosLabel(amb) }}</p>
+          }
           <p><strong>Propietario:</strong> {{ getPropietarioLabel(amb) }}</p>
           <p><strong>Estado:</strong> <span class="badge" [class]="amb.activo ? 'badge-green' : 'badge-red'">{{ amb.activo ? 'Activo' : 'Inactivo' }}</span></p>
         </div>

@@ -30,7 +30,7 @@ import jakarta.validation.Valid;
 // (hijas) y para listar ambientes por instructor responsable.
 @RestController
 @RequestMapping("/ambientes")
-public class AmbienteControlador { 
+public class AmbienteControlador {
 
     private final AmbienteService ambienteService;
 
@@ -146,7 +146,7 @@ public class AmbienteControlador {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AmbienteRespuestaDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody AmbienteCrearDTO dto,
@@ -158,7 +158,7 @@ public class AmbienteControlador {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AmbienteRespuestaDTO> actualizarConFoto(
             @PathVariable Long id,
             @Valid @ModelAttribute AmbienteCrearDTO dto,
@@ -171,7 +171,7 @@ public class AmbienteControlador {
     }
 
     @PatchMapping("/{id}/activar")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> activar(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -181,7 +181,7 @@ public class AmbienteControlador {
     }
 
     @PatchMapping("/{id}/desactivar")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','INSTRUCTOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> desactivar(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

@@ -698,7 +698,11 @@ export class ReservasComponent implements OnInit {
   canManageAmbienteReservation(r: PrestamoAmbiente): boolean {
     if (this.isAdmin()) return true;
     const currentUserId = this.currentUser()?.id;
-    return !!currentUserId && r.propietarioAmbienteId === currentUserId;
+    const ambiente = this.getAmbienteInfo(r.ambienteId);
+    return !!currentUserId
+      && (r.propietarioAmbienteId === currentUserId
+        || ambiente?.instructorResponsableId === currentUserId
+        || !!ambiente?.encargadoIds?.includes(currentUserId));
   }
 
   getInitials(nombre: string | undefined): string {

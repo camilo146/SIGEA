@@ -5,8 +5,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import co.edu.sena.sigea.ambiente.dto.AmbienteCrearDTO;
 import co.edu.sena.sigea.ambiente.dto.AmbienteRespuestaDTO;
+import co.edu.sena.sigea.ambiente.dto.EncargadoResumenDTO;
 import co.edu.sena.sigea.ambiente.dto.SubUbicacionResumenDTO;
 import co.edu.sena.sigea.ambiente.entity.Ambiente;
 import co.edu.sena.sigea.ambiente.repository.AmbienteRepository;
@@ -29,7 +33,8 @@ import co.edu.sena.sigea.usuario.repository.UsuarioRepository;
 
 @Service
 // Servicio para gestionar los ambientes de formación y sus sub-ubicaciones,
-// incluye lógica de negocio para creación con foto, validaciones de propiedad por instructor, y manejo de rutas de fotos.
+// incluye lógica de negocio para creación con foto, validaciones de propiedad
+// por instructor, y manejo de rutas de fotos.
 public class AmbienteService {
     // Inyectamos los repositorios necesarios para acceder a la base de datos
     private final AmbienteRepository ambienteRepository;
@@ -83,6 +88,7 @@ public class AmbienteService {
         if (propietario == null) {
             propietario = instructor;
         }
+        List<Usuario> encargados = resolverEncargados(dto.getEncargadoIds(), instructor, propietario);
 
         // Soporte de sub-ubicaciones: resolver el padre si se indica
         Ambiente padre = null;
@@ -104,6 +110,7 @@ public class AmbienteService {
                 .instructorResponsable(instructor)
                 .propietario(propietario)
                 .padre(padre)
+                .encargados(encargados)
                 .activo(true)
                 .build();
         Ambiente guardado = ambienteRepository.save(ambiente);
@@ -133,6 +140,7 @@ public class AmbienteService {
         if (propietario == null) {
             propietario = instructor;
         }
+        List<Usuario> encargados = resolverEncargados(dto.getEncargadoIds(), instructor, propietario);
 
         String rutaParaBD = guardarFotoAmbiente(archivo);
         Path rutaArchivo = resolverRutaFisica(rutaParaBD);
@@ -157,6 +165,7 @@ public class AmbienteService {
                     .instructorResponsable(instructor)
                     .propietario(propietario)
                     .padre(padre)
+                    .encargados(encargados)
                     .activo(true)
                     .rutaFoto(rutaParaBD)
                     .build();
@@ -203,8 +212,11 @@ public class AmbienteService {
         if (correo == null || correo.isBlank())
             return Collections.emptyList();
         return usuarioRepository.findByCorreoElectronico(correo)
-                .map(u -> ambienteRepository.findByPropietarioId(u.getId())
-                        .stream().map(this::convertirADTO).toList())
+                .map(u -> ambienteRepository.findAll()
+                        .stream()
+                        .filter(ambiente -> usuarioPuedeGestionarAmbiente(u, ambiente))
+                        .map(this::convertirADTO)
+                        .toList())
                 .orElse(Collections.emptyList());
     }
 
@@ -239,6 +251,7 @@ public class AmbienteService {
                     }
                 });
         Usuario instructor = resolverInstructor(dto.getIdInstructorResponsable());
+        List<Usuario> encargados = resolverEncargados(dto.getEncargadoIds(), instructor, ambiente.getPropietario());
         String rutaAnterior = ambiente.getRutaFoto();
         String nuevaRutaFoto = rutaAnterior;
 
@@ -252,6 +265,7 @@ public class AmbienteService {
             ambiente.setDescripcion(dto.getDescripcion());
             ambiente.setDireccion(dto.getDireccion());
             ambiente.setInstructorResponsable(instructor);
+            ambiente.setEncargados(encargados);
             ambiente.setRutaFoto(nuevaRutaFoto);
             Ambiente actualizado = ambienteRepository.save(ambiente);
 
@@ -348,15 +362,64 @@ public class AmbienteService {
         }
     }
 
+    private List<Usuario> resolverEncargados(List<Long> encargadoIds, Usuario instructor, Usuario propietario) {
+        if (encargadoIds == null || encargadoIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<Long> idsUnicos = new LinkedHashSet<>();
+        for (Long id : encargadoIds) {
+            if (id != null) {
+                idsUnicos.add(id);
+            }
+        }
+
+        if (instructor != null) {
+            idsUnicos.remove(instructor.getId());
+        }
+        if (propietario != null) {
+            idsUnicos.remove(propietario.getId());
+        }
+
+        if (idsUnicos.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Usuario> encargados = usuarioRepository.findAllById(idsUnicos).stream()
+                .filter(usuario -> Boolean.TRUE.equals(usuario.getActivo()))
+                .toList();
+
+        if (encargados.size() != idsUnicos.size()) {
+            throw new RecursoNoEncontradoException("Uno o más encargados seleccionados no están disponibles.");
+        }
+
+        return new ArrayList<>(encargados);
+    }
+
+    private boolean usuarioPuedeGestionarAmbiente(Usuario usuario, Ambiente ambiente) {
+        if (usuario == null || ambiente == null) {
+            return false;
+        }
+        if (usuario.getRol() == Rol.ADMINISTRADOR) {
+            return true;
+        }
+        if (ambiente.getPropietario() != null && ambiente.getPropietario().getId().equals(usuario.getId())) {
+            return true;
+        }
+        if (ambiente.getInstructorResponsable() != null
+                && ambiente.getInstructorResponsable().getId().equals(usuario.getId())) {
+            return true;
+        }
+        return ambiente.getEncargados() != null
+                && ambiente.getEncargados().stream().anyMatch(encargado -> encargado.getId().equals(usuario.getId()));
+    }
+
     private void verificarPropiedadInstructor(Ambiente ambiente, String correoUsuario, String mensajeError) {
         if (correoUsuario == null || correoUsuario.isBlank())
             return;
         Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
-        if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
-            if (ambiente.getPropietario() == null
-                    || !ambiente.getPropietario().getId().equals(actual.getId())) {
-                throw new OperacionNoPermitidaException(mensajeError);
-            }
+        if (actual != null && !usuarioPuedeGestionarAmbiente(actual, ambiente)) {
+            throw new OperacionNoPermitidaException(mensajeError);
         }
     }
 
@@ -371,6 +434,17 @@ public class AmbienteService {
                                 .ubicacion(sub.getUbicacion())
                                 .descripcion(sub.getDescripcion())
                                 .activo(sub.getActivo())
+                                .build())
+                        .toList();
+
+        List<EncargadoResumenDTO> encargadosDTO = ambiente.getEncargados() == null
+                ? List.of()
+                : ambiente.getEncargados().stream()
+                        .map(encargado -> EncargadoResumenDTO.builder()
+                                .id(encargado.getId())
+                                .nombreCompleto(encargado.getNombreCompleto())
+                                .correoElectronico(encargado.getCorreoElectronico())
+                                .rol(encargado.getRol() != null ? encargado.getRol().name() : null)
                                 .build())
                         .toList();
 
@@ -396,6 +470,8 @@ public class AmbienteService {
                         ambiente.getPropietario() != null
                                 ? ambiente.getPropietario().getNombreCompleto()
                                 : null)
+                .encargadoIds(encargadosDTO.stream().map(EncargadoResumenDTO::getId).toList())
+                .encargados(encargadosDTO)
                 .padreId(ambiente.getPadre() != null ? ambiente.getPadre().getId() : null)
                 .padreNombre(ambiente.getPadre() != null ? ambiente.getPadre().getNombre() : null)
                 .subUbicaciones(subUbicacionesDTO)
@@ -440,6 +516,7 @@ public class AmbienteService {
         copia.setDescripcion(dto.getDescripcion());
         copia.setDireccion(dto.getDireccion());
         copia.setIdInstructorResponsable(dto.getIdInstructorResponsable());
+        copia.setEncargadoIds(dto.getEncargadoIds());
         copia.setPadreId(padreId);
         return copia;
     }

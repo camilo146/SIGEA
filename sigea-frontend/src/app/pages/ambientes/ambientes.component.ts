@@ -32,7 +32,7 @@ export class AmbientesComponent implements OnInit {
   currentUser = this.auth.user;
 
   ambientes = signal<Ambiente[]>([]);
-  usuarios = signal<{ id: number; nombreCompleto: string; rol: string }[]>([]);
+  usuarios = signal<{ id: number; nombreCompleto: string; rol: string; activo?: boolean }[]>([]);
   loading = signal(true);
   error = signal('');
   modalOpen = signal(false);
@@ -57,7 +57,7 @@ export class AmbientesComponent implements OnInit {
   loadingSubUbicaciones = signal(false);
   modalCrearSubOpen = signal(false);
   formSubSaving = signal(false);
-  formSub: AmbienteCrear = { nombre: '', idInstructorResponsable: null };
+  formSub: AmbienteCrear = { nombre: '', idInstructorResponsable: null, encargadoIds: [] };
   /** Sub-ubicación seleccionada en el panel de detalle (null = mostrar todos los equipos). */
   selectedSubUbicacion = signal<SubUbicacionResumen | null>(null);
   subEquipos = signal<Equipo[]>([]);
@@ -69,6 +69,7 @@ export class AmbientesComponent implements OnInit {
     ubicacion: '',
     descripcion: '',
     idInstructorResponsable: 0,
+    encargadoIds: [],
   };
 
   filteredAmbientes = computed(() => {
@@ -94,7 +95,11 @@ export class AmbientesComponent implements OnInit {
 
   /** Usuarios aptos como responsables: instructores y administradores */
   instructoresParaSelect = computed(() =>
-    this.usuarios().filter((u) => u.rol === 'INSTRUCTOR' || u.rol === 'ADMINISTRADOR')
+    this.usuarios().filter((u) => (u.rol === 'INSTRUCTOR' || u.rol === 'ADMINISTRADOR') && u.activo !== false)
+  );
+
+  encargadosDisponibles = computed(() =>
+    this.usuarios().filter((u) => u.activo !== false && u.id !== this.form.idInstructorResponsable)
   );
 
   ngOnInit() {
@@ -106,6 +111,7 @@ export class AmbientesComponent implements OnInit {
             id: u.id,
             nombreCompleto: u.nombreCompleto,
             rol: u.rol,
+            activo: u.activo,
           }))
         ),
       error: () => {
@@ -144,6 +150,7 @@ export class AmbientesComponent implements OnInit {
       idInstructorResponsable: this.auth.isInstructor()
         ? this.currentUser()?.id ?? null
         : this.instructoresParaSelect()[0]?.id ?? 0,
+      encargadoIds: [],
     };
     this.modalOpen.set(true);
     this.error.set('');
@@ -158,6 +165,7 @@ export class AmbientesComponent implements OnInit {
       ubicacion: a.ubicacion ?? '',
       descripcion: a.descripcion ?? '',
       idInstructorResponsable: a.instructorResponsableId,
+      encargadoIds: [...(a.encargadoIds ?? [])],
     };
     this.modalOpen.set(true);
     this.error.set('');
@@ -270,13 +278,41 @@ export class AmbientesComponent implements OnInit {
 
   canManageAmbiente(ambiente: Ambiente): boolean {
     if (this.auth.isAdmin()) return true;
-    if (!this.auth.isInstructor()) return false;
-    return !!this.currentUser()?.id && ambiente.propietarioId === this.currentUser()?.id;
+    const currentUserId = this.currentUser()?.id;
+    return !!currentUserId
+      && (ambiente.propietarioId === currentUserId
+        || ambiente.instructorResponsableId === currentUserId
+        || !!ambiente.encargadoIds?.includes(currentUserId));
   }
 
   getPropietarioLabel(ambiente: Ambiente): string {
     if (ambiente.propietarioNombre) return ambiente.propietarioNombre;
     return ambiente.instructorResponsableNombre;
+  }
+
+  getEncargadosLabel(ambiente: Ambiente): string {
+    if (!ambiente.encargados?.length) return 'Sin encargados adicionales';
+    return ambiente.encargados.map((encargado) => encargado.nombreCompleto).join(', ');
+  }
+
+  isEncargadoSeleccionado(usuarioId: number): boolean {
+    return !!this.form.encargadoIds?.includes(usuarioId);
+  }
+
+  toggleEncargado(usuarioId: number, checked: boolean) {
+    const actuales = new Set(this.form.encargadoIds ?? []);
+    if (checked) {
+      actuales.add(usuarioId);
+    } else {
+      actuales.delete(usuarioId);
+    }
+    this.form.encargadoIds = [...actuales];
+  }
+
+  syncEncargadosWithResponsable(responsableId: number | string) {
+    const id = Number(responsableId);
+    this.form.idInstructorResponsable = Number.isNaN(id) ? null : id;
+    this.form.encargadoIds = (this.form.encargadoIds ?? []).filter((encargadoId) => encargadoId !== id);
   }
 
   openEquipos(a: Ambiente) {
@@ -441,6 +477,7 @@ export class AmbientesComponent implements OnInit {
       ubicacion: '',
       descripcion: '',
       idInstructorResponsable: padre?.instructorResponsableId ?? null,
+      encargadoIds: [...(padre?.encargadoIds ?? [])],
     };
     this.modalCrearSubOpen.set(true);
   }

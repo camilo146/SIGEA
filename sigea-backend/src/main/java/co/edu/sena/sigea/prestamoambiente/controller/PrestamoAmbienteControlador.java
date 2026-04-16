@@ -77,7 +77,7 @@ public class PrestamoAmbienteControlador {
     }
 
     @PutMapping("/{id}/aprobar")
-    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('INSTRUCTOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PrestamoAmbienteRespuestaDTO> aprobar(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -85,7 +85,7 @@ public class PrestamoAmbienteControlador {
     }
 
     @PutMapping("/{id}/rechazar")
-    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('INSTRUCTOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PrestamoAmbienteRespuestaDTO> rechazar(
             @PathVariable Long id,
             @RequestParam String motivo,

@@ -62,6 +62,7 @@ export class AmbienteService {
     if (dto.idInstructorResponsable != null) {
       formData.append('idInstructorResponsable', String(dto.idInstructorResponsable));
     }
+    dto.encargadoIds?.forEach((id) => formData.append('encargadoIds', String(id)));
     if (archivo) formData.append('archivo', archivo);
     return formData;
   }

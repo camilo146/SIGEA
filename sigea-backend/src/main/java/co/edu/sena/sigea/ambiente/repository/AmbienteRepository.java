@@ -9,6 +9,10 @@ import org.springframework.stereotype.Repository;
 import co.edu.sena.sigea.ambiente.entity.Ambiente;
 
 @Repository
+// Repositorio para gestionar la persistencia de los ambientes, incluye métodos
+// personalizados para buscar por nombre,
+// listar activos, listar por instructor responsable, listar por propietario, y
+// gestionar sub-ubicaciones.
 public interface AmbienteRepository extends JpaRepository<Ambiente, Long> {
 
     Optional<Ambiente> findByNombre(String nombre);

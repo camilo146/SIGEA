@@ -1,6 +1,8 @@
 
 package co.edu.sena.sigea.ambiente.dto;
 
+import java.util.List;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -40,5 +42,10 @@ public class AmbienteCrearDTO {
      * Obligatorio para ADMIN; si es INSTRUCTOR puede ser null y se asigna él mismo.
      */
     private Long idInstructorResponsable;
+
+    /**
+     * Usuarios adicionales que podrán administrar la ubicación y atender reservas.
+     */
+    private List<Long> encargadoIds;
 
 }

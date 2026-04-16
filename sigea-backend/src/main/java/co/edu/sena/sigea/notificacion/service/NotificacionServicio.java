@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.sena.sigea.ambiente.entity.Ambiente;
 import co.edu.sena.sigea.common.enums.EstadoEnvio;
 import co.edu.sena.sigea.common.enums.EstadoPrestamo;
 import co.edu.sena.sigea.common.enums.MedioEnvio;
@@ -329,82 +330,118 @@ public class NotificacionServicio {
         log.info("Tarea enviarRecordatorios completada.");
     }
 
-    public void notificarSolicitudPrestamoAmbiente(Usuario solicitante, Usuario propietario, String ambienteNombre,
+    public void notificarSolicitudPrestamoAmbiente(Usuario solicitante, Ambiente ambiente,
             LocalDateTime fechaReferencia) {
+        String ambienteNombre = ambiente != null ? ambiente.getNombre() : "ambiente solicitado";
         crearYEnviar(
                 solicitante,
                 TipoNotificacion.SOLICITUD_PRESTAMO_AMBIENTE,
                 "Solicitud de ambiente registrada",
                 "Tu solicitud del ambiente " + ambienteNombre + " fue registrada y está pendiente de aprobación.");
-        if (propietario != null && !propietario.getId().equals(solicitante.getId())) {
-            crearYEnviar(
-                    propietario,
-                    TipoNotificacion.SOLICITUD_PRESTAMO_AMBIENTE,
-                    "Nueva solicitud de ambiente a tu cargo",
-                    "El usuario " + solicitante.getNombreCompleto() + " solicitó el ambiente " + ambienteNombre
-                            + " para " + fechaReferencia + ".");
-        }
+        notificarGestoresAmbiente(
+                ambiente,
+                solicitante,
+                TipoNotificacion.SOLICITUD_PRESTAMO_AMBIENTE,
+                "Nueva solicitud de ambiente a tu cargo",
+                "El usuario " + solicitante.getNombreCompleto() + " solicitó el ambiente " + ambienteNombre
+                        + " para " + fechaReferencia + ".");
     }
 
-    public void notificarPrestamoAmbienteAprobado(Usuario solicitante, Usuario propietario, String ambienteNombre) {
+    public void notificarPrestamoAmbienteAprobado(Usuario solicitante, Ambiente ambiente) {
+        String ambienteNombre = ambiente != null ? ambiente.getNombre() : "ambiente solicitado";
         crearYEnviar(
                 solicitante,
                 TipoNotificacion.PRESTAMO_AMBIENTE_APROBADO,
                 "Préstamo de ambiente aprobado",
                 "Tu solicitud del ambiente " + ambienteNombre + " fue aprobada.");
-        if (propietario != null) {
-            crearYEnviar(
-                    propietario,
-                    TipoNotificacion.PRESTAMO_AMBIENTE_APROBADO,
-                    "Préstamo de ambiente aprobado",
-                    "Se aprobó una solicitud sobre el ambiente " + ambienteNombre + ".");
-        }
+        notificarGestoresAmbiente(
+                ambiente,
+                null,
+                TipoNotificacion.PRESTAMO_AMBIENTE_APROBADO,
+                "Préstamo de ambiente aprobado",
+                "Se aprobó una solicitud sobre el ambiente " + ambienteNombre + ".");
     }
 
-    public void notificarPrestamoAmbienteRechazado(Usuario solicitante, Usuario propietario, String ambienteNombre,
+    public void notificarPrestamoAmbienteRechazado(Usuario solicitante, Ambiente ambiente,
             String motivo) {
+        String ambienteNombre = ambiente != null ? ambiente.getNombre() : "ambiente solicitado";
         crearYEnviar(
                 solicitante,
                 TipoNotificacion.PRESTAMO_AMBIENTE_RECHAZADO,
                 "Préstamo de ambiente rechazado",
                 "Tu solicitud del ambiente " + ambienteNombre + " fue rechazada. Motivo: " + motivo);
-        if (propietario != null) {
-            crearYEnviar(
-                    propietario,
-                    TipoNotificacion.PRESTAMO_AMBIENTE_RECHAZADO,
-                    "Préstamo de ambiente rechazado",
-                    "Se rechazó una solicitud sobre el ambiente " + ambienteNombre + ". Motivo: " + motivo);
-        }
+        notificarGestoresAmbiente(
+                ambiente,
+                null,
+                TipoNotificacion.PRESTAMO_AMBIENTE_RECHAZADO,
+                "Préstamo de ambiente rechazado",
+                "Se rechazó una solicitud sobre el ambiente " + ambienteNombre + ". Motivo: " + motivo);
     }
 
-    public void notificarPrestamoAmbienteCancelado(Usuario solicitante, Usuario propietario, String ambienteNombre) {
+    public void notificarPrestamoAmbienteCancelado(Usuario solicitante, Ambiente ambiente) {
+        String ambienteNombre = ambiente != null ? ambiente.getNombre() : "ambiente solicitado";
         crearYEnviar(
                 solicitante,
                 TipoNotificacion.PRESTAMO_AMBIENTE_CANCELADO,
                 "Préstamo de ambiente cancelado",
                 "La solicitud del ambiente " + ambienteNombre + " fue cancelada.");
-        if (propietario != null && !propietario.getId().equals(solicitante.getId())) {
-            crearYEnviar(
-                    propietario,
-                    TipoNotificacion.PRESTAMO_AMBIENTE_CANCELADO,
-                    "Solicitud de ambiente cancelada",
-                    "La solicitud del ambiente " + ambienteNombre + " fue cancelada por el solicitante.");
-        }
+        notificarGestoresAmbiente(
+                ambiente,
+                solicitante,
+                TipoNotificacion.PRESTAMO_AMBIENTE_CANCELADO,
+                "Solicitud de ambiente cancelada",
+                "La solicitud del ambiente " + ambienteNombre + " fue cancelada por el solicitante.");
     }
 
-    public void notificarPrestamoAmbienteDevuelto(Usuario solicitante, Usuario propietario, String ambienteNombre) {
+    public void notificarPrestamoAmbienteDevuelto(Usuario solicitante, Ambiente ambiente) {
+        String ambienteNombre = ambiente != null ? ambiente.getNombre() : "ambiente solicitado";
         crearYEnviar(
                 solicitante,
                 TipoNotificacion.PRESTAMO_AMBIENTE_DEVUELTO,
                 "Préstamo de ambiente cerrado",
                 "Se registró la devolución del ambiente " + ambienteNombre + ".");
-        if (propietario != null) {
-            crearYEnviar(
-                    propietario,
-                    TipoNotificacion.PRESTAMO_AMBIENTE_DEVUELTO,
-                    "Ambiente devuelto",
-                    "Se registró la devolución del ambiente " + ambienteNombre + ".");
+        notificarGestoresAmbiente(
+                ambiente,
+                null,
+                TipoNotificacion.PRESTAMO_AMBIENTE_DEVUELTO,
+                "Ambiente devuelto",
+                "Se registró la devolución del ambiente " + ambienteNombre + ".");
+    }
+
+    private void notificarGestoresAmbiente(Ambiente ambiente, Usuario excluir, TipoNotificacion tipo,
+            String titulo, String mensaje) {
+        List<Usuario> gestores = resolverGestoresAmbiente(ambiente);
+        if (excluir != null) {
+            gestores = gestores.stream()
+                    .filter(usuario -> !usuario.getId().equals(excluir.getId()))
+                    .toList();
         }
+        notificarUsuarios(gestores, tipo, titulo, mensaje);
+    }
+
+    private List<Usuario> resolverGestoresAmbiente(Ambiente ambiente) {
+        if (ambiente == null) {
+            return List.of();
+        }
+
+        Set<Long> ids = new LinkedHashSet<>();
+        List<Usuario> gestores = new ArrayList<>();
+
+        if (ambiente.getPropietario() != null && ids.add(ambiente.getPropietario().getId())) {
+            gestores.add(ambiente.getPropietario());
+        }
+        if (ambiente.getInstructorResponsable() != null && ids.add(ambiente.getInstructorResponsable().getId())) {
+            gestores.add(ambiente.getInstructorResponsable());
+        }
+        if (ambiente.getEncargados() != null) {
+            for (Usuario encargado : ambiente.getEncargados()) {
+                if (encargado != null && ids.add(encargado.getId())) {
+                    gestores.add(encargado);
+                }
+            }
+        }
+
+        return gestores;
     }
 
     public void enviarCorreoPrueba(String correoSolicitante, String destinatario) {

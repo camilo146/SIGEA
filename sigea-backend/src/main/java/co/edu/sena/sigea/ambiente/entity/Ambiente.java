@@ -26,6 +26,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -35,6 +37,7 @@ import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -125,8 +128,18 @@ public class Ambiente extends EntidadBase {
     // =========================================================================
     // Lista de sub-ubicaciones hijas. Lazy para no cargar innecesariamente.
     // =========================================================================
+    @Default
     @OneToMany(mappedBy = "padre", fetch = FetchType.LAZY)
     private List<Ambiente> subUbicaciones = new ArrayList<>();
+
+    /**
+     * Usuarios adicionales autorizados para administrar este ambiente.
+     * Pueden aprobar/rechazar reservas y recibir notificaciones relacionadas.
+     */
+    @Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "ambiente_encargado", joinColumns = @JoinColumn(name = "ambiente_id"), inverseJoinColumns = @JoinColumn(name = "usuario_id"))
+    private List<Usuario> encargados = new ArrayList<>();
 
     // =========================================================================
     // CAMPO: activo
@@ -134,6 +147,7 @@ public class Ambiente extends EntidadBase {
     // Soft delete para ambientes (RF-AMB-02: "desactivar ambientes").
     // Un ambiente inactivo no aparece en las listas pero sus datos se conservan.
     // =========================================================================
+    @Default
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 

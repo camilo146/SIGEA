@@ -87,8 +87,7 @@ public class PrestamoAmbienteServicio {
 
         notificacionServicio.notificarSolicitudPrestamoAmbiente(
                 solicitante,
-                propietario,
-                ambiente.getNombre(),
+                ambiente,
                 dto.getFechaInicio().atTime(dto.getHoraInicio()));
 
         return convertirADTO(guardado);
@@ -122,8 +121,7 @@ public class PrestamoAmbienteServicio {
 
         notificacionServicio.notificarPrestamoAmbienteAprobado(
                 prestamo.getSolicitante(),
-                prestamo.getPropietarioAmbiente(),
-                prestamo.getAmbiente().getNombre());
+                prestamo.getAmbiente());
 
         return convertirADTO(actualizado);
     }
@@ -146,8 +144,7 @@ public class PrestamoAmbienteServicio {
 
         notificacionServicio.notificarPrestamoAmbienteRechazado(
                 prestamo.getSolicitante(),
-                prestamo.getPropietarioAmbiente(),
-                prestamo.getAmbiente().getNombre(),
+                prestamo.getAmbiente(),
                 motivo);
 
         return convertirADTO(actualizado);
@@ -174,8 +171,7 @@ public class PrestamoAmbienteServicio {
 
         notificacionServicio.notificarPrestamoAmbienteDevuelto(
                 prestamo.getSolicitante(),
-                prestamo.getPropietarioAmbiente(),
-                prestamo.getAmbiente().getNombre());
+                prestamo.getAmbiente());
 
         return convertirADTO(actualizado);
     }
@@ -203,8 +199,7 @@ public class PrestamoAmbienteServicio {
         PrestamoAmbiente actualizado = prestamoAmbienteRepository.save(prestamo);
         notificacionServicio.notificarPrestamoAmbienteCancelado(
                 prestamo.getSolicitante(),
-                prestamo.getPropietarioAmbiente(),
-                prestamo.getAmbiente().getNombre());
+                prestamo.getAmbiente());
         return convertirADTO(actualizado);
     }
 
@@ -223,13 +218,12 @@ public class PrestamoAmbienteServicio {
             return listarTodos();
         }
 
-        if (usuario.getRol() == Rol.INSTRUCTOR) {
-            return prestamoAmbienteRepository.findByPropietarioAmbienteIdOrderByFechaSolicitudDesc(usuario.getId())
-                    .stream().map(this::convertirADTO).toList();
-        }
-
-        return prestamoAmbienteRepository.findBySolicitanteIdOrderByFechaSolicitudDesc(usuario.getId())
-                .stream().map(this::convertirADTO).toList();
+        return prestamoAmbienteRepository.findAllByOrderByFechaSolicitudDesc()
+                .stream()
+                .filter(prestamo -> prestamo.getSolicitante().getId().equals(usuario.getId())
+                        || usuarioPuedeGestionarAmbiente(usuario, prestamo.getAmbiente()))
+                .map(this::convertirADTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -284,13 +278,28 @@ public class PrestamoAmbienteServicio {
         Usuario usuario = usuarioRepository.findByCorreoElectronico(correoUsuario)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoUsuario));
 
-        boolean esPropietario = prestamo.getPropietarioAmbiente().getId().equals(usuario.getId());
-        boolean esAdmin = usuario.getRol() == Rol.ADMINISTRADOR;
-
-        if (!esPropietario && !esAdmin) {
+        if (!usuarioPuedeGestionarAmbiente(usuario, prestamo.getAmbiente())) {
             throw new OperacionNoPermitidaException(
-                    "Solo el propietario del ambiente o un administrador puede realizar esta acción");
+                    "Solo el propietario, un encargado del ambiente o un administrador puede realizar esta acción");
         }
+    }
+
+    private boolean usuarioPuedeGestionarAmbiente(Usuario usuario, Ambiente ambiente) {
+        if (usuario == null || ambiente == null) {
+            return false;
+        }
+        if (usuario.getRol() == Rol.ADMINISTRADOR) {
+            return true;
+        }
+        if (ambiente.getPropietario() != null && ambiente.getPropietario().getId().equals(usuario.getId())) {
+            return true;
+        }
+        if (ambiente.getInstructorResponsable() != null
+                && ambiente.getInstructorResponsable().getId().equals(usuario.getId())) {
+            return true;
+        }
+        return ambiente.getEncargados() != null
+                && ambiente.getEncargados().stream().anyMatch(encargado -> encargado.getId().equals(usuario.getId()));
     }
 
     /**

@@ -37,6 +37,12 @@ public class AmbienteRespuestaDTO {
 
     private String propietarioNombre;
 
+    /** IDs de usuarios adicionales con acceso de gestión al ambiente. */
+    private List<Long> encargadoIds;
+
+    /** Resumen de usuarios encargados adicionales. */
+    private List<EncargadoResumenDTO> encargados;
+
     /** ID del ambiente padre (null si es una ubicación raíz). */
     private Long padreId;
 

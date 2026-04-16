@@ -16,6 +16,8 @@ export interface Ambiente {
   instructorResponsableNombre: string;
   propietarioId?: number;
   propietarioNombre?: string;
+  encargadoIds?: number[];
+  encargados?: Array<{ id: number; nombreCompleto: string; correoElectronico?: string; rol?: string }>;
   activo: boolean;
   rutaFoto?: string;
   /** ID del ambiente padre (solo si es sub-ubicación). */
@@ -35,6 +37,8 @@ export interface AmbienteCrear {
   direccion?: string;
   /** Obligatorio para admin; null cuando un instructor crea (el backend lo asigna). */
   idInstructorResponsable: number | null;
+  /** IDs de usuarios adicionales con permiso de gestión sobre la ubicación. */
+  encargadoIds?: number[];
   /** ID del ambiente padre; si se proporciona, crea como sub-ubicación. */
   padreId?: number | null;
 }
