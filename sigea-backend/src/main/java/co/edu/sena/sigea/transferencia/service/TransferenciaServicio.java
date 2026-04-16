@@ -52,7 +52,7 @@ public class TransferenciaServicio {
 
         public TransferenciaRespuestaDTO crear(TransferenciaCrearDTO dto, String correoAdministrador) {
 
-                Usuario usuarioActual = usuarioRepository.findByCorreoElectronico(correoAdministrador)
+                Usuario usuarioActual = usuarioRepository.findByIdentificador(correoAdministrador)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(
                                                 "Usuario no encontrado: " + correoAdministrador));
 

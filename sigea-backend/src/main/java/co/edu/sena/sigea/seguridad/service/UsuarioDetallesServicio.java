@@ -24,11 +24,11 @@ public class UsuarioDetallesServicio implements UserDetailsService{
     }
 
     @Override
-    public UserDetails loadUserByUsername(String correo) throws UsernameNotFoundException {
-        //buscar el usuario por correo electrónico en la base de datos
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(correo)
+    public UserDetails loadUserByUsername(String identificador) throws UsernameNotFoundException {
+        // buscar el usuario por correo o por número de documento en la base de datos
+        Usuario usuario = usuarioRepository.findByIdentificador(identificador)
                 .orElseThrow(() -> new UsernameNotFoundException(
-                    "Usuario no encontrado: " + correo));
+                    "Usuario no encontrado: " + identificador));
 
                     boolean estaCuentaActiva = usuario.getActivo();
 
@@ -41,7 +41,9 @@ public class UsuarioDetallesServicio implements UserDetailsService{
                     
                     
                     return org.springframework.security.core.userdetails.User.builder()
-                .username(usuario.getCorreoElectronico())
+                .username(usuario.getCorreoElectronico() != null && !usuario.getCorreoElectronico().isBlank()
+                        ? usuario.getCorreoElectronico()
+                        : usuario.getNumeroDocumento())
                 .password(usuario.getContrasenaHash())
                 .authorities(Collections.singletonList(
                         new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name())

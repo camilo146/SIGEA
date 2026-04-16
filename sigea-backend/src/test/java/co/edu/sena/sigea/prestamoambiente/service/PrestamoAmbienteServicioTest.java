@@ -106,9 +106,10 @@ class PrestamoAmbienteServicioTest {
         prestamo.setId(50L);
 
         when(prestamoAmbienteRepository.findById(50L)).thenReturn(Optional.of(prestamo));
-        when(usuarioRepository.findByCorreoElectronico("encargado@sena.edu.co")).thenReturn(Optional.of(encargado));
+        when(usuarioRepository.findByIdentificador("encargado@sena.edu.co")).thenReturn(Optional.of(encargado));
         when(prestamoAmbienteRepository.existeSolapamiento(any(), any(), any(), any(), any(), any())).thenReturn(false);
-        when(prestamoAmbienteRepository.save(any(PrestamoAmbiente.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(prestamoAmbienteRepository.save(any(PrestamoAmbiente.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         PrestamoAmbienteRespuestaDTO respuesta = servicio.aprobar(50L, "encargado@sena.edu.co");
 

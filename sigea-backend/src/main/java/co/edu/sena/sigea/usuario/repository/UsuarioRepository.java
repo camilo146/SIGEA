@@ -16,6 +16,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByCorreoElectronico(String correoElectronico);
 
+    default Optional<Usuario> findByIdentificador(String identificador) {
+        if (identificador == null || identificador.isBlank()) {
+            return Optional.empty();
+        }
+        String valor = identificador.trim();
+        return findByCorreoElectronico(valor).or(() -> findByNumeroDocumento(valor));
+    }
+
     Optional<Usuario> findByTipoDocumentoAndNumeroDocumento(
             co.edu.sena.sigea.common.enums.TipoDocumento tipoDocumento,
             String numeroDocumento);

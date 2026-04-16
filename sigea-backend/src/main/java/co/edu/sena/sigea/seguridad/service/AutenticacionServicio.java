@@ -107,18 +107,14 @@ public class AutenticacionServicio {
 
         }
 
-        // Solo los no-administradores deben verificar el correo antes de iniciar sesión
-        if (requireEmailVerification
-                && usuario.getRol() != co.edu.sena.sigea.common.enums.Rol.ADMINISTRADOR
-                && Boolean.FALSE.equals(usuario.getEmailVerificado())
-                && usuario.getCorreoElectronico() != null
-                && !usuario.getCorreoElectronico().isBlank()) {
+        // Solo los usuarios finales deben verificar el correo antes de iniciar sesión
+        if (debeVerificarCorreoEnLogin(usuario)) {
             throw new OperacionNoPermitidaException(
                     "Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada e ingresa el código de 6 dígitos que te enviamos.");
         }
 
-        // Verificar aprobación solo para usuarios finales (no aplica a administradores)
-        if (usuario.getRol() != co.edu.sena.sigea.common.enums.Rol.ADMINISTRADOR
+        // La aprobación administrativa aplica solo a cuentas de usuario final
+        if (requiereAprobacionAdministrativa(usuario)
                 && usuario.getEstadoAprobacion() == EstadoAprobacion.PENDIENTE) {
             throw new OperacionNoPermitidaException(
                     "Tu cuenta está pendiente de aprobación por un administrador. Espera a que revisen tu registro.");
@@ -137,9 +133,9 @@ public class AutenticacionServicio {
         usuario.setCuentaBloqueadaHasta(null);
         usuarioRepository.save(usuario);
 
-        // Generar token JWT usando el correo como subject (para JwtFiltroAutenticacion)
+        // Generar token JWT usando un identificador estable del usuario
         String token = jwtProveedor.generarToken(
-                usuario.getCorreoElectronico(),
+                resolverIdentificadorSesion(usuario),
                 usuario.getRol().name());
 
         return LoginRespuestaDTO.builder()
@@ -166,6 +162,39 @@ public class AutenticacionServicio {
      * 
      */
     //
+    private boolean debeVerificarCorreoEnLogin(Usuario usuario) {
+        if (!requireEmailVerification || usuario == null) {
+            return false;
+        }
+        return switch (usuario.getRol()) {
+            case ADMINISTRADOR, INSTRUCTOR, ALIMENTADOR_EQUIPOS -> false;
+            default -> Boolean.FALSE.equals(usuario.getEmailVerificado())
+                    && usuario.getCorreoElectronico() != null
+                    && !usuario.getCorreoElectronico().isBlank();
+        };
+    }
+
+    private boolean requiereAprobacionAdministrativa(Usuario usuario) {
+        if (usuario == null) {
+            return false;
+        }
+        return switch (usuario.getRol()) {
+            case ADMINISTRADOR, INSTRUCTOR, ALIMENTADOR_EQUIPOS -> false;
+            default -> true;
+        };
+    }
+
+    private String resolverIdentificadorSesion(Usuario usuario) {
+        if (usuario.getCorreoElectronico() != null && !usuario.getCorreoElectronico().isBlank()) {
+            return usuario.getCorreoElectronico().trim();
+        }
+        if (usuario.getNumeroDocumento() != null && !usuario.getNumeroDocumento().isBlank()) {
+            return usuario.getNumeroDocumento().trim();
+        }
+        throw new OperacionNoPermitidaException(
+                "La cuenta no tiene un identificador válido para iniciar sesión.");
+    }
+
     private void manejarLoginFallido(Usuario usuario) {
         // incremeta los intetos fallidos
         int intentos = usuario.getIntentosFallidos() + 1;

@@ -87,7 +87,7 @@ public class ReservaServicio {
     // =========================================================================
     public ReservaRespuestaDTO crear(ReservaCrearDTO dto, String correoUsuario) {
 
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(correoUsuario)
+        Usuario usuario = usuarioRepository.findByIdentificador(correoUsuario)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoUsuario));
 
@@ -172,7 +172,11 @@ public class ReservaServicio {
                             + reserva.getFechaHoraInicio() + ").");
         }
 
-        if (!reserva.getUsuario().getCorreoElectronico().equals(correoUsuario)) {
+        Usuario usuarioActual = usuarioRepository.findByIdentificador(correoUsuario)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado: " + correoUsuario));
+
+        if (!reserva.getUsuario().getId().equals(usuarioActual.getId())) {
             throw new OperacionNoPermitidaException(
                     "Solo puedes cancelar tus propias reservas.");
         }
@@ -202,7 +206,7 @@ public class ReservaServicio {
                     "Solo se puede marcar equipo recogido en reservas ACTIVAS. Estado actual: " + reserva.getEstado());
         }
 
-        Usuario admin = usuarioRepository.findByCorreoElectronico(correoAdmin)
+        Usuario admin = usuarioRepository.findByIdentificador(correoAdmin)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoAdmin));
 
         Equipo equipo = reserva.getEquipo();
@@ -305,7 +309,7 @@ public class ReservaServicio {
 
     @Transactional(readOnly = true)
     public List<ReservaRespuestaDTO> listarMisReservas(String correoUsuario) {
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(correoUsuario)
+        Usuario usuario = usuarioRepository.findByIdentificador(correoUsuario)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoUsuario));
         return listarPorUsuario(usuario.getId());

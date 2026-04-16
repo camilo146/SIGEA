@@ -65,7 +65,7 @@ public class AmbienteService {
         Usuario propietario = null;
         Usuario instructor;
         if (correoUsuario != null && !correoUsuario.isBlank()) {
-            Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
+            Usuario actual = usuarioRepository.findByIdentificador(correoUsuario).orElse(null);
             propietario = actual;
             if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
                 instructor = actual;
@@ -127,7 +127,7 @@ public class AmbienteService {
         Usuario propietario = null;
         Usuario instructor;
         if (correoInstructor != null && !correoInstructor.isBlank()) {
-            Usuario actual = usuarioRepository.findByCorreoElectronico(correoInstructor).orElse(null);
+            Usuario actual = usuarioRepository.findByIdentificador(correoInstructor).orElse(null);
             propietario = actual;
             if (actual != null && actual.getRol() == Rol.INSTRUCTOR) {
                 instructor = actual;
@@ -211,7 +211,7 @@ public class AmbienteService {
     public List<AmbienteRespuestaDTO> listarPorCorreoInstructor(String correo) {
         if (correo == null || correo.isBlank())
             return Collections.emptyList();
-        return usuarioRepository.findByCorreoElectronico(correo)
+        return usuarioRepository.findByIdentificador(correo)
                 .map(u -> ambienteRepository.findAll()
                         .stream()
                         .filter(ambiente -> usuarioPuedeGestionarAmbiente(u, ambiente))
@@ -417,7 +417,7 @@ public class AmbienteService {
     private void verificarPropiedadInstructor(Ambiente ambiente, String correoUsuario, String mensajeError) {
         if (correoUsuario == null || correoUsuario.isBlank())
             return;
-        Usuario actual = usuarioRepository.findByCorreoElectronico(correoUsuario).orElse(null);
+        Usuario actual = usuarioRepository.findByIdentificador(correoUsuario).orElse(null);
         if (actual != null && !usuarioPuedeGestionarAmbiente(actual, ambiente)) {
             throw new OperacionNoPermitidaException(mensajeError);
         }

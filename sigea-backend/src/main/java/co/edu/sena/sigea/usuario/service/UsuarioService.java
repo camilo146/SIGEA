@@ -90,6 +90,12 @@ public class UsuarioService {
                     "El correo electronico ya esta registrado: " + dto.getCorreoElectronico());
         }
 
+        boolean requiereVerificacionCorreo = dto.getCorreoElectronico() != null
+                && !dto.getCorreoElectronico().isBlank()
+                && (dto.getRol() == Rol.USUARIO_ESTANDAR
+                        || dto.getRol() == Rol.APRENDIZ
+                        || dto.getRol() == Rol.FUNCIONARIO);
+
         Usuario usuario = Usuario.builder()
                 .nombreCompleto(dto.getNombreCompleto())
                 .tipoDocumento(dto.getTipoDocumento())
@@ -102,6 +108,7 @@ public class UsuarioService {
                 .rol(dto.getRol())
                 .esSuperAdmin(false)
                 .activo(true)
+                .emailVerificado(!requiereVerificacionCorreo)
                 .estadoAprobacion(EstadoAprobacion.APROBADO)
                 .intentosFallidos(0)
                 .build();
@@ -235,9 +242,9 @@ public class UsuarioService {
     public void restablecerContrasenaAdministrativa(String correoAdministrador, Long id,
             UsuarioRestablecerContrasenaDTO dto) {
 
-        Usuario administrador = usuarioRepository.findByCorreoElectronico(correoAdministrador)
+        Usuario administrador = usuarioRepository.findByIdentificador(correoAdministrador)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Usuario no encontrado con correo: " + correoAdministrador));
+                        "Usuario no encontrado con identificador: " + correoAdministrador));
 
         if (administrador.getRol() != Rol.ADMINISTRADOR) {
             throw new OperacionNoPermitidaException(

@@ -127,7 +127,7 @@ public class PrestamoServicio {
         // El correo viene del token JWT (no del body). Ver Controller.
         // Si no existe → 404. Si no está activo → no debería pasar porque
         // UsuarioDetallesServicio ya verifica el estado al hacer login.
-        Usuario solicitante = usuarioRepository.findByCorreoElectronico(correoUsuario)
+        Usuario solicitante = usuarioRepository.findByIdentificador(correoUsuario)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoUsuario));
 
@@ -240,7 +240,7 @@ public class PrestamoServicio {
                             "Estado actual: " + prestamo.getEstado());
         }
 
-        Usuario admin = usuarioRepository.findByCorreoElectronico(correoAdmin)
+        Usuario admin = usuarioRepository.findByIdentificador(correoAdmin)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoAdmin));
 
@@ -272,7 +272,7 @@ public class PrestamoServicio {
                             "Estado actual: " + prestamo.getEstado());
         }
 
-        Usuario admin = usuarioRepository.findByCorreoElectronico(correoAdmin)
+        Usuario admin = usuarioRepository.findByIdentificador(correoAdmin)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoAdmin));
 
@@ -320,7 +320,7 @@ public class PrestamoServicio {
                             "Estado actual: " + prestamo.getEstado());
         }
 
-        Usuario admin = usuarioRepository.findByCorreoElectronico(correoAdmin)
+        Usuario admin = usuarioRepository.findByIdentificador(correoAdmin)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoAdmin));
 
@@ -397,7 +397,7 @@ public class PrestamoServicio {
                             "Estado actual: " + prestamo.getEstado());
         }
 
-        Usuario admin = usuarioRepository.findByCorreoElectronico(correoAdmin)
+        Usuario admin = usuarioRepository.findByIdentificador(correoAdmin)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoAdmin));
 
@@ -512,9 +512,11 @@ public class PrestamoServicio {
                             "Estado actual: " + prestamo.getEstado());
         }
 
-        // Verificar que sea el propio usuario quien cancele.
-        // Comparamos el correo del solicitante con el correo del usuario autenticado.
-        if (!prestamo.getUsuarioSolicitante().getCorreoElectronico().equals(correoUsuario)) {
+        Usuario usuarioActual = usuarioRepository.findByIdentificador(correoUsuario)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario no encontrado: " + correoUsuario));
+
+        if (!prestamo.getUsuarioSolicitante().getId().equals(usuarioActual.getId())) {
             throw new OperacionNoPermitidaException(
                     "Solo puedes cancelar tus propias solicitudes.");
         }
@@ -561,10 +563,10 @@ public class PrestamoServicio {
                 .toList();
     }
 
-    // Lista los préstamos del usuario autenticado (usa su correo para encontrarlo).
+    // Lista los préstamos del usuario autenticado usando su identificador de sesión.
     @Transactional(readOnly = true)
     public List<PrestamoRespuestaDTO> listarMisPrestamos(String correoUsuario) {
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(correoUsuario)
+        Usuario usuario = usuarioRepository.findByIdentificador(correoUsuario)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoUsuario));
 

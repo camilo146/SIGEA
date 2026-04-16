@@ -111,7 +111,7 @@ class TransferenciaServicioTest {
         void lanzaCuandoOrigenYDestinoIguales() {
             dto.setInstructorDestinoId(2L);
 
-            when(usuarioRepository.findByCorreoElectronico("admin@test.com")).thenReturn(Optional.of(admin));
+            when(usuarioRepository.findByIdentificador("admin@test.com")).thenReturn(Optional.of(admin));
             when(equipoRepository.findById(10L)).thenReturn(Optional.of(equipo));
             when(usuarioRepository.findById(2L)).thenReturn(Optional.of(instructorOrigen));
 
@@ -123,7 +123,7 @@ class TransferenciaServicioTest {
         @Test
         @DisplayName("lanza cuando usuario admin no existe")
         void lanzaCuandoAdminNoExiste() {
-            when(usuarioRepository.findByCorreoElectronico("admin@test.com")).thenReturn(Optional.empty());
+            when(usuarioRepository.findByIdentificador("admin@test.com")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> servicio.crear(dto, "admin@test.com"))
                     .isInstanceOf(RecursoNoEncontradoException.class)
@@ -133,7 +133,7 @@ class TransferenciaServicioTest {
         @Test
         @DisplayName("lanza cuando equipo no existe")
         void lanzaCuandoEquipoNoExiste() {
-            when(usuarioRepository.findByCorreoElectronico("admin@test.com")).thenReturn(Optional.of(admin));
+            when(usuarioRepository.findByIdentificador("admin@test.com")).thenReturn(Optional.of(admin));
             when(equipoRepository.findById(10L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> servicio.crear(dto, "admin@test.com"))
@@ -145,7 +145,7 @@ class TransferenciaServicioTest {
         @DisplayName("lanza cuando equipo no está activo")
         void lanzaCuandoEquipoInactivo() {
             equipo.setActivo(false);
-            when(usuarioRepository.findByCorreoElectronico("admin@test.com")).thenReturn(Optional.of(admin));
+            when(usuarioRepository.findByIdentificador("admin@test.com")).thenReturn(Optional.of(admin));
             when(equipoRepository.findById(10L)).thenReturn(Optional.of(equipo));
             when(usuarioRepository.findById(3L)).thenReturn(Optional.of(instructorDestino));
             when(ambienteRepository.findById(101L)).thenReturn(Optional.of(ubicacionDestino));
@@ -159,7 +159,7 @@ class TransferenciaServicioTest {
         @DisplayName("lanza cuando cantidad supera disponible")
         void lanzaCuandoCantidadSuperaDisponible() {
             dto.setCantidad(10);
-            when(usuarioRepository.findByCorreoElectronico("admin@test.com")).thenReturn(Optional.of(admin));
+            when(usuarioRepository.findByIdentificador("admin@test.com")).thenReturn(Optional.of(admin));
             when(equipoRepository.findById(10L)).thenReturn(Optional.of(equipo));
             when(usuarioRepository.findById(3L)).thenReturn(Optional.of(instructorDestino));
             when(ambienteRepository.findById(101L)).thenReturn(Optional.of(ubicacionDestino));
@@ -184,7 +184,7 @@ class TransferenciaServicioTest {
                     .fechaTransferencia(dto.getFechaTransferencia())
                     .build();
             guardada.setId(1L);
-            when(usuarioRepository.findByCorreoElectronico("admin@test.com")).thenReturn(Optional.of(admin));
+            when(usuarioRepository.findByIdentificador("admin@test.com")).thenReturn(Optional.of(admin));
             when(equipoRepository.findById(10L)).thenReturn(Optional.of(equipo));
             when(usuarioRepository.findById(3L)).thenReturn(Optional.of(instructorDestino));
             when(ambienteRepository.findById(101L)).thenReturn(Optional.of(ubicacionDestino));

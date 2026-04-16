@@ -39,7 +39,7 @@ public class ObservacionEquipoServicio {
         Equipo equipo = equipoRepository.findById(dto.getEquipoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", dto.getEquipoId()));
 
-        Usuario registrador = usuarioRepository.findByCorreoElectronico(correoUsuario)
+        Usuario registrador = usuarioRepository.findByIdentificador(correoUsuario)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correoUsuario));
 

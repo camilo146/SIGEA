@@ -445,7 +445,7 @@ public class NotificacionServicio {
     }
 
     public void enviarCorreoPrueba(String correoSolicitante, String destinatario) {
-        Usuario solicitante = usuarioRepository.findByCorreoElectronico(correoSolicitante)
+        Usuario solicitante = usuarioRepository.findByIdentificador(correoSolicitante)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoSolicitante));
 
         String correoDestino = destinatario != null && !destinatario.isBlank()
@@ -460,7 +460,7 @@ public class NotificacionServicio {
     }
 
     public void enviarSuiteCorreosUsuario(String correoSolicitante, String destinatario) {
-        Usuario solicitante = usuarioRepository.findByCorreoElectronico(correoSolicitante)
+        Usuario solicitante = usuarioRepository.findByIdentificador(correoSolicitante)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoSolicitante));
 
         String correoDestino = destinatario != null && !destinatario.isBlank()
@@ -614,7 +614,7 @@ public class NotificacionServicio {
 
     @Transactional(readOnly = true)
     public List<NotificacionRespuestaDTO> listarMisNotificaciones(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(correo)
+        Usuario usuario = usuarioRepository.findByIdentificador(correo)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correo));
         return notificacionRepository.findByUsuarioDestinoId(usuario.getId())
@@ -623,7 +623,7 @@ public class NotificacionServicio {
 
     @Transactional(readOnly = true)
     public List<NotificacionRespuestaDTO> listarMisNoLeidas(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(correo)
+        Usuario usuario = usuarioRepository.findByIdentificador(correo)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correo));
         return notificacionRepository.findByUsuarioDestinoIdAndLeidaFalse(usuario.getId())
@@ -632,7 +632,7 @@ public class NotificacionServicio {
 
     @Transactional(readOnly = true)
     public long contarMisNoLeidas(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreoElectronico(correo)
+        Usuario usuario = usuarioRepository.findByIdentificador(correo)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Usuario no encontrado: " + correo));
         return notificacionRepository.countByUsuarioDestinoIdAndLeidaFalse(usuario.getId());
@@ -642,8 +642,10 @@ public class NotificacionServicio {
         Notificacion notificacion = notificacionRepository.findById(notificacionId)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Notificación no encontrada con ID: " + notificacionId));
+        Usuario usuarioActual = usuarioRepository.findByIdentificador(correoUsuario)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + correoUsuario));
         if (notificacion.getUsuarioDestino() == null
-                || !notificacion.getUsuarioDestino().getCorreoElectronico().equals(correoUsuario)) {
+                || !notificacion.getUsuarioDestino().getId().equals(usuarioActual.getId())) {
             throw new OperacionNoPermitidaException("No puedes marcar esta notificación como leída.");
         }
         notificacion.setLeida(true);

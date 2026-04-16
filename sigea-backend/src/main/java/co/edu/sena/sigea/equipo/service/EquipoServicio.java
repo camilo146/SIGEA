@@ -691,7 +691,7 @@ public class EquipoServicio {
                 if (correoUsuario == null || correoUsuario.isBlank()) {
                         throw new OperacionNoPermitidaException("No se pudo identificar el usuario autenticado.");
                 }
-                return usuarioRepository.findByCorreoElectronico(correoUsuario)
+                return usuarioRepository.findByIdentificador(correoUsuario)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(
                                                 "Usuario no encontrado: " + correoUsuario));
         }
