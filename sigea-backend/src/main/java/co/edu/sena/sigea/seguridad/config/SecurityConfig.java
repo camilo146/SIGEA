@@ -1,6 +1,5 @@
 package co.edu.sena.sigea.seguridad.config;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -98,22 +97,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    // Configuración de CORS. appUrl soporta múltiples orígenes separados por coma
-    // para producción (ej:
-    // http://192.168.4.250:4043,https://sigea.web-virtual.com:4043).
+    // Configuración de CORS. Acepta cualquier origen porque nginx ya actúa
+    // como barrera perimetral. setAllowedOriginPatterns("*") con allowCredentials
+    // es válido en Spring 5.3+ y devuelve el origin real (no "*") en la respuesta.
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Construir lista de orígenes: localhost (dev) + URLs de producción
-        List<String> allowedOrigins = new ArrayList<>(
-                List.of("http://localhost:*", "http://127.0.0.1:*",
-                        "http://localhost:4200", "http://localhost:58648"));
-        Arrays.stream(appUrl.split(","))
-                .map(String::trim)
-                .filter(u -> !u.isEmpty())
-                .forEach(allowedOrigins::add);
-
-        configuration.setAllowedOriginPatterns(allowedOrigins);
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
