@@ -28,8 +28,8 @@ services:
         condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mariadb://db:3306/sigea_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Bogota}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-sigea_user}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-sigea_password_2026}
+      SPRING_DATASOURCE_USERNAME: ${MARIADB_USER:-sigea_user}
+      SPRING_DATASOURCE_PASSWORD: ${MARIADB_PASSWORD:-sigea_password_2026}
       SERVER_PORT: 8080
       SIGEA_UPLOADS_PATH: ${SIGEA_UPLOADS_PATH:-/app/uploads}
       SIGEA_APP_URL: ${SIGEA_APP_URL:-http://localhost}

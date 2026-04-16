@@ -49,13 +49,48 @@ free_port_80() {
   fi
 }
 
+ensure_db_user_credentials() {
+  local db_name db_user db_password root_password
+  db_name="$(grep -E '^MARIADB_DATABASE=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  db_user="$(grep -E '^MARIADB_USER=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  db_password="$(grep -E '^MARIADB_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  root_password="$(grep -E '^MARIADB_ROOT_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+
+  [ -n "$db_name" ] || db_name="sigea_db"
+  [ -n "$db_user" ] || db_user="sigea_user"
+  [ -n "$db_password" ] || db_password="sigea_password_2026"
+  [ -n "$root_password" ] || root_password="root_sigea_2026"
+
+  info "Asegurando credenciales de base de datos para $db_user ..."
+  docker compose -f docker-compose.yml exec -T db \
+    mariadb -uroot -p"$root_password" <<SQL
+CREATE DATABASE IF NOT EXISTS \`$db_name\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$db_user'@'%' IDENTIFIED BY '$db_password';
+ALTER USER '$db_user'@'%' IDENTIFIED BY '$db_password';
+GRANT ALL PRIVILEGES ON \`$db_name\`.* TO '$db_user'@'%';
+FLUSH PRIVILEGES;
+SQL
+}
+
 compose_up() {
   # Eliminar contenedores huérfanos (ej: sigea-caddy de deploys anteriores)
   # que podrían estar ocupando el puerto 80 antes de levantar los nuevos.
   docker rm -f sigea-caddy 2>/dev/null || true
   docker compose -f docker-compose.yml down --remove-orphans 2>/dev/null || true
   free_port_80
-  docker compose -f docker-compose.yml up -d --build --remove-orphans
+
+  # Levantar primero la base de datos y reconciliar las credenciales del usuario de aplicación.
+  docker compose -f docker-compose.yml up -d db
+  info "Esperando que la base de datos esté saludable..."
+  for _ in $(seq 1 30); do
+    if docker compose -f docker-compose.yml ps db | grep -q "healthy"; then
+      break
+    fi
+    sleep 2
+  done
+  ensure_db_user_credentials
+
+  docker compose -f docker-compose.yml up -d --build --remove-orphans backend frontend
 }
 
 wait_for_stack_health() {
