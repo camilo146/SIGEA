@@ -49,6 +49,26 @@ free_port_80() {
   fi
 }
 
+validate_smtp_config() {
+  local require_verification smtp_host smtp_port smtp_user smtp_password
+  require_verification="$(grep -E '^SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  smtp_host="$(grep -E '^SIGEA_SMTP_HOST=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  smtp_port="$(grep -E '^SIGEA_SMTP_PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  smtp_user="$(grep -E '^SIGEA_SMTP_USERNAME=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  smtp_password="$(grep -E '^SIGEA_SMTP_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+
+  if [ -n "$smtp_host" ] && [ -n "$smtp_port" ] && [ -n "$smtp_user" ] && [ -n "$smtp_password" ]; then
+    info "SMTP configurado para $smtp_user en $smtp_host:$smtp_port"
+    return 0
+  fi
+
+  if [ "$require_verification" = "true" ]; then
+    error "SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION=true pero la configuración SMTP está incompleta en .env. Define SIGEA_SMTP_HOST, SIGEA_SMTP_PORT, SIGEA_SMTP_USERNAME y SIGEA_SMTP_PASSWORD."
+  fi
+
+  warning "SMTP incompleto en .env. Los correos de prueba, notificaciones, mora y verificación pueden fallar."
+}
+
 ensure_db_user_credentials() {
   local db_name db_user db_password root_password
   db_name="$(grep -E '^MARIADB_DATABASE=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
@@ -233,6 +253,8 @@ if [ "$ACTION" = "install" ]; then
     warning "SIGEA_DOMAIN=localhost no sirve para acceso remoto. Se usará IP directa."
   fi
 
+  validate_smtp_config
+
   # Construir y levantar
   info "Construyendo imágenes y levantando contenedores (puede tardar 5-10 min la primera vez)..."
   compose_up
@@ -275,6 +297,8 @@ elif [ "$ACTION" = "update" ]; then
     info "Descargando cambios del repositorio..."
     git pull origin main
   fi
+
+  validate_smtp_config
 
   # Reconstruir y reiniciar
   info "Reconstruyendo contenedores..."
