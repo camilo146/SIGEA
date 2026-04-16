@@ -151,14 +151,14 @@ wait_for_stack_health() {
 
   ensure_default_admin_user
 
-  info "Verificando que el proxy del frontend ya no devuelva 502..."
+  info "Verificando que el login por el proxy del frontend funcione..."
   for _ in $(seq 1 24); do
     code="$(curl -s -o /tmp/sigea_proxy_login.txt -w '%{http_code}' \
       -H 'Content-Type: application/json' \
       -d '{"numeroDocumento":"999999999","contrasena":"password"}' \
       http://127.0.0.1/api/v1/auth/login || true)"
-    if [ "$code" != "000" ] && [ "$code" != "502" ]; then
-      info "Proxy operativo (HTTP $code en login)."
+    if [ "$code" = "200" ]; then
+      info "Proxy operativo (HTTP 200 en login)."
       return 0
     fi
     sleep 5
@@ -166,7 +166,7 @@ wait_for_stack_health() {
 
   docker compose -f docker-compose.yml ps || true
   docker compose -f docker-compose.yml logs --tail=200 frontend backend || true
-  error "El frontend sigue entregando 502 al endpoint de login."
+  error "El login a través del proxy del frontend no respondió 200. Revisa nginx y backend."
 }
 
 frontend_url() {
