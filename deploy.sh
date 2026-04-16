@@ -62,14 +62,30 @@ ensure_db_user_credentials() {
   [ -n "$root_password" ] || root_password="root_sigea_2026"
 
   info "Asegurando credenciales de base de datos para $db_user ..."
-  docker compose -f docker-compose.yml exec -T db \
+  if ! docker compose -f docker-compose.yml exec -T db \
     mariadb -uroot -p"$root_password" <<SQL
 CREATE DATABASE IF NOT EXISTS \`$db_name\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '$db_user'@'%' IDENTIFIED BY '$db_password';
-ALTER USER '$db_user'@'%' IDENTIFIED BY '$db_password';
+CREATE OR REPLACE USER '$db_user'@'%' IDENTIFIED BY '$db_password';
+CREATE OR REPLACE USER '$db_user'@'localhost' IDENTIFIED BY '$db_password';
 GRANT ALL PRIVILEGES ON \`$db_name\`.* TO '$db_user'@'%';
+GRANT ALL PRIVILEGES ON \`$db_name\`.* TO '$db_user'@'localhost';
 FLUSH PRIVILEGES;
 SQL
+  then
+    warning "No se pudo acceder con la clave root declarada; intentando reparación por socket local..."
+    docker compose -f docker-compose.yml exec -T db \
+      mariadb -uroot <<SQL
+CREATE DATABASE IF NOT EXISTS \`$db_name\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE OR REPLACE USER '$db_user'@'%' IDENTIFIED BY '$db_password';
+CREATE OR REPLACE USER '$db_user'@'localhost' IDENTIFIED BY '$db_password';
+GRANT ALL PRIVILEGES ON \`$db_name\`.* TO '$db_user'@'%';
+GRANT ALL PRIVILEGES ON \`$db_name\`.* TO '$db_user'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+  fi
+
+  docker compose -f docker-compose.yml exec -T db \
+    mariadb -u"$db_user" -p"$db_password" -e "USE \`$db_name\`; SELECT 1;" >/dev/null
 }
 
 compose_up() {
@@ -228,12 +244,14 @@ elif [ "$ACTION" = "update" ]; then
 
   info "Actualizando SIGEA..."
 
-  # Guardar cambios locales (si los hay)
-  git stash 2>/dev/null || true
+  if [ "${SIGEA_SKIP_PULL:-0}" != "1" ]; then
+    # Guardar cambios locales (si los hay)
+    git stash 2>/dev/null || true
 
-  # Obtener última versión
-  info "Descargando cambios del repositorio..."
-  git pull origin main
+    # Obtener última versión
+    info "Descargando cambios del repositorio..."
+    git pull origin main
+  fi
 
   # Reconstruir y reiniciar
   info "Reconstruyendo contenedores..."

@@ -15,12 +15,20 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     steps:
+      - name: Actualizar checkout del servidor
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /opt/sigea/SIGEA
+          git stash 2>/dev/null || true
+          git pull origin main
+
       - name: Ejecutar script de despliegue
         shell: bash
         run: |
           set -euo pipefail
           cd /opt/sigea/SIGEA
-          bash ./deploy.sh update
+          SIGEA_SKIP_PULL=1 bash ./deploy.sh update
 
       - name: Mostrar estado del stack si algo falla
         if: failure()
