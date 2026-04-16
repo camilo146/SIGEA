@@ -21,13 +21,15 @@
     .detalle-tabla { width: 100%; border-collapse: collapse; margin: 18px 0; background: #f7faf7; border-radius: 12px; overflow: hidden; }
     .detalle-tabla td { padding: 10px 14px; border-bottom: 1px solid #e4ece4; }
     .detalle-tabla td:first-child { font-weight: bold; color: #555; width: 40%; }
+    .action { margin-top: 20px; }
+    .button { display: inline-block; background: #1d7f9b; color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; }
     .footer { background: #f4f7f4; padding: 18px 32px 24px; text-align: center; font-size: 12px; color: #667766; }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
+    <img th:src="${logoUrl}" src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
     <p class="eyebrow">Ambientes y espacios</p>
     <h1>Actualización de tu préstamo de ambiente</h1>
     <p>Este correo resume el estado actual de la solicitud o del cierre del ambiente reservado en SIGEA.</p>
@@ -51,9 +53,13 @@
         <td>Observación</td><td th:text="${observacion}">-</td>
       </tr>
     </table>
+
+    <div class="action">
+      <a class="button" th:href="${appUrl}" href="#">Ver reserva en SIGEA</a>
+    </div>
   </div>
   <div class="footer">
-    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2026</p>
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; <span th:text="${anioActual}">2026</span></p>
     <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
   </div>
 </div>

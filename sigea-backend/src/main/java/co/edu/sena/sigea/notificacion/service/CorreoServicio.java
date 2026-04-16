@@ -1,5 +1,6 @@
 package co.edu.sena.sigea.notificacion.service;
 
+import java.time.Year;
 import java.util.Map;
 
 import co.edu.sena.sigea.common.exception.ServicioCorreoException;
@@ -27,6 +28,9 @@ public class CorreoServicio {
 
     @Value("${sigea.mail.from-name:SIGEA SENA}")
     private String remitenteNombre;
+
+    @Value("${sigea.app.url:http://localhost:8082}")
+    private String appUrl;
 
     public CorreoServicio(JavaMailSender mailSender, TemplateEngine templateEngine) {
         this.mailSender = mailSender;
@@ -76,6 +80,10 @@ public class CorreoServicio {
             if (variables != null) {
                 variables.forEach(contexto::setVariable);
             }
+            contexto.setVariable("appUrl", obtenerAppUrlPrincipal());
+            contexto.setVariable("logoUrl", obtenerAppUrlPrincipal() + "/assets/logo-sena.png");
+            contexto.setVariable("remitenteNombre", remitenteNombre);
+            contexto.setVariable("anioActual", Year.now().getValue());
             String contenidoHtml = templateEngine.process(plantilla, contexto);
 
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -113,6 +121,19 @@ public class CorreoServicio {
                         "destinatario", destinatario,
                         "remitente", remitente,
                         "fecha", java.time.LocalDateTime.now().toString()));
+    }
+
+    private String obtenerAppUrlPrincipal() {
+        String valor = appUrl == null ? "" : appUrl.trim();
+        if (valor.isBlank()) {
+            return "http://localhost:8082";
+        }
+
+        String principal = valor.split(",")[0].trim();
+        if (principal.endsWith("/")) {
+            principal = principal.substring(0, principal.length() - 1);
+        }
+        return principal.isBlank() ? "http://localhost:8082" : principal;
     }
 
     public boolean enviarCorreoNotificacion(String destinatario, String asunto, Map<String, Object> variables) {

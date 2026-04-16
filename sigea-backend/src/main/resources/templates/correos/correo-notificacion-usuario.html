@@ -8,6 +8,9 @@
     body { margin: 0; padding: 24px; background: #eef3ee; color: #213126; font-family: Arial, sans-serif; }
     .card { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #d9e5d8; box-shadow: 0 16px 38px rgba(20, 44, 27, 0.08); }
     .hero { background: linear-gradient(135deg, #1d6f2b 0%, #39A900 58%, #9ed84a 100%); color: #ffffff; padding: 28px 32px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .brand img { height: 52px; width: auto; background: rgba(255,255,255,0.12); border-radius: 12px; padding: 6px; }
+    .brand span { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
     .eyebrow { margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.9; }
     .hero h1 { margin: 0; font-size: 28px; line-height: 1.2; }
     .hero p { margin: 10px 0 0; font-size: 14px; line-height: 1.5; max-width: 520px; }
@@ -24,6 +27,8 @@
     .panel ul { margin: 0; padding-left: 18px; color: #425547; }
     .panel li { margin: 8px 0; line-height: 1.5; }
     .tip { margin-top: 20px; padding: 16px 18px; border-radius: 12px; background: #f1f7ef; border-left: 4px solid #39A900; color: #325236; }
+    .actions { margin-top: 24px; }
+    .btn { display: inline-block; background: #39A900; color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; }
     .footer { padding: 20px 32px 28px; background: #f4f7f4; color: #607163; font-size: 12px; line-height: 1.6; }
     @media (max-width: 640px) {
       body { padding: 12px; }
@@ -35,6 +40,10 @@
 <body>
   <div class="card">
     <div class="hero">
+      <div class="brand">
+        <img th:src="${logoUrl}" src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA">
+        <span th:text="${remitenteNombre}">SIGEA SENA</span>
+      </div>
       <p class="eyebrow" th:text="${subtituloCorreo}">SIGEA SENA</p>
       <h1 th:text="${tituloCorreo}">Notificación</h1>
       <p th:text="${descripcionCorreo}">Se registró un movimiento en tu cuenta dentro del sistema.</p>
@@ -54,9 +63,13 @@
       <div class="tip" th:if="${notaFinal != null and !#strings.isEmpty(notaFinal)}" th:text="${notaFinal}">
         Revisa la información y toma las acciones necesarias dentro de SIGEA.
       </div>
+
+      <div class="actions">
+        <a class="btn" th:href="${appUrl}" href="#">Ir a SIGEA</a>
+      </div>
     </div>
     <div class="footer">
-      <div>SENA — Servicio Nacional de Aprendizaje | SIGEA © 2026</div>
+      <div>SENA — Servicio Nacional de Aprendizaje | SIGEA © <span th:text="${anioActual}">2026</span></div>
       <div>Correo automático del sistema. No requiere respuesta.</div>
     </div>
   </div>

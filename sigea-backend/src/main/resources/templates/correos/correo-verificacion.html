@@ -17,13 +17,15 @@
     .code-box { background: #f1f7ef; border: 2px solid #39A900; border-radius: 14px; padding: 22px 16px; text-align: center; margin: 28px 0 22px; }
     .code { font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #25833a; }
     .hint { margin: 18px 0 0; padding: 16px 18px; border-left: 4px solid #39A900; background: #f7faf7; border-radius: 12px; }
+    .action { margin-top: 22px; }
+    .button { display: inline-block; background: #39A900; color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; }
     .footer { background: #f4f7f4; padding: 18px 32px 24px; text-align: center; font-size: 12px; color: #667766; line-height: 1.6; }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
+    <img th:src="${logoUrl}" src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
     <p class="eyebrow">Acceso y verificación</p>
     <h1>Confirma tu correo en SIGEA</h1>
     <p>Necesitamos validar tu dirección de correo antes de habilitar el ingreso a la plataforma.</p>
@@ -38,9 +40,12 @@
       <strong>Vigencia:</strong> este código es válido por <strong th:text="${horasValidez}">24</strong> horas.<br/>
       Si no solicitaste este código, puedes ignorar este mensaje con seguridad.
     </div>
+    <div class="action">
+      <a class="button" th:href="${appUrl}" href="#">Ir a SIGEA</a>
+    </div>
   </div>
   <div class="footer">
-    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2026</p>
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; <span th:text="${anioActual}">2026</span></p>
     <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
   </div>
 </div>

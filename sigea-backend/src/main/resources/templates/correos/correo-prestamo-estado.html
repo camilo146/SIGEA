@@ -23,13 +23,15 @@
     .detalle-tabla td { padding: 10px 14px; border-bottom: 1px solid #e4ece4; }
     .detalle-tabla td:first-child { font-weight: bold; color: #555; width: 40%; }
     .note { margin-top: 18px; padding: 16px 18px; background: #f1f7ef; border-left: 4px solid #39A900; border-radius: 12px; }
+    .action { margin-top: 20px; }
+    .button { display: inline-block; background: #39A900; color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; }
     .footer { background: #f4f7f4; padding: 18px 32px 24px; text-align: center; font-size: 12px; color: #667766; }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
+    <img th:src="${logoUrl}" src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" alt="SENA"/>
     <p class="eyebrow">Préstamos e inventario</p>
     <h1>Actualización de tu préstamo</h1>
     <p>Este correo resume el estado más reciente del préstamo registrado en SIGEA.</p>
@@ -58,9 +60,13 @@
     <div class="note" th:if="${estado == 'EN_MORA'}">
       Tu préstamo ya superó la fecha de devolución. Devuelve el equipo lo antes posible para evitar nuevas restricciones operativas.
     </div>
+
+    <div class="action">
+      <a class="button" th:href="${appUrl}" href="#">Consultar en SIGEA</a>
+    </div>
   </div>
   <div class="footer">
-    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; 2026</p>
+    <p>SENA — Servicio Nacional de Aprendizaje | SIGEA &copy; <span th:text="${anioActual}">2026</span></p>
     <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
   </div>
 </div>
