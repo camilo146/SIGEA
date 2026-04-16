@@ -44,6 +44,7 @@ services:
       SIGEA_SMTP_SSL_TRUST: ${SIGEA_SMTP_SSL_TRUST:-smtp.gmail.com}
       SIGEA_MAIL_FROM_NAME: ${SIGEA_MAIL_FROM_NAME:-SIGEA SENA}
     ports:
+      - "127.0.0.1:8080:8080"
       - "8082:8080"
     volumes:
       - sigea-uploads:/app/uploads
