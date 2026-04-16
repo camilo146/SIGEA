@@ -55,7 +55,7 @@ public class CorreoServicio {
         boolean enviado = enviarCorreo(destinatario, asunto, cuerpo);
         if (!enviado) {
             throw new ServicioCorreoException(
-                    "No fue posible enviar el correo de verificacion. Revise la configuracion SMTP del backend e intente de nuevo.");
+                    "No fue posible enviar el correo solicitado. Revise la configuración SMTP del backend e intente de nuevo.");
         }
     }
 
@@ -100,7 +100,7 @@ public class CorreoServicio {
         boolean enviado = enviarCorreoHtml(destinatario, asunto, plantilla, variables);
         if (!enviado) {
             throw new ServicioCorreoException(
-                    "No fue posible enviar el correo. Revise la configuracion SMTP del backend e intente de nuevo.");
+                    "No fue posible enviar el correo solicitado. Revise la configuración SMTP del backend e intente de nuevo.");
         }
     }
 
