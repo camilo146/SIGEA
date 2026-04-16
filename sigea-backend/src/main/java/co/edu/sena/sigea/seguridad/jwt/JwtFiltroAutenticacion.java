@@ -19,67 +19,57 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtFiltroAutenticacion extends OncePerRequestFilter {
-    
+
     private final JwtProveedor jwtProveedor;
     private final UsuarioDetallesServicio usuarioDetallesServicio;
-     
 
-
-    //constructor que inyecta las dependencias 
+    //constructor que inyecta las dependencias
     public JwtFiltroAutenticacion(JwtProveedor jwtProveedor,
-            UsuarioDetallesServicio usuarioDetallesServicio){
-                this.jwtProveedor = jwtProveedor;
-                this.usuarioDetallesServicio = usuarioDetallesServicio;
-            }
-
-
-    //doFilterInternal: este metodo se ejecuta en cada peticion HTTP
-    //request la peticion que llega 
-    //response la respuesta que se va a enviar al cliente
-    //filterChain la cadena de filtros que se ejecuta despues de este filtro 
-    
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException{
-                                        // Extraemos el token del header "Authorization"
-                                        String headerAutorizacion = request.getHeader("Authorization");
-                                        String token = null;
-                                        String correoElectronico = null;
-
-                                        if (headerAutorizacion != null && headerAutorizacion.startsWith("Bearer")){
-                                            token = headerAutorizacion.substring(7);// Eliminar "Bearer" del inicio
-                                            correoElectronico = jwtProveedor.obtenerCorreoDelToken(token);//extraer correo del usuario que esta adentro del token
-
-                                        }
-
-                                        //validar token y autenticar usuario 
-
-                                        if (correoElectronico != null && SecurityContextHolder.getContext().getAuthentication() == null){
-                                            //validar que le token no este exopirado ni alterado
-                                            if (jwtProveedor.validarToken(token)){
-                                                 //cargar los datos del usuario desde la BD usando eo correo extraido del token 
-                                                UserDetails userDetails = usuarioDetallesServicio.loadUserByUsername(correoElectronico);
-                                                
-
-                                                //crear un objeto de autenticacion de Spring Security con los detalles del usuario y sus roles
-                                                UsernamePasswordAuthenticationToken authToken =
-                                                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-                                                authToken.setDetails(
-                                                        new WebAuthenticationDetailsSource().buildDetails(request)
-                                                );
-
-                                                //establecer el contexto de seguridad con el usuario autenticado
-                                                SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                                        }
-
-                                    }
-
-                    //pasar la peticion al siguiente filtro de la cadena
-                    filterChain.doFilter(request, response);
-
+            UsuarioDetallesServicio usuarioDetallesServicio) {
+        this.jwtProveedor = jwtProveedor;
+        this.usuarioDetallesServicio = usuarioDetallesServicio;
     }
 
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || (uri != null && uri.contains("/auth"));
+    }
+
+    //doFilterInternal: este metodo se ejecuta en cada peticion HTTP
+    //request la peticion que llega
+    //response la respuesta que se va a enviar al cliente
+    //filterChain la cadena de filtros que se ejecuta despues de este filtro
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+        String headerAutorizacion = request.getHeader("Authorization");
+
+        if (headerAutorizacion != null && headerAutorizacion.startsWith("Bearer ")
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                String token = headerAutorizacion.substring(7).trim();
+                String correoElectronico = jwtProveedor.obtenerCorreoDelToken(token);
+
+                if (correoElectronico != null && jwtProveedor.validarToken(token)) {
+                    UserDetails userDetails = usuarioDetallesServicio.loadUserByUsername(correoElectronico);
+
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception ignored) {
+                // Si el token es inválido/expirado, se ignora para no bloquear
+                // endpoints públicos como el login. La autorización real se evalúa
+                // más adelante en la cadena de seguridad.
+                SecurityContextHolder.clearContext();
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
 
 }
