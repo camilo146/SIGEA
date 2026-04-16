@@ -49,11 +49,6 @@ services:
       SIGEA_SMTP_SSL_ENABLE: ${SIGEA_SMTP_SSL_ENABLE:-false}
       SIGEA_MAIL_FROM_NAME: ${SIGEA_MAIL_FROM_NAME:-SIGEA SENA}
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false}
-    dns:
-      - ${SIGEA_DNS_PRIMARY:-8.8.8.8}
-      - ${SIGEA_DNS_SECONDARY:-1.1.1.1}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:8080:8080"
       - "8082:8080"
