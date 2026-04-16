@@ -58,7 +58,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./docker/nginx.local.conf:/etc/nginx/nginx.conf:ro
+      - ./sigea-frontend/nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
   sigea-db-data:
