@@ -35,7 +35,7 @@ INSERT INTO usuario (
     NULL,
     NULL,
     NULL,
-    '$2y$10$ciOUrt4OBKgPDFPimsQXfOdvQwmN.qEGl0YOpc7E/yRo5CgmGaj0G',
+    '$2b$10$9uEBnUexwL.K1oxnOElIeO7z.YEQofvLMz51rTcc2B5l9rsO3t3aa',
     'ADMINISTRADOR',
     0,
     1,

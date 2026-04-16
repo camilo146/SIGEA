@@ -88,6 +88,27 @@ SQL
     mariadb -u"$db_user" -p"$db_password" -e "USE \`$db_name\`; SELECT 1;" >/dev/null
 }
 
+ensure_default_admin_user() {
+  local db_name root_password total_users admin_count sql_file
+  db_name="$(grep -E '^MARIADB_DATABASE=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  root_password="$(grep -E '^MARIADB_ROOT_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+  [ -n "$db_name" ] || db_name="sigea_db"
+  [ -n "$root_password" ] || root_password="root_sigea_2026"
+  sql_file="sigea-backend/scripts/crear-usuario-admin.sql"
+
+  total_users="$(docker compose -f docker-compose.yml exec -T db mariadb -N -s -uroot -p"$root_password" "$db_name" -e "SELECT COUNT(*) FROM usuario;" 2>/dev/null || echo 0)"
+  admin_count="$(docker compose -f docker-compose.yml exec -T db mariadb -N -s -uroot -p"$root_password" "$db_name" -e "SELECT COUNT(*) FROM usuario WHERE rol='ADMINISTRADOR';" 2>/dev/null || echo 0)"
+
+  if [ "${total_users:-0}" = "0" ] || [ "${admin_count:-0}" = "0" ]; then
+    warning "No se encontró un administrador en la base de datos. Restaurando usuario por defecto..."
+    if [ ! -f "$sql_file" ]; then
+      error "No se encontró el script de restauración de admin: $sql_file"
+    fi
+    docker compose -f docker-compose.yml exec -T db mariadb -uroot -p"$root_password" "$db_name" < "$sql_file"
+    info "Administrador restaurado: documento 999999999 / password"
+  fi
+}
+
 compose_up() {
   # Eliminar contenedores huérfanos (ej: sigea-caddy de deploys anteriores)
   # que podrían estar ocupando el puerto 80 antes de levantar los nuevos.
@@ -127,6 +148,8 @@ wait_for_stack_health() {
     docker compose -f docker-compose.yml logs --tail=200 backend db || true
     error "El backend no respondió correctamente después del despliegue. Último HTTP: ${code:-sin respuesta}"
   fi
+
+  ensure_default_admin_user
 
   info "Verificando que el proxy del frontend ya no devuelva 502..."
   for _ in $(seq 1 24); do

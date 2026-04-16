@@ -11,7 +11,7 @@ import co.edu.sena.sigea.usuario.dto.UsuarioCrearDTO;
 import co.edu.sena.sigea.usuario.service.UsuarioService;
 
 /**
- * Crea un usuario administrador por defecto (admin2@sigea.local / password)
+ * Crea un usuario administrador por defecto (999999999 / password)
  * cuando se arranca la app con el perfil "crear-admin".
  * Uso: mvn spring-boot:run "-Dspring-boot.run.arguments=--spring.profiles.active=crear-admin"
  */
@@ -34,7 +34,7 @@ public class CrearAdminRunner implements CommandLineRunner {
         UsuarioCrearDTO dto = new UsuarioCrearDTO();
         dto.setNombreCompleto("Administrador SIGEA");
         dto.setTipoDocumento(TipoDocumento.CC);
-        dto.setNumeroDocumento("888888888");
+        dto.setNumeroDocumento("999999999");
         dto.setCorreoElectronico(CORREO_ADMIN);
         dto.setProgramaFormacion(null);
         dto.setNumeroFicha(null);
