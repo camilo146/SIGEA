@@ -116,17 +116,21 @@ ensure_default_admin_user() {
   [ -n "$root_password" ] || root_password="root_sigea_2026"
   sql_file="sigea-backend/scripts/crear-usuario-admin.sql"
 
+  if [ ! -f "$sql_file" ]; then
+    error "No se encontró el script de restauración de admin: $sql_file"
+  fi
+
+  info "Asegurando usuario administrador por defecto..."
+  docker compose -f docker-compose.yml exec -T db mariadb -uroot -p"$root_password" "$db_name" < "$sql_file"
+
   total_users="$(docker compose -f docker-compose.yml exec -T db mariadb -N -s -uroot -p"$root_password" "$db_name" -e "SELECT COUNT(*) FROM usuario;" 2>/dev/null || echo 0)"
   admin_count="$(docker compose -f docker-compose.yml exec -T db mariadb -N -s -uroot -p"$root_password" "$db_name" -e "SELECT COUNT(*) FROM usuario WHERE rol='ADMINISTRADOR';" 2>/dev/null || echo 0)"
 
   if [ "${total_users:-0}" = "0" ] || [ "${admin_count:-0}" = "0" ]; then
-    warning "No se encontró un administrador en la base de datos. Restaurando usuario por defecto..."
-    if [ ! -f "$sql_file" ]; then
-      error "No se encontró el script de restauración de admin: $sql_file"
-    fi
-    docker compose -f docker-compose.yml exec -T db mariadb -uroot -p"$root_password" "$db_name" < "$sql_file"
-    info "Administrador restaurado: documento 999999999 / password"
+    error "No fue posible garantizar el usuario administrador por defecto."
   fi
+
+  info "Administrador asegurado: documento 999999999 / password"
 }
 
 compose_up() {
@@ -170,6 +174,24 @@ wait_for_stack_health() {
   fi
 
   ensure_default_admin_user
+
+  info "Verificando login directo del backend..."
+  for _ in $(seq 1 12); do
+    code="$(curl -s -o /tmp/sigea_backend_login.txt -w '%{http_code}' \
+      -H 'Content-Type: application/json' \
+      -d '{"numeroDocumento":"999999999","contrasena":"password"}' \
+      http://127.0.0.1:8082/api/v1/auth/login || true)"
+    if [ "$code" = "200" ]; then
+      info "Login backend operativo (HTTP 200)."
+      break
+    fi
+    sleep 3
+  done
+
+  if [ "$code" != "200" ]; then
+    docker compose -f docker-compose.yml logs --tail=200 backend db || true
+    error "El backend no aceptó el login del administrador por defecto. Último HTTP: ${code:-sin respuesta}"
+  fi
 
   info "Verificando que el login por el proxy del frontend funcione..."
   for _ in $(seq 1 24); do
