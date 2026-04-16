@@ -52,9 +52,47 @@ free_port_80() {
 compose_up() {
   # Eliminar contenedores huérfanos (ej: sigea-caddy de deploys anteriores)
   # que podrían estar ocupando el puerto 80 antes de levantar los nuevos.
+  docker rm -f sigea-caddy 2>/dev/null || true
   docker compose -f docker-compose.yml down --remove-orphans 2>/dev/null || true
   free_port_80
   docker compose -f docker-compose.yml up -d --build --remove-orphans
+}
+
+wait_for_stack_health() {
+  local code=""
+
+  info "Verificando que el backend responda..."
+  for _ in $(seq 1 24); do
+    code="$(curl -s -o /tmp/sigea_backend_health.txt -w '%{http_code}' http://127.0.0.1:8082/api/v1/actuator/health || true)"
+    if [ "$code" = "200" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
+      info "Backend operativo (HTTP $code)."
+      break
+    fi
+    sleep 5
+  done
+
+  if [ "$code" != "200" ] && [ "$code" != "401" ] && [ "$code" != "403" ]; then
+    docker compose -f docker-compose.yml ps || true
+    docker compose -f docker-compose.yml logs --tail=200 backend db || true
+    error "El backend no respondió correctamente después del despliegue. Último HTTP: ${code:-sin respuesta}"
+  fi
+
+  info "Verificando que el proxy del frontend ya no devuelva 502..."
+  for _ in $(seq 1 24); do
+    code="$(curl -s -o /tmp/sigea_proxy_login.txt -w '%{http_code}' \
+      -H 'Content-Type: application/json' \
+      -d '{"numeroDocumento":"999999999","contrasena":"password"}' \
+      http://127.0.0.1/api/v1/auth/login || true)"
+    if [ "$code" != "000" ] && [ "$code" != "502" ]; then
+      info "Proxy operativo (HTTP $code en login)."
+      return 0
+    fi
+    sleep 5
+  done
+
+  docker compose -f docker-compose.yml ps || true
+  docker compose -f docker-compose.yml logs --tail=200 frontend backend || true
+  error "El frontend sigue entregando 502 al endpoint de login."
 }
 
 frontend_url() {
@@ -129,6 +167,7 @@ if [ "$ACTION" = "install" ]; then
   info "Esperando que los contenedores inicien..."
   sleep 15
   docker compose ps
+  wait_for_stack_health
 
   echo ""
   info "✓ SIGEA instalado correctamente."
@@ -167,6 +206,7 @@ elif [ "$ACTION" = "update" ]; then
 
   info "Verificando estado..."
   docker compose ps
+  wait_for_stack_health
 
   echo ""
   info "✓ SIGEA actualizado correctamente."

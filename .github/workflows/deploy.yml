@@ -21,3 +21,12 @@ jobs:
           set -euo pipefail
           cd /opt/sigea/SIGEA
           bash ./deploy.sh update
+
+      - name: Mostrar estado del stack si algo falla
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          cd /opt/sigea/SIGEA
+          docker compose -f docker-compose.yml ps
+          docker compose -f docker-compose.yml logs --tail=200 frontend backend db
