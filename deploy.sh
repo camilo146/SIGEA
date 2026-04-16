@@ -57,13 +57,17 @@ validate_smtp_config() {
   smtp_user="$(grep -E '^SIGEA_SMTP_USERNAME=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
   smtp_password="$(grep -E '^SIGEA_SMTP_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
 
-  if [ -n "$smtp_host" ] && [ -n "$smtp_port" ] && [ -n "$smtp_user" ] && [ -n "$smtp_password" ]; then
+  require_verification="$(printf '%s' "$require_verification" | tr '[:upper:]' '[:lower:]')"
+  [ -n "$smtp_host" ] || smtp_host="smtp.gmail.com"
+  [ -n "$smtp_port" ] || smtp_port="587"
+
+  if [ -n "$smtp_user" ] && [ -n "$smtp_password" ]; then
     info "SMTP configurado para $smtp_user en $smtp_host:$smtp_port"
     return 0
   fi
 
   if [ "$require_verification" = "true" ]; then
-    error "SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION=true pero la configuración SMTP está incompleta en .env. Define SIGEA_SMTP_HOST, SIGEA_SMTP_PORT, SIGEA_SMTP_USERNAME y SIGEA_SMTP_PASSWORD."
+    error "SIGEA_AUTH_REQUIRE_EMAIL_VERIFICATION=true pero faltan credenciales SMTP en .env. Define SIGEA_SMTP_USERNAME y SIGEA_SMTP_PASSWORD; SIGEA_SMTP_HOST y SIGEA_SMTP_PORT pueden usar los valores por defecto."
   fi
 
   warning "SMTP incompleto en .env. Los correos de prueba, notificaciones, mora y verificación pueden fallar."
