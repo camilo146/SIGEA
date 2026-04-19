@@ -273,6 +273,10 @@
   .ambiente-detail-card {
     max-height: calc(100dvh - 1.5rem);
   }
+
+  .ambiente-detail-photo {
+    height: 190px;
+  }
 }
 
 .num     { text-align: right !important; }
@@ -370,17 +374,24 @@
 /* ---- Foto en modal de detalle ---- */
 .ambiente-detail-photo {
   width: 100%;
-  height: 200px;
+  height: clamp(190px, 32vh, 280px);
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   border: 1px solid var(--border-color);
   margin-bottom: 1rem;
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
+    border-radius: calc(var(--border-radius-lg) - 4px);
   }
 }
 
