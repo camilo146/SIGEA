@@ -1,6 +1,7 @@
 package co.edu.sena.sigea.seguridad.service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -306,19 +307,14 @@ public class AutenticacionServicio {
         usuario.setTokenVerificacionExpira(LocalDateTime.now().plusMinutes(MINUTOS_VALIDEZ_RECUPERACION));
         usuarioRepository.save(usuario);
 
-        String cuerpo = String.join("\n",
-                "Hola " + usuario.getNombreCompleto() + ",",
-                "",
-                "Recibimos una solicitud para restablecer tu contrasena en SIGEA.",
-                "Codigo de recuperacion: " + codigo,
-                "Este codigo vence en " + MINUTOS_VALIDEZ_RECUPERACION + " minutos.",
-                "",
-                "Si no solicitaste este cambio, puedes ignorar este mensaje.");
-
-        correoServicio.enviarCorreoObligatorio(
+        correoServicio.enviarCorreoHtmlObligatorio(
                 usuario.getCorreoElectronico(),
-                "Codigo de recuperacion de contrasena - SIGEA",
-                cuerpo);
+                "Código de recuperación de contraseña - SIGEA",
+                "correos/correo-recuperacion-contrasena",
+                Map.of(
+                        "nombreUsuario", usuario.getNombreCompleto(),
+                        "codigo", codigo,
+                        "minutosValidez", MINUTOS_VALIDEZ_RECUPERACION));
 
         return "Si el correo existe en SIGEA, enviaremos un codigo de recuperacion.";
     }

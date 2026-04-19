@@ -269,6 +269,10 @@
   .ambientes-grid {
     grid-template-columns: 1fr;
   }
+
+  .ambiente-detail-card {
+    max-height: calc(100dvh - 1.5rem);
+  }
 }
 
 .num     { text-align: right !important; }
@@ -381,6 +385,13 @@
 }
 
 /* ---- Info en modal de detalle ---- */
+.ambiente-detail-card {
+  max-height: min(88vh, 48rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .ambiente-detail-info {
   p {
     margin: 0.4rem 0;

@@ -110,6 +110,10 @@
   padding: 1.5rem;
   max-width: 440px;
   width: 100%;
+  max-height: min(88vh, 48rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
@@ -303,5 +307,19 @@
   .inv-card .table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .equipo-detail-card {
+    padding: 1rem;
+    max-width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+  }
+
+  .equipo-detail-card .equipo-detail-actions {
+    flex-direction: column;
+  }
+
+  .equipo-detail-card .equipo-detail-actions .btn {
+    width: 100%;
   }
 }
