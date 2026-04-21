@@ -344,7 +344,9 @@ public class AmbienteService {
         Path directorio = Paths.get(rutaUploads).resolve("ambientes");
         Files.createDirectories(directorio);
 
-        String nombreEnServidor = UUID.randomUUID().toString() + "_" + nombreOriginal;
+        // Usar solo UUID como nombre en el servidor (sin nombre original) para
+        // prevenir path traversal y evitar exponer nombres de archivo del cliente.
+        String nombreEnServidor = UUID.randomUUID().toString() + "." + extension;
         Path rutaArchivo = directorio.resolve(nombreEnServidor);
         Files.copy(archivo.getInputStream(), rutaArchivo, StandardCopyOption.REPLACE_EXISTING);
         return "/uploads/ambientes/" + nombreEnServidor;

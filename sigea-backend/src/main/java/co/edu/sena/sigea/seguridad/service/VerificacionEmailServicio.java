@@ -1,8 +1,8 @@
 package co.edu.sena.sigea.seguridad.service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +25,7 @@ public class VerificacionEmailServicio {
 
     private static final int HORAS_VALIDEZ_CODIGO = 24;
     private static final int DIGITOS_CODIGO = 6;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UsuarioRepository usuarioRepository;
     private final CorreoServicio correoServicio;
@@ -38,11 +39,11 @@ public class VerificacionEmailServicio {
         this.whatsAppServicio = whatsAppServicio;
     }
 
-    /** Genera un código numérico de 6 dígitos para verificación por correo. */
+    /** Genera un código numérico de 6 dígitos para verificación por correo (CSPRNG). */
     public String generarCodigoVerificacion() {
         int min = (int) Math.pow(10, DIGITOS_CODIGO - 1);
         int max = (int) Math.pow(10, DIGITOS_CODIGO) - 1;
-        return String.valueOf(ThreadLocalRandom.current().nextInt(min, max + 1));
+        return String.valueOf(SECURE_RANDOM.nextInt(min, max + 1));
     }
 
     /**

@@ -103,7 +103,7 @@ public class UsuarioControlador {
     // GET /api/v1/usuarios → Listar usuarios activos (solo admin)
     // =========================================================================
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<UsuarioRespuestaDTO>> listarActivos() {
 
         List<UsuarioRespuestaDTO> usuarios = usuarioServicio.listarActivos();
@@ -111,11 +111,10 @@ public class UsuarioControlador {
     }
 
     // =========================================================================
-    // GET /api/v1/usuarios/todos → Listar TODOS (autenticado:
-    // formularios/dropdowns)
+    // GET /api/v1/usuarios/todos → Listar TODOS (solo admin)
     // =========================================================================
     @GetMapping("/todos")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<UsuarioRespuestaDTO>> listarTodos() {
 
         List<UsuarioRespuestaDTO> usuarios = usuarioServicio.listarTodos();
@@ -123,10 +122,10 @@ public class UsuarioControlador {
     }
 
     // =========================================================================
-    // GET /api/v1/usuarios/rol/{rol} → Listar por rol (autenticado)
+    // GET /api/v1/usuarios/rol/{rol} → Listar por rol (solo admin)
     // =========================================================================
     @GetMapping("/rol/{rol}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<UsuarioRespuestaDTO>> listarPorRol(
             @PathVariable Rol rol) {
 
@@ -135,10 +134,10 @@ public class UsuarioControlador {
     }
 
     // =========================================================================
-    // GET /api/v1/usuarios/{id} → Buscar por ID (autenticado)
+    // GET /api/v1/usuarios/{id} → Buscar por ID (solo admin)
     // =========================================================================
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<UsuarioRespuestaDTO> buscarPorId(
             @PathVariable Long id) {
 

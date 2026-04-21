@@ -1,14 +1,13 @@
 package co.edu.sena.sigea.seguridad.jwt;
 
-
-import java.io.IOException;        // La "cadena" de filtros (pasa al siguiente)
+import java.io.IOException; // La "cadena" de filtros (pasa al siguiente)
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;    // Excepción de servlets
-import org.springframework.security.core.userdetails.UserDetails;   // La petición HTTP entrante
+import org.springframework.security.core.context.SecurityContextHolder; // Excepción de servlets
+import org.springframework.security.core.userdetails.UserDetails; // La petición HTTP entrante
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;  // La respuesta HTTP saliente
+import org.springframework.web.filter.OncePerRequestFilter; // La respuesta HTTP saliente
 
 import co.edu.sena.sigea.seguridad.service.UsuarioDetallesServicio;
 import jakarta.servlet.FilterChain;
@@ -16,14 +15,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-
 @Component
 public class JwtFiltroAutenticacion extends OncePerRequestFilter {
 
     private final JwtProveedor jwtProveedor;
     private final UsuarioDetallesServicio usuarioDetallesServicio;
 
-    //constructor que inyecta las dependencias
+    // constructor que inyecta las dependencias
     public JwtFiltroAutenticacion(JwtProveedor jwtProveedor,
             UsuarioDetallesServicio usuarioDetallesServicio) {
         this.jwtProveedor = jwtProveedor;
@@ -37,10 +35,10 @@ public class JwtFiltroAutenticacion extends OncePerRequestFilter {
                 || (uri != null && uri.contains("/auth"));
     }
 
-    //doFilterInternal: este metodo se ejecuta en cada peticion HTTP
-    //request la peticion que llega
-    //response la respuesta que se va a enviar al cliente
-    //filterChain la cadena de filtros que se ejecuta despues de este filtro
+    // doFilterInternal: este metodo se ejecuta en cada peticion HTTP
+    // request la peticion que llega
+    // response la respuesta que se va a enviar al cliente
+    // filterChain la cadena de filtros que se ejecuta despues de este filtro
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,9 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/categorias")
+
+// Controlador REST para gestionar las categorías de equipos, incluye endpoints para crear, 
+// listar (activos y todos), buscar por ID, actualizar y eliminar categorías.
 public class CategoriaControlador {
 
     private final CategoriaServicio categoriaServicio;
@@ -31,6 +35,7 @@ public class CategoriaControlador {
     //  POST /api/v1/categorias 
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<CategoriaRespuestaDTO> crear(
             @Valid @RequestBody CategoriaCrearDTO dto) {
 
@@ -69,6 +74,7 @@ public class CategoriaControlador {
     //  PUT /api/v1/categorias/{id} 
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<CategoriaRespuestaDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody CategoriaCrearDTO dto) {
@@ -80,6 +86,7 @@ public class CategoriaControlador {
     //  DELETE /api/v1/categorias/{id} 
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
 
         categoriaServicio.eliminar(id);

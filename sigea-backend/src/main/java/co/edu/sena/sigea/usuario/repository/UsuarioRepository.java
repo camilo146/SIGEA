@@ -14,39 +14,39 @@ import co.edu.sena.sigea.usuario.entity.Usuario;
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
-    Optional<Usuario> findByCorreoElectronico(String correoElectronico);
+        Optional<Usuario> findByCorreoElectronico(String correoElectronico);
 
-    default Optional<Usuario> findByIdentificador(String identificador) {
-        if (identificador == null || identificador.isBlank()) {
-            return Optional.empty();
+        default Optional<Usuario> findByIdentificador(String identificador) {
+                if (identificador == null || identificador.isBlank()) {
+                        return Optional.empty();
+                }
+                String valor = identificador.trim();
+                return findByCorreoElectronico(valor).or(() -> findByNumeroDocumento(valor));
         }
-        String valor = identificador.trim();
-        return findByCorreoElectronico(valor).or(() -> findByNumeroDocumento(valor));
-    }
 
-    Optional<Usuario> findByTipoDocumentoAndNumeroDocumento(
-            co.edu.sena.sigea.common.enums.TipoDocumento tipoDocumento,
-            String numeroDocumento);
+        Optional<Usuario> findByTipoDocumentoAndNumeroDocumento(
+                        co.edu.sena.sigea.common.enums.TipoDocumento tipoDocumento,
+                        String numeroDocumento);
 
-    boolean existsByCorreoElectronico(String correoElectronico);
+        boolean existsByCorreoElectronico(String correoElectronico);
 
-    boolean existsByNumeroDocumento(String numeroDocumento);
+        boolean existsByNumeroDocumento(String numeroDocumento);
 
-    Optional<Usuario> findByNumeroDocumento(String numeroDocumento);
+        Optional<Usuario> findByNumeroDocumento(String numeroDocumento);
 
-    List<Usuario> findByRolAndActivoTrue(Rol rol);
+        List<Usuario> findByRolAndActivoTrue(Rol rol);
 
-    List<Usuario> findByActivoTrue();
+        List<Usuario> findByActivoTrue();
 
-    Optional<Usuario> findFirstByEsSuperAdminTrueAndActivoTrue();
+        Optional<Usuario> findFirstByEsSuperAdminTrueAndActivoTrue();
 
-    Optional<Usuario> findByTokenVerificacion(String tokenVerificacion);
+        Optional<Usuario> findByTokenVerificacion(String tokenVerificacion);
 
-    List<Usuario> findByEstadoAprobacion(EstadoAprobacion estadoAprobacion);
+        List<Usuario> findByEstadoAprobacion(EstadoAprobacion estadoAprobacion);
 
-    /**
-     * Para la tarea programada: usuarios PENDIENTE cuya fechaCreacion <= limite.
-     */
-    List<Usuario> findByEstadoAprobacionAndFechaCreacionBefore(
-            EstadoAprobacion estadoAprobacion, LocalDateTime limite);
+        /**
+         * Para la tarea programada: usuarios PENDIENTE cuya fechaCreacion <= limite.
+         */
+        List<Usuario> findByEstadoAprobacionAndFechaCreacionBefore(
+                        EstadoAprobacion estadoAprobacion, LocalDateTime limite);
 }

@@ -3,8 +3,6 @@ package co.edu.sena.sigea.notificacion.service;
 import java.time.Year;
 import java.util.Map;
 
-import co.edu.sena.sigea.common.exception.ServicioCorreoException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +12,9 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
+import co.edu.sena.sigea.common.exception.ServicioCorreoException;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class CorreoServicio {
@@ -50,7 +51,7 @@ public class CorreoServicio {
             return true;
         } catch (Exception e) {
             log.error("Error al enviar correo a {}", destinatario, e);
-            log.info("Contenido que no se pudo enviar a {} | Asunto: {} | Cuerpo:\n{}", destinatario, asunto, cuerpo);
+            log.warn("No se pudo entregar correo a {} | Asunto: {}", destinatario, asunto);
             return false;
         }
     }

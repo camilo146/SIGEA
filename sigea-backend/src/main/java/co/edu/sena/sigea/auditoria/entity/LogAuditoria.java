@@ -59,6 +59,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+// Entidad que representa un log de auditoría, registra acciones relevantes del sistema para trazabilidad, 
+// incluyendo quién hizo qué, cuándo, desde dónde, y qué cambió.
 public class LogAuditoria {
 
     // ID propio porque NO extiende EntidadBase

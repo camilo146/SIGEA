@@ -13,7 +13,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
+//DTO de respuesta para las categorías de equipos, incluye información básica como nombre, descripción,
+// estado activo, y fechas de creación/actualización. Este DTO se utiliza para mostrar la información de las categorías en las respuestas de la API.
 public class CategoriaRespuestaDTO {
 
     private long id; 

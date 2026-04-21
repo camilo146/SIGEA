@@ -28,9 +28,11 @@ class ApiIntegracionTest {
     private MockMvc mockMvc;
 
     @Test
-    @DisplayName("actuator health responde 200")
+    @DisplayName("actuator health responde 200 con rol ADMINISTRADOR")
     void actuatorHealthRespondeOk() throws Exception {
-        mockMvc.perform(get("/actuator/health").accept(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/actuator/health")
+                        .with(user("admin@sigea.local").roles("ADMINISTRADOR"))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").exists());
     }

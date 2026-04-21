@@ -54,7 +54,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(permitAuthPath()).permitAll()
-                        .requestMatchers("/actuator/**", "/api/v1/actuator/**").permitAll()
+                        .requestMatchers("/actuator/**", "/api/v1/actuator/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/uploads/**").permitAll()
                         .anyRequest().authenticated()
 
@@ -97,13 +97,30 @@ public class SecurityConfig {
     }
 
     @Bean
-    // Configuración de CORS. Acepta cualquier origen porque nginx ya actúa
-    // como barrera perimetral. setAllowedOriginPatterns("*") con allowCredentials
-    // es válido en Spring 5.3+ y devuelve el origin real (no "*") en la respuesta.
+    // Configuración de CORS. Usa los orígenes configurados en sigea.app.url
+    // (variable SIGEA_APP_URL en producción) más el localhost de desarrollo.
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // Construir lista de orígenes permitidos a partir de sigea.app.url
+        List<String> origenes = new java.util.ArrayList<>();
+        if (appUrl != null && !appUrl.isBlank()) {
+            for (String url : appUrl.split(",")) {
+                String origen = url.trim();
+                if (!origen.isEmpty()) {
+                    origenes.add(origen);
+                }
+            }
+        }
+        // Incluir siempre origen de desarrollo local
+        if (!origenes.contains("http://localhost:4200")) {
+            origenes.add("http://localhost:4200");
+        }
+        if (!origenes.contains("http://localhost:8082")) {
+            origenes.add("http://localhost:8082");
+        }
+
+        configuration.setAllowedOrigins(origenes);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

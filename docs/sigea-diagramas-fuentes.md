@@ -4,39 +4,42 @@
 
 ```mermaid
 flowchart TB
+    classDef client fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
     classDef fe fill:#e2e8f0,stroke:#334155,color:#0f172a
     classDef be fill:#dcfce7,stroke:#166534,color:#14532d
-    classDef db fill:#fef9c3,stroke:#a16207,color:#713f12
-    classDef ex fill:#ede9fe,stroke:#5b21b6,color:#4c1d95
+    classDef data fill:#fef9c3,stroke:#a16207,color:#713f12
+    classDef infra fill:#ede9fe,stroke:#5b21b6,color:#4c1d95
 
-    subgraph FRONTEND[Frontend Angular 17]
-        FE_PAGES[Pages and Components]:::fe
-        FE_SERV[Core Services]:::fe
-        FE_GUARD[Guards and JWT Interceptor]:::fe
+    USER[Usuario final<br/>Navegador web / móvil]:::client
+
+    subgraph FE[Frontend Angular 18 SPA]
+        ROUTER[Angular Router<br/>guards de rol y sesión]:::fe
+        PAGES[Páginas de negocio<br/>inventario préstamos reservas reportes]:::fe
+        CORE[HttpClient + services<br/>interceptor JWT + manejo de errores]:::fe
     end
 
-    subgraph BACKEND[Backend Spring Boot 3 Java 21]
-        BE_SEC[Security and JWT Filter]:::be
-        BE_CTRL[REST Controllers /api/v1]:::be
-        BE_SVC[Business Services]:::be
-        BE_REPO[JPA Repositories]:::be
+    subgraph API[Backend Spring Boot 3.5.10 / Java 21]
+        SEC[SecurityConfig + JwtFiltroAutenticacion<br/>BCrypt + autorización por rol]:::be
+        CTRL[REST Controllers<br/>base path /api/v1]:::be
+        SVC[Servicios de dominio<br/>inventario préstamos reservas transferencias notificaciones]:::be
+        JOBS[Tareas programadas y reglas automáticas<br/>mora recordatorios stock bajo]:::be
+        REPO[Spring Data JPA Repositories]:::be
+        MAIL[CorreoServicio + Thymeleaf<br/>emails HTML institucionales]:::be
     end
 
-    subgraph DATA[Persistence]
-        DB[(MariaDB 11)]:::db
-        FS[(Uploads Storage)]:::db
+    subgraph PERSIST[Persistencia e infraestructura]
+        DB[(MariaDB 11.4<br/>Flyway migrations)]:::data
+        UP[(Volumen de uploads<br/>fotos y archivos)]:::data
+        SMTP[SMTP Gmail<br/>SSL/TLS 465 o STARTTLS 587]:::infra
     end
 
-    subgraph EXT[External Services]
-        SMTP[SMTP]:::ex
-        WA[WhatsApp API]:::ex
-    end
-
-    FE_PAGES --> FE_SERV --> FE_GUARD --> BE_SEC
-    BE_SEC --> BE_CTRL --> BE_SVC --> BE_REPO --> DB
-    BE_SVC --> FS
-    BE_SVC --> SMTP
-    BE_SVC --> WA
+    USER --> ROUTER
+    ROUTER --> PAGES --> CORE
+    CORE --> SEC --> CTRL --> SVC
+    SVC --> REPO --> DB
+    SVC --> JOBS
+    SVC --> MAIL --> SMTP
+    SVC --> UP
 ```
 
 ## 02 MER
@@ -46,85 +49,261 @@ erDiagram
     USUARIO {
         bigint id PK
         varchar nombre_completo
-        varchar tipo_documento
         varchar numero_documento UK
         varchar correo_electronico UK
         varchar rol
         boolean activo
+        boolean email_verificado
+        varchar estado_aprobacion
     }
-    CATEGORIA { bigint id PK varchar nombre UK }
-    MARCA { bigint id PK varchar nombre UK }
-    AMBIENTE { bigint id PK varchar nombre UK bigint propietario_id FK bigint padre_id FK }
+
+    CATEGORIA {
+        bigint id PK
+        varchar nombre UK
+        boolean activo
+    }
+
+    MARCA {
+        bigint id PK
+        varchar nombre UK
+        boolean activo
+    }
+
+    AMBIENTE {
+        bigint id PK
+        varchar nombre
+        varchar ubicacion
+        bigint instructor_responsable_id FK
+        bigint propietario_id FK
+        bigint padre_id FK
+        boolean activo
+    }
+
     EQUIPO {
         bigint id PK
         varchar nombre
+        varchar codigo_unico UK
         varchar placa UK
+        varchar serial
+        varchar modelo
         bigint categoria_id FK
         bigint marca_id FK
         bigint ambiente_id FK
+        bigint sub_ubicacion_id FK
         bigint propietario_id FK
+        bigint inventario_actual_instructor_id FK
+        varchar estado
+        varchar tipo_uso
         int cantidad_total
         int cantidad_disponible
+        int umbral_minimo
+        boolean activo
     }
-    FOTO_EQUIPO { bigint id PK bigint equipo_id FK }
-    PRESTAMO { bigint id PK bigint usuario_solicitante_id FK bigint administrador_aprueba_id FK bigint administrador_recibe_id FK bigint reserva_id FK varchar estado }
-    DETALLE_PRESTAMO { bigint id PK bigint prestamo_id FK bigint equipo_id FK int cantidad boolean devuelto }
-    EXTENSION_PRESTAMO { bigint id PK bigint prestamo_id FK bigint administrador_aprueba_id FK varchar estado }
-    REPORTE_DANO { bigint id PK bigint detalle_prestamo_id FK bigint reportado_por_id FK }
-    RESERVA { bigint id PK bigint usuario_id FK bigint equipo_id FK int cantidad varchar estado }
-    TRANSFERENCIA { bigint id PK bigint equipo_id FK bigint inventario_origen_instructor_id FK bigint inventario_destino_instructor_id FK bigint propietario_equipo_id FK bigint ubicacion_destino_id FK bigint administrador_autoriza_id FK }
-    MANTENIMIENTO { bigint id PK bigint equipo_id FK varchar tipo }
-    OBSERVACION_EQUIPO { bigint id PK bigint equipo_id FK bigint autor_id FK }
-    PRESTAMO_AMBIENTE { bigint id PK bigint ambiente_id FK bigint solicitante_id FK bigint propietario_ambiente_id FK varchar estado }
-    NOTIFICACION { bigint id PK bigint usuario_destino_id FK varchar tipo varchar estado_envio }
-    LOG_AUDITORIA { bigint id PK bigint usuario_id FK varchar accion }
-    CONFIGURACION { bigint id PK varchar clave UK }
 
-    USUARIO ||--o{ AMBIENTE : propietario
-    AMBIENTE ||--o{ AMBIENTE : sububicacion
+    FOTO_EQUIPO {
+        bigint id PK
+        bigint equipo_id FK
+        varchar nombre_archivo
+        varchar ruta_archivo
+    }
+
+    PRESTAMO {
+        bigint id PK
+        bigint usuario_solicitante_id FK
+        bigint administrador_aprueba_id FK
+        bigint administrador_recibe_id FK
+        bigint reserva_id FK
+        varchar estado
+        datetime fecha_hora_solicitud
+        datetime fecha_hora_devolucion_estimada
+    }
+
+    DETALLE_PRESTAMO {
+        bigint id PK
+        bigint prestamo_id FK
+        bigint equipo_id FK
+        int cantidad
+        boolean devuelto
+        varchar estado_equipo_entrega
+        varchar estado_equipo_devolucion
+    }
+
+    EXTENSION_PRESTAMO {
+        bigint id PK
+        bigint prestamo_id FK
+        bigint administrador_aprueba_id FK
+        varchar estado
+        datetime nueva_fecha_devolucion
+    }
+
+    REPORTE_DANO {
+        bigint id PK
+        bigint detalle_prestamo_id FK
+        bigint reportado_por_id FK
+        text descripcion
+    }
+
+    RESERVA {
+        bigint id PK
+        bigint usuario_id FK
+        bigint equipo_id FK
+        int cantidad
+        varchar estado
+        datetime fecha_hora_inicio
+        datetime fecha_hora_fin
+    }
+
+    TRANSFERENCIA {
+        bigint id PK
+        bigint equipo_id FK
+        bigint inventario_origen_instructor_id FK
+        bigint inventario_destino_instructor_id FK
+        bigint propietario_equipo_id FK
+        bigint ubicacion_destino_id FK
+        bigint administrador_autoriza_id FK
+        int cantidad
+    }
+
+    MANTENIMIENTO {
+        bigint id PK
+        bigint equipo_id FK
+        varchar tipo
+        date fecha_inicio
+        date fecha_fin
+    }
+
+    OBSERVACION_EQUIPO {
+        bigint id PK
+        bigint prestamo_id FK
+        bigint equipo_id FK
+        bigint usuario_duenio_id FK
+        bigint usuario_prestatario_id FK
+        int estado_devolucion
+    }
+
+    PRESTAMO_AMBIENTE {
+        bigint id PK
+        bigint ambiente_id FK
+        bigint solicitante_id FK
+        bigint propietario_ambiente_id FK
+        date fecha_inicio
+        date fecha_fin
+        varchar estado
+    }
+
+    NOTIFICACION {
+        bigint id PK
+        bigint usuario_destino_id FK
+        varchar tipo
+        varchar medio_envio
+        varchar estado_envio
+        boolean leida
+    }
+
+    LOG_AUDITORIA {
+        bigint id PK
+        bigint usuario_id FK
+        varchar accion
+        varchar entidad_afectada
+        bigint entidad_id
+    }
+
+    CONFIGURACION {
+        bigint id PK
+        varchar clave UK
+        varchar valor
+    }
+
+    USUARIO ||--o{ AMBIENTE : responsable_propietario
+    AMBIENTE ||--o{ AMBIENTE : jerarquia
     CATEGORIA ||--o{ EQUIPO : clasifica
-    MARCA ||--o{ EQUIPO : marca
+    MARCA ||--o{ EQUIPO : fabrica
     AMBIENTE ||--o{ EQUIPO : ubica
-    USUARIO ||--o{ EQUIPO : propietario
-    EQUIPO ||--o{ FOTO_EQUIPO : fotos
-    USUARIO ||--o{ PRESTAMO : solicita
-    PRESTAMO ||--|{ DETALLE_PRESTAMO : detalle
+    USUARIO ||--o{ EQUIPO : custodio_inventario
+    EQUIPO ||--o{ FOTO_EQUIPO : adjunta
+    USUARIO ||--o{ PRESTAMO : solicita_aprueba_recibe
+    PRESTAMO ||--|{ DETALLE_PRESTAMO : contiene
     EQUIPO ||--o{ DETALLE_PRESTAMO : item
-    PRESTAMO ||--o{ EXTENSION_PRESTAMO : extension
-    DETALLE_PRESTAMO ||--o| REPORTE_DANO : dano
-    USUARIO ||--o{ RESERVA : reserva
-    EQUIPO ||--o{ RESERVA : reservado
-    RESERVA ||--o| PRESTAMO : origen
-    EQUIPO ||--o{ TRANSFERENCIA : transfiere
-    EQUIPO ||--o{ MANTENIMIENTO : mantenimiento
-    EQUIPO ||--o{ OBSERVACION_EQUIPO : observacion
-    AMBIENTE ||--o{ PRESTAMO_AMBIENTE : uso
+    PRESTAMO ||--o{ EXTENSION_PRESTAMO : extiende
+    DETALLE_PRESTAMO ||--o| REPORTE_DANO : genera
+    USUARIO ||--o{ RESERVA : crea
+    EQUIPO ||--o{ RESERVA : bloquea_stock
+    RESERVA ||--o| PRESTAMO : origen_opcional
+    EQUIPO ||--o{ TRANSFERENCIA : mueve
+    EQUIPO ||--o{ MANTENIMIENTO : recibe
+    EQUIPO ||--o{ OBSERVACION_EQUIPO : historial
+    PRESTAMO ||--o{ OBSERVACION_EQUIPO : contexto
+    AMBIENTE ||--o{ PRESTAMO_AMBIENTE : agenda
     USUARIO ||--o{ NOTIFICACION : recibe
-    USUARIO ||--o{ LOG_AUDITORIA : audita
+    USUARIO ||--o{ LOG_AUDITORIA : ejecuta
 ```
 
 ## 03 Clases UML
 
+### 03a Dominio base e inventario
+
 ```mermaid
 classDiagram
-    class EntidadBase { +id: Long +fechaCreacion: LocalDateTime +fechaActualizacion: LocalDateTime }
-    class Usuario { +nombreCompleto: String +correoElectronico: String +rol: Rol +activo: boolean }
-    class Ambiente { +nombre: String +ubicacion: String +activo: boolean }
-    class Categoria { +nombre: String +activo: boolean }
-    class Marca { +nombre: String +activo: boolean }
-    class Equipo { +nombre: String +placa: String +estado: EstadoEquipo +cantidadTotal: int +cantidadDisponible: int }
-    class FotoEquipo { +nombreArchivo: String +rutaArchivo: String }
-    class Prestamo { +estado: EstadoPrestamo +fechaSolicitud: LocalDateTime }
-    class DetallePrestamo { +cantidad: int +devuelto: boolean }
-    class ExtensionPrestamo { +estado: EstadoExtension }
-    class ReporteDano { +descripcion: String }
-    class Reserva { +cantidad: int +estado: EstadoReserva }
-    class Transferencia { +cantidad: int +motivo: String }
-    class Mantenimiento { +tipo: TipoMantenimiento }
-    class ObservacionEquipo { +texto: String }
-    class PrestamoAmbiente { +estado: EstadoPrestamoAmbiente }
-    class Notificacion { +tipo: TipoNotificacion +estadoEnvio: EstadoEnvio }
-    class Configuracion { +clave: String +valor: String }
+    direction LR
+
+    class EntidadBase {
+        <<abstract>>
+        +Long id
+        +LocalDateTime fechaCreacion
+        +LocalDateTime fechaActualizacion
+    }
+
+    class Usuario {
+        +String nombreCompleto
+        +String numeroDocumento
+        +String correoElectronico
+        +Rol rol
+        +Boolean activo
+        +Boolean emailVerificado
+    }
+
+    class Ambiente {
+        +String nombre
+        +String ubicacion
+        +String direccion
+        +Boolean activo
+    }
+
+    class Categoria {
+        +String nombre
+        +Boolean activo
+    }
+
+    class Marca {
+        +String nombre
+        +Boolean activo
+    }
+
+    class Equipo {
+        +String nombre
+        +String codigoUnico
+        +String placa
+        +String serial
+        +String modelo
+        +EstadoEquipo estado
+        +TipoUsoEquipo tipoUso
+        +Integer cantidadTotal
+        +Integer cantidadDisponible
+        +Integer umbralMinimo
+        +Boolean activo
+    }
+
+    class FotoEquipo {
+        +String nombreArchivo
+        +String rutaArchivo
+        +Long tamanoBytes
+    }
+
+    class ObservacionEquipo {
+        +String observaciones
+        +Integer estadoDevolucion
+        +LocalDateTime fechaRegistro
+    }
 
     EntidadBase <|-- Usuario
     EntidadBase <|-- Ambiente
@@ -132,78 +311,170 @@ classDiagram
     EntidadBase <|-- Marca
     EntidadBase <|-- Equipo
     EntidadBase <|-- FotoEquipo
-    EntidadBase <|-- Prestamo
-    EntidadBase <|-- DetallePrestamo
-    EntidadBase <|-- ExtensionPrestamo
-    EntidadBase <|-- ReporteDano
-    EntidadBase <|-- Reserva
-    EntidadBase <|-- Transferencia
-    EntidadBase <|-- Mantenimiento
     EntidadBase <|-- ObservacionEquipo
-    EntidadBase <|-- PrestamoAmbiente
-    EntidadBase <|-- Notificacion
-    EntidadBase <|-- Configuracion
 
-    Equipo --> Categoria : categoria
-    Equipo --> Ambiente : ambiente
-    Equipo --> Marca : marca
-    Equipo --> Usuario : propietario
-    Equipo *-- FotoEquipo : fotos
+    Ambiente --> Usuario : instructorResponsable
     Ambiente --> Usuario : propietario
     Ambiente --> Ambiente : padre
-    Prestamo --> Usuario : solicitante
-    Prestamo --> Usuario : adminAprueba
-    Prestamo --> Usuario : adminRecibe
+    Equipo --> Categoria : categoria
+    Equipo --> Marca : marca
+    Equipo --> Ambiente : ambiente
+    Equipo --> Ambiente : subUbicacion
+    Equipo --> Usuario : propietario
+    Equipo --> Usuario : inventarioActualInstructor
+    Equipo *-- FotoEquipo : fotos
+    ObservacionEquipo --> Equipo : equipo
+```
+
+### 03b Dominio operativo de préstamos y reservas
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Prestamo {
+        +EstadoPrestamo estado
+        +LocalDateTime fechaHoraSolicitud
+        +LocalDateTime fechaHoraAprobacion
+        +LocalDateTime fechaHoraSalida
+        +LocalDateTime fechaHoraDevolucionEstimada
+        +LocalDateTime fechaHoraDevolucionReal
+        +Integer extensionesRealizadas
+    }
+
+    class DetallePrestamo {
+        +Integer cantidad
+        +Boolean devuelto
+        +EstadoCondicion estadoEquipoEntrega
+        +EstadoCondicion estadoEquipoDevolucion
+    }
+
+    class ExtensionPrestamo {
+        +EstadoExtension estado
+        +LocalDateTime nuevaFechaDevolucion
+        +String motivo
+    }
+
+    class ReporteDano {
+        +String descripcion
+        +String fotoRuta
+        +LocalDateTime fechaReporte
+    }
+
+    class Reserva {
+        +Integer cantidad
+        +EstadoReserva estado
+        +LocalDateTime fechaHoraInicio
+        +LocalDateTime fechaHoraFin
+    }
+
+    class PrestamoAmbiente {
+        +EstadoPrestamoAmbiente estado
+        +LocalDate fechaInicio
+        +LocalDate fechaFin
+        +LocalTime horaInicio
+        +LocalTime horaFin
+        +Integer numeroParticipantes
+    }
+
+    class Transferencia {
+        +Integer cantidad
+        +String motivo
+        +LocalDateTime fechaTransferencia
+    }
+
+    class Mantenimiento {
+        +TipoMantenimiento tipo
+        +LocalDate fechaInicio
+        +LocalDate fechaFin
+        +String responsable
+    }
+
+    class Notificacion {
+        +TipoNotificacion tipo
+        +MedioEnvio medioEnvio
+        +EstadoEnvio estadoEnvio
+        +Boolean leida
+        +LocalDateTime fechaEnvio
+    }
+
+    class Configuracion {
+        +String clave
+        +String valor
+    }
+
+    Prestamo --> Usuario : usuarioSolicitante
+    Prestamo --> Usuario : administradorAprueba
+    Prestamo --> Usuario : administradorRecibe
+    Prestamo --> Reserva : reservaOrigen
     Prestamo *-- DetallePrestamo : detalles
     Prestamo o-- ExtensionPrestamo : extensiones
     DetallePrestamo --> Equipo : equipo
-    DetallePrestamo o-- ReporteDano : dano
+    DetallePrestamo o-- ReporteDano : reporteDano
+    ReporteDano --> Usuario : reportadoPor
     Reserva --> Usuario : usuario
     Reserva --> Equipo : equipo
-    Transferencia --> Equipo : equipo
-    Mantenimiento --> Equipo : equipo
-    ObservacionEquipo --> Equipo : equipo
-    ObservacionEquipo --> Usuario : autor
     PrestamoAmbiente --> Ambiente : ambiente
     PrestamoAmbiente --> Usuario : solicitante
-    PrestamoAmbiente --> Usuario : propietario
-    Notificacion --> Usuario : destino
+    PrestamoAmbiente --> Usuario : propietarioAmbiente
+    Transferencia --> Equipo : equipo
+    Transferencia --> Usuario : adminAutoriza
+    Transferencia --> Usuario : inventarioOrigen
+    Transferencia --> Usuario : inventarioDestino
+    Transferencia --> Ambiente : ubicacionDestino
+    Mantenimiento --> Equipo : equipo
+    Notificacion --> Usuario : usuarioDestino
 ```
 
 ## 04a Flujo Prestamo
 
 ```mermaid
 flowchart TD
-    A[Inicio solicitud] --> B[Seleccion de equipos]
-    B --> C{Stock suficiente}
-    C -->|No| D[Rechazo por stock]
-    C -->|Si| E[Crear prestamo pendiente]
-    E --> F{Aprobacion admin}
-    F -->|No| G[Prestamo rechazado]
-    F -->|Si| H[Registrar salida y descontar stock]
-    H --> I[Registrar devolucion y reponer stock]
-    I --> J{Hay dano}
-    J -->|Si| K[Crear reporte dano]
-    J -->|No| L[Cerrar prestamo devuelto]
-    K --> L
+    A[Usuario autenticado<br/>selecciona equipos] --> B[Frontend valida formulario<br/>cantidades y fechas]
+    B --> C[POST /api/v1/prestamos]
+    C --> D[PrestamoServicio inicia validaciones de negocio]
+    D --> E{Stock disponible<br/>estado ACTIVO<br/>usuario habilitado}
+    E -->|No| F[Retorna 400 o 409<br/>sin persistir cambios]
+    E -->|Si| G[Persistir Prestamo y DetallePrestamo<br/>estado SOLICITADO]
+    G --> H[Registrar LogAuditoria]
+    H --> I[Notificacion al administrador responsable]
+    I --> J{Administrador aprueba}
+    J -->|No| K[Actualizar estado RECHAZADO<br/>notificar rechazo]
+    J -->|Si| L[Actualizar estado APROBADO]
+    L --> M[Registrar salida física<br/>estado ACTIVO]
+    M --> N[Descontar cantidad_disponible<br/>en transacción]
+    N --> O{Devolución dentro del plazo}
+    O -->|No| P[Marcar EN_MORA<br/>emitir recordatorio]
+    O -->|Sí| Q[Registrar devolución]
+    P --> Q
+    Q --> R[Reintegrar stock disponible]
+    R --> S{Estado devuelto menor al esperado}
+    S -->|Sí| T[Crear ObservacionEquipo y/o ReporteDano]
+    S -->|No| U[Cerrar como DEVUELTO]
+    T --> U
 ```
 
 ## 04b Flujo Autenticacion
 
 ```mermaid
 flowchart TD
-    A[Inicio login] --> B[Validar formulario]
-    B --> C{Valido}
-    C -->|No| D[Mostrar errores]
-    C -->|Si| E[POST auth login]
-    E --> F{Usuario existe}
-    F -->|No| G[401]
-    F -->|Si| H{Email verificado}
-    H -->|No| I[403 verificar email]
-    H -->|Si| J{Contrasena correcta}
-    J -->|No| K[Incrementar intentos]
-    J -->|Si| L[Generar JWT y sesion]
-    L --> M[Dashboard]
+    A[Usuario abre login] --> B[Angular valida campos requeridos]
+    B --> C[POST /api/v1/auth/login]
+    C --> D[AuthControlador recibe credenciales]
+    D --> E[AutenticacionServicio busca usuario por numeroDocumento]
+    E --> F{Usuario activo existe}
+    F -->|No| G[401 no autorizado]
+    F -->|Sí| H{Cuenta bloqueada o pendiente aprobación}
+    H -->|Sí| I[403 acceso denegado]
+    H -->|No| J[Comparar contraseña con BCrypt]
+    J --> K{Coincide hash}
+    K -->|No| L[Incrementar intentosFallidos<br/>eventual bloqueo temporal]
+    L --> M[401 credenciales inválidas]
+    K -->|Sí| N{Requiere email verificado}
+    N -->|Sí y no verificado| O[403 verificar correo]
+    N -->|No o verificado| P[Generar JWT con rol y subject]
+    P --> Q[SecurityContext y respuesta LoginRespuestaDTO]
+    Q --> R[Frontend guarda token y navega al dashboard]
 ```
 
 ## 05 Casos de Uso
@@ -310,29 +581,42 @@ sequenceDiagram
 ## 07 Componentes
 
 ```mermaid
-flowchart TB
+flowchart LR
     classDef box fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef sec fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d
+    classDef data fill:#fef9c3,stroke:#a16207,color:#713f12
 
-    subgraph FE[Angular Frontend]
-        FE1[Routing and Guards]:::box
-        FE2[Pages]:::box
-        FE3[Core Services]:::box
+    subgraph FE[Frontend Angular 18]
+        UI[Standalone components y páginas]:::box
+        ROUTES[App routes + guards por rol]:::box
+        HTTP[Core services + HttpClient]:::box
+        INT[JWT interceptor + manejo global de errores]:::sec
     end
 
-    subgraph BE[Spring Boot Backend]
-        BE1[Security and JWT]:::box
-        BE2[Controllers]:::box
-        BE3[Services]:::box
-        BE4[Repositories]:::box
+    subgraph BE[Backend Spring Boot]
+        API[Controllers REST /api/v1]:::box
+        AUTH[JwtFiltroAutenticacion + SecurityConfig + BCrypt]:::sec
+        DOM[Servicios de dominio<br/>Usuario Equipo Prestamo Reserva Transferencia]:::box
+        NOTI[NotificacionServicio + CorreoServicio]:::box
+        REP[Reportes PDF/Excel + Dashboard queries]:::box
+        PERSIST[JPA repositories + entidades]:::data
     end
 
-    subgraph ST[Storage]
-        DB[(MariaDB)]:::box
-        FS[(Uploads)]:::box
+    subgraph INFRA[Infraestructura]
+        DB[(MariaDB 11.4)]:::data
+        FLY[Flyway migrations]:::data
+        UP[(Volumen uploads)]:::data
+        SMTP[Servidor SMTP Gmail]:::box
     end
 
-    FE1 --> FE2 --> FE3 --> BE1 --> BE2 --> BE3 --> BE4 --> DB
-    BE3 --> FS
+    UI --> ROUTES --> HTTP --> INT --> AUTH --> API
+    API --> DOM
+    API --> NOTI
+    API --> REP
+    DOM --> PERSIST --> DB
+    PERSIST --> FLY
+    DOM --> UP
+    NOTI --> SMTP
 ```
 
 ## 08 Despliegue
@@ -340,21 +624,25 @@ flowchart TB
 ```mermaid
 flowchart TB
     classDef node fill:#f8fafc,stroke:#64748b,color:#0f172a
+    classDef host fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef vol fill:#fef9c3,stroke:#a16207,color:#713f12
 
-    C[Cliente navegador]:::node
-    N[Nginx reverse proxy]:::node
-    A[Angular dist]:::node
-    B[Spring Boot JAR port 8080]:::node
-    D[(MariaDB port 3306)]:::node
-    U[(Uploads)]:::node
-    S[SMTP]:::node
-    W[WhatsApp API]:::node
+    USER[Cliente web<br/>desktop o móvil]:::host
 
-    C --> N
-    N --> A
-    N --> B
-    B --> D
-    B --> U
-    B --> S
-    B --> W
+    subgraph HOST[Servidor Docker Compose]
+        FE[sigea-frontend<br/>Nginx sirviendo Angular dist<br/>puerto 80]:::node
+        BE[sigea-backend<br/>Spring Boot JAR<br/>puerto interno 8080]:::node
+        DB[(sigea-db<br/>MariaDB 11.4<br/>puerto interno 3306)]:::node
+        VDB[(volumen sigea-db-data)]:::vol
+        VUP[(volumen sigea-uploads)]:::vol
+    end
+
+    SMTP[Proveedor SMTP Gmail<br/>salida segura SSL/TLS]:::node
+
+    USER --> FE
+    FE -->|proxy /api| BE
+    BE -->|JPA JDBC| DB
+    DB --> VDB
+    BE --> VUP
+    BE --> SMTP
 ```

@@ -563,7 +563,8 @@ public class PrestamoServicio {
                 .toList();
     }
 
-    // Lista los préstamos del usuario autenticado usando su identificador de sesión.
+    // Lista los préstamos del usuario autenticado usando su identificador de
+    // sesión.
     @Transactional(readOnly = true)
     public List<PrestamoRespuestaDTO> listarMisPrestamos(String correoUsuario) {
         Usuario usuario = usuarioRepository.findByIdentificador(correoUsuario)

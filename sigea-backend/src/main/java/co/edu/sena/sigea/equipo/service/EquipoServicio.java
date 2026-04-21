@@ -34,9 +34,9 @@ import co.edu.sena.sigea.equipo.entity.Equipo;
 import co.edu.sena.sigea.equipo.entity.FotoEquipo;
 import co.edu.sena.sigea.equipo.repository.EquipoRepository;
 import co.edu.sena.sigea.equipo.repository.FotoEquipoRepository;
+import co.edu.sena.sigea.mantenimiento.repository.MantenimientoRepository;
 import co.edu.sena.sigea.marca.entity.Marca;
 import co.edu.sena.sigea.marca.repository.MarcaRepository;
-import co.edu.sena.sigea.mantenimiento.repository.MantenimientoRepository;
 import co.edu.sena.sigea.prestamo.repository.PrestamoRepository;
 import co.edu.sena.sigea.reserva.repository.ReservaRepository;
 import co.edu.sena.sigea.transferencia.repository.TransferenciaRepository;
@@ -547,7 +547,9 @@ public class EquipoServicio {
                                         "El archivo excede el tamano maximo de 5 MB");
                 }
 
-                String nombreEnServidor = UUID.randomUUID().toString() + "_" + nombreOriginal;
+                // Usar solo UUID como nombre en el servidor (sin nombre original) para
+                // prevenir path traversal y evitar exponer nombres de archivo del cliente.
+                String nombreEnServidor = UUID.randomUUID().toString() + "." + extension;
 
                 Path directorio = Paths.get(rutaUploads);
                 Files.createDirectories(directorio);
@@ -559,7 +561,7 @@ public class EquipoServicio {
 
                 FotoEquipo foto = FotoEquipo.builder()
                                 .equipo(equipo)
-                                .nombreArchivo(nombreOriginal)
+                                .nombreArchivo(nombreEnServidor)
                                 .rutaArchivo(rutaParaBD)
                                 .tamanoBytes(archivo.getSize())
                                 .fechaSubida(LocalDateTime.now())

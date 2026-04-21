@@ -50,6 +50,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
+// Entidad que representa una categoría de equipo en el inventario, 
+// con campos para nombre, descripción y estado activo.
 public class Categoria extends EntidadBase {
 
     // =========================================================================

@@ -24,86 +24,92 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ObservacionEquipoServicio {
 
-    private final ObservacionEquipoRepository observacionRepository;
-    private final PrestamoRepository prestamoRepository;
-    private final EquipoRepository equipoRepository;
-    private final UsuarioRepository usuarioRepository;
+        private final ObservacionEquipoRepository observacionRepository;
+        private final PrestamoRepository prestamoRepository;
+        private final EquipoRepository equipoRepository;
+        private final UsuarioRepository usuarioRepository;
 
-    @Transactional
-    public ObservacionEquipoRespuestaDTO registrar(ObservacionEquipoCrearDTO dto, String correoUsuario) {
+        @Transactional
+        public ObservacionEquipoRespuestaDTO registrar(ObservacionEquipoCrearDTO dto, String correoUsuario) {
 
-        Prestamo prestamo = prestamoRepository.findById(dto.getPrestamoId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Préstamo no encontrado con ID: " + dto.getPrestamoId()));
+                Prestamo prestamo = prestamoRepository.findById(dto.getPrestamoId())
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Préstamo no encontrado con ID: " + dto.getPrestamoId()));
 
-        Equipo equipo = equipoRepository.findById(dto.getEquipoId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", dto.getEquipoId()));
+                Equipo equipo = equipoRepository.findById(dto.getEquipoId())
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", dto.getEquipoId()));
 
-        Usuario registrador = usuarioRepository.findByIdentificador(correoUsuario)
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Usuario no encontrado: " + correoUsuario));
+                Usuario registrador = usuarioRepository.findByIdentificador(correoUsuario)
+                                .orElseThrow(() -> new RecursoNoEncontradoException(
+                                                "Usuario no encontrado: " + correoUsuario));
 
-        // El registrador es el propietario del equipo (quien recibe la devolución)
-        Usuario propietario = equipo.getPropietario();
-        if (propietario == null) {
-            throw new OperacionNoPermitidaException("El equipo no tiene un propietario asignado");
+                // El registrador es el propietario del equipo (quien recibe la devolución)
+                Usuario propietario = equipo.getPropietario();
+                if (propietario == null) {
+                        throw new OperacionNoPermitidaException("El equipo no tiene un propietario asignado");
+                }
+
+                // El prestatario es el solicitante del préstamo
+                Usuario prestatario = prestamo.getUsuarioSolicitante();
+
+                ObservacionEquipo observacion = ObservacionEquipo.builder()
+                                .prestamo(prestamo)
+                                .equipo(equipo)
+                                .usuarioDuenio(propietario)
+                                .usuarioPrestatario(prestatario)
+                                .observaciones(dto.getObservaciones())
+                                .estadoDevolucion(dto.getEstadoDevolucion())
+                                .fechaRegistro(LocalDateTime.now())
+                                .build();
+
+                // Actualizar la escala de estado del equipo con la última evaluación
+                equipo.setEstadoEquipoEscala(dto.getEstadoDevolucion());
+                equipoRepository.save(equipo);
+
+                ObservacionEquipo guardada = observacionRepository.save(observacion);
+                return convertirADTO(guardada);
         }
 
-        // El prestatario es el solicitante del préstamo
-        Usuario prestatario = prestamo.getUsuarioSolicitante();
+        @Transactional(readOnly = true)
+        public List<ObservacionEquipoRespuestaDTO> listarPorEquipo(Long equipoId) {
+                equipoRepository.findById(equipoId)
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", equipoId));
+                return observacionRepository.findByEquipoIdOrderByFechaRegistroDesc(equipoId)
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
+        }
 
-        ObservacionEquipo observacion = ObservacionEquipo.builder()
-                .prestamo(prestamo)
-                .equipo(equipo)
-                .usuarioDuenio(propietario)
-                .usuarioPrestatario(prestatario)
-                .observaciones(dto.getObservaciones())
-                .estadoDevolucion(dto.getEstadoDevolucion())
-                .fechaRegistro(LocalDateTime.now())
-                .build();
+        @Transactional(readOnly = true)
+        public List<ObservacionEquipoRespuestaDTO> listarPorPrestamo(Long prestamoId) {
+                return observacionRepository.findByPrestamoId(prestamoId)
+                                .stream()
+                                .map(this::convertirADTO)
+                                .toList();
+        }
 
-        // Actualizar la escala de estado del equipo con la última evaluación
-        equipo.setEstadoEquipoEscala(dto.getEstadoDevolucion());
-        equipoRepository.save(equipo);
-
-        ObservacionEquipo guardada = observacionRepository.save(observacion);
-        return convertirADTO(guardada);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ObservacionEquipoRespuestaDTO> listarPorEquipo(Long equipoId) {
-        equipoRepository.findById(equipoId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo", equipoId));
-        return observacionRepository.findByEquipoIdOrderByFechaRegistroDesc(equipoId)
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ObservacionEquipoRespuestaDTO> listarPorPrestamo(Long prestamoId) {
-        return observacionRepository.findByPrestamoId(prestamoId)
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
-    }
-
-    private ObservacionEquipoRespuestaDTO convertirADTO(ObservacionEquipo obs) {
-        return ObservacionEquipoRespuestaDTO.builder()
-                .id(obs.getId())
-                .prestamoId(obs.getPrestamo() != null ? obs.getPrestamo().getId() : null)
-                .equipoId(obs.getEquipo() != null ? obs.getEquipo().getId() : null)
-                .equipoNombre(obs.getEquipo() != null ? obs.getEquipo().getNombre() : null)
-                .equipoPlaca(obs.getEquipo() != null ? obs.getEquipo().getPlaca() : null)
-                .usuarioDuenioId(obs.getUsuarioDuenio() != null ? obs.getUsuarioDuenio().getId() : null)
-                .usuarioDuenioNombre(obs.getUsuarioDuenio() != null ? obs.getUsuarioDuenio().getNombreCompleto() : null)
-                .usuarioPrestatarioId(obs.getUsuarioPrestatario() != null ? obs.getUsuarioPrestatario().getId() : null)
-                .usuarioPrestatarioNombre(
-                        obs.getUsuarioPrestatario() != null ? obs.getUsuarioPrestatario().getNombreCompleto() : null)
-                .observaciones(obs.getObservaciones())
-                .estadoDevolucion(obs.getEstadoDevolucion())
-                .fechaRegistro(obs.getFechaRegistro())
-                .fechaCreacion(obs.getFechaCreacion())
-                .build();
-    }
+        private ObservacionEquipoRespuestaDTO convertirADTO(ObservacionEquipo obs) {
+                return ObservacionEquipoRespuestaDTO.builder()
+                                .id(obs.getId())
+                                .prestamoId(obs.getPrestamo() != null ? obs.getPrestamo().getId() : null)
+                                .equipoId(obs.getEquipo() != null ? obs.getEquipo().getId() : null)
+                                .equipoNombre(obs.getEquipo() != null ? obs.getEquipo().getNombre() : null)
+                                .equipoPlaca(obs.getEquipo() != null ? obs.getEquipo().getPlaca() : null)
+                                .usuarioDuenioId(obs.getUsuarioDuenio() != null ? obs.getUsuarioDuenio().getId() : null)
+                                .usuarioDuenioNombre(obs.getUsuarioDuenio() != null
+                                                ? obs.getUsuarioDuenio().getNombreCompleto()
+                                                : null)
+                                .usuarioPrestatarioId(obs.getUsuarioPrestatario() != null
+                                                ? obs.getUsuarioPrestatario().getId()
+                                                : null)
+                                .usuarioPrestatarioNombre(
+                                                obs.getUsuarioPrestatario() != null
+                                                                ? obs.getUsuarioPrestatario().getNombreCompleto()
+                                                                : null)
+                                .observaciones(obs.getObservaciones())
+                                .estadoDevolucion(obs.getEstadoDevolucion())
+                                .fechaRegistro(obs.getFechaRegistro())
+                                .fechaCreacion(obs.getFechaCreacion())
+                                .build();
+        }
 }

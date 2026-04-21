@@ -13,6 +13,9 @@ import co.edu.sena.sigea.common.exception.RecursoDuplicadoException;
 import co.edu.sena.sigea.common.exception.RecursoNoEncontradoException;
 
 @Service
+
+// Servicio para gestionar las categorías de equipos, incluye lógica de negocio para creación, listados, 
+//búsqueda por ID, actualización y eliminación lógica de categorías.
 public class CategoriaServicio {
 
     private final CategoriaRepository categoriaRepository;

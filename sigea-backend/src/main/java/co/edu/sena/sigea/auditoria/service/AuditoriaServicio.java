@@ -11,6 +11,9 @@ import co.edu.sena.sigea.auditoria.repository.LogAuditoriaRepository;
 import co.edu.sena.sigea.usuario.entity.Usuario;
 
 @Service
+// Servicio para gestionar los logs de auditoria (RF-AU-01).
+// Proporciona metodos para registrar un nuevo log (llamado desde otros servicios)
+// y para listar logs con diferentes filtros (todos, por usuario, por entidad, por rango de fechas). 
 public class AuditoriaServicio {
 
     private final LogAuditoriaRepository logAuditoriaRepository;
