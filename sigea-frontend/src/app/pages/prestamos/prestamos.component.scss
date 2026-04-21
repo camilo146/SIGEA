@@ -131,6 +131,10 @@
   .cant-input    { width: 80px; text-align: center; }
 }
 
+.equipo-option:hover {
+  background: var(--color-primary-light, rgba(0,120,200,0.08));
+}
+
 /* ---- Chips de ítems en solicitud ---- */
 .detalle-items {
   display: flex;

@@ -31,7 +31,7 @@
   <div class="inv-toolbar">
     <div class="search-input-wrap" style="flex:1; max-width:360px">
       <i class="fas fa-search search-icon"></i>
-      <input type="text" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Buscar por nombre o código..." />
+      <input type="text" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Buscar por placa o nombre..." />
     </div>
 
     <div class="toolbar-filters">
@@ -83,7 +83,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (e of filteredEquipos(); track e.id) {
+          @for (e of paginatedEquipos(); track e.id) {
             <tr>
               <td class="foto-cell" (click)="openDetalle(e)" style="cursor:pointer">
                 @if (getFotoUrl(e)) {
@@ -122,6 +122,9 @@
                 @if (isOperativo()) {
                   <button type="button" class="btn-icon" (click)="openEdit(e)" title="Editar" aria-label="Editar equipo">
                     <i class="fas fa-edit"></i>
+                  </button>
+                  <button type="button" class="btn-icon" (click)="openEditFoto(e)" title="Cambiar foto" aria-label="Cambiar foto del equipo">
+                    <i class="fas fa-camera"></i>
                   </button>
                 }
                 @if (isAdminOrInstructor()) {
@@ -175,7 +178,29 @@
       </table>
     </div>
     <div class="table-footer">
-      <span class="text-muted" style="font-size:0.85rem">{{ filteredEquipos().length }} equipo(s) · {{ equipos().length }} en total</span>
+      <div class="pagination-controls">
+        <div class="page-size-select">
+          <label>Mostrar:
+            <select [ngModel]="pageSize()" (ngModelChange)="setPageSize($event)">
+              @for (opt of pageSizeOptions; track opt) {
+                <option [value]="opt">{{ opt }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        <span class="text-muted" style="font-size:0.85rem">{{ filteredEquipos().length }} equipo(s)</span>
+        @if (totalPages() > 1) {
+          <div class="page-nav">
+            <button type="button" class="btn-page" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="page-info">{{ currentPage() }} / {{ totalPages() }}</span>
+            <button type="button" class="btn-page" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        }
+      </div>
     </div>
   }
 </div>
@@ -249,6 +274,11 @@
         </div>
       }
       <div class="equipo-detail-actions">
+        @if (isOperativo()) {
+          <button type="button" class="btn btn-outline" (click)="openEditFoto(e); closeDetalle()">
+            <i class="fas fa-camera"></i> Cambiar foto
+          </button>
+        }
         @if (e.activo && e.cantidadDisponible > 0) {
           <button type="button" class="btn btn-primary" (click)="solicitarEquipo(e)">
             <i class="fas fa-hand-holding"></i> Solicitar préstamo
@@ -353,7 +383,7 @@
           <div class="form-group">
             <label>Propietario actual</label>
             <input type="text" [ngModel]="getNombrePropietarioSeleccionado()" name="propietarioActual" readonly />
-            <small class="text-muted">Solo alimentador de equipos y superadmin pueden cambiar el propietario.</small>
+            <small class="text-muted">Solo administradores y alimentador de equipos pueden cambiar el propietario.</small>
           </div>
         }
         <div class="form-row">
@@ -390,6 +420,11 @@
               <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ fotoArchivo.name }}</span>
             }
           </div>
+        } @else if (isOperativo()) {
+          <div class="form-group">
+            <label>Foto del equipo <small class="text-muted">(opcional al editar)</small></label>
+            <small class="text-muted" style="display:block; margin-bottom:0.4rem">Para cambiar la foto usa el botón <i class="fas fa-camera"></i> en la tabla o en el detalle del equipo.</small>
+          </div>
         }
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="closeModal()">Cancelar</button>
@@ -402,6 +437,40 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+}
+
+<!-- Modal editar foto -->
+@if (editingFotoEquipoId()) {
+  <div class="modal-overlay" (click)="closeEditFoto()">
+    <div class="modal-box" style="max-width:420px" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-camera" style="color:var(--color-primary);margin-right:.4rem"></i>Cambiar foto del equipo</h3>
+        <button type="button" class="btn-close" (click)="closeEditFoto()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Selecciona la nueva foto</label>
+          <input type="file" accept="image/*" (change)="onEditFotoSelected($event)" />
+          <small class="text-muted">Desde PC: explorador de archivos. En celular: galería o cámara. La imagen se optimiza automáticamente.</small>
+          @if (editFotoProcesando()) {
+            <span class="file-name"><i class="fas fa-spinner fa-spin" style="color:var(--color-primary)"></i> Preparando foto...</span>
+          } @else if (editFotoArchivo) {
+            <span class="file-name"><i class="fas fa-check-circle" style="color:var(--color-success)"></i> {{ editFotoArchivo.name }}</span>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeEditFoto()">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="submitEditFoto()" [disabled]="!editFotoArchivo || editFotoSaving() || editFotoProcesando()">
+            @if (editFotoSaving() || editFotoProcesando()) {
+              <i class="fas fa-spinner fa-spin btn-spinner"></i> Guardando...
+            } @else {
+              <i class="fas fa-upload"></i> Guardar foto
+            }
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 }

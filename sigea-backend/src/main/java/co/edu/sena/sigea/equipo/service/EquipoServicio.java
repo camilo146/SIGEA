@@ -735,9 +735,7 @@ public class EquipoServicio {
         private Usuario resolverPropietarioParaActualizacion(EquipoCrearDTO dto, Usuario usuarioActual,
                         Usuario propietarioActual) {
                 if (dto.getPropietarioId() == null) {
-                        if (usuarioPuedeCambiarPropietario(usuarioActual)) {
-                                return obtenerSuperAdminActivo();
-                        }
+                        // Si no se indicó un propietario, conservar el propietario actual
                         return propietarioActual;
                 }
 
@@ -759,8 +757,7 @@ public class EquipoServicio {
 
         private boolean usuarioPuedeCambiarPropietario(Usuario usuarioActual) {
                 return usuarioActual.getRol() == Rol.ALIMENTADOR_EQUIPOS
-                                || (usuarioActual.getRol() == Rol.ADMINISTRADOR
-                                                && Boolean.TRUE.equals(usuarioActual.getEsSuperAdmin()));
+                                || usuarioActual.getRol() == Rol.ADMINISTRADOR;
         }
 
         private Usuario resolverPropietarioSeleccionado(Long propietarioId) {

@@ -53,7 +53,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (p of filteredPrestamos(); track p.id) {
+          @for (p of paginatedPrestamos(); track p.id) {
             <tr [class.fila-mora]="isOverdue(p)">
               <td><code class="id-code">PR-{{ p.id.toString().padStart(3, '0') }}</code></td>
               <td>
@@ -142,11 +142,33 @@
 
     @if (isAdmin()) {
       <div class="table-footer">
-        <span class="text-muted" style="font-size:0.85rem">
-          {{ filteredPrestamos().length }} resultado(s) ·
-          <strong style="color:var(--color-danger)">{{ stats.mora }}</strong> en mora ·
-          <strong style="color:var(--color-success)">{{ stats.devueltos }}</strong> devueltos este mes
-        </span>
+        <div class="pagination-controls">
+          <div class="page-size-select">
+            <label>Mostrar:
+              <select [ngModel]="prestamosPageSize()" (ngModelChange)="setPrestamosPageSize($event)">
+                @for (opt of prestamosPageSizeOptions; track opt) {
+                  <option [value]="opt">{{ opt }}</option>
+                }
+              </select>
+            </label>
+          </div>
+          <span class="text-muted" style="font-size:0.85rem">
+            {{ filteredPrestamos().length }} resultado(s) ·
+            <strong style="color:var(--color-danger)">{{ stats.mora }}</strong> en mora ·
+            <strong style="color:var(--color-success)">{{ stats.devueltos }}</strong> devueltos
+          </span>
+          @if (totalPrestamoPages() > 1) {
+            <div class="page-nav">
+              <button type="button" class="btn-page" (click)="goToPrestamosPage(prestamosCurrentPage() - 1)" [disabled]="prestamosCurrentPage() === 1">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span class="page-info">{{ prestamosCurrentPage() }} / {{ totalPrestamoPages() }}</span>
+              <button type="button" class="btn-page" (click)="goToPrestamosPage(prestamosCurrentPage() + 1)" [disabled]="prestamosCurrentPage() === totalPrestamoPages()">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          }
+        </div>
       </div>
     }
   }
@@ -171,15 +193,27 @@
         </div>
         <div class="form-group">
           <label>Agregar equipos al préstamo</label>
-          <div class="add-equipo-row">
-            <select [(ngModel)]="detalleEquipoId" name="equipoId" class="equipo-select">
-              <option value="0" disabled>Seleccione equipo</option>
-              @for (e of equipos(); track e.id) {
-                <option [value]="e.id">{{ e.nombre }} (disp: {{ e.cantidadDisponible }})</option>
-              }
-            </select>
-            <input type="number" [(ngModel)]="detalleCantidad" name="cant" min="1" placeholder="Cant." class="cant-input" />
-            <button type="button" class="btn btn-outline" (click)="agregarDetalle()"><i class="fas fa-plus"></i></button>
+          <div class="equipo-search-wrap" style="position:relative">
+            <div class="add-equipo-row">
+              <div style="flex:1; position:relative">
+                <input type="text" [ngModel]="equipoBusqueda()" (ngModelChange)="equipoBusqueda.set($event); mostrarListaEquipos.set(true)" (focus)="mostrarListaEquipos.set(true)" placeholder="Buscar por nombre o placa..." class="equipo-select" />
+                @if (mostrarListaEquipos() && equiposFiltrados().length > 0) {
+                  <div class="equipo-dropdown" style="position:absolute; z-index:200; top:100%; left:0; right:0; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); max-height:200px; overflow-y:auto; box-shadow:var(--shadow-md)">
+                    @for (eq of equiposFiltrados(); track eq.id) {
+                      <div class="equipo-option" (click)="seleccionarEquipoDesdeInput(eq)" style="padding:0.5rem 0.75rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center">
+                        <span>{{ eq.nombre }}@if (eq.placa) { <small class="text-muted"> · {{ eq.placa }}</small> }</span>
+                        <span class="badge" [class.badge-success]="eq.cantidadDisponible > 0" [class.badge-danger]="eq.cantidadDisponible === 0">disp: {{ eq.cantidadDisponible }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+              <input type="number" [(ngModel)]="detalleCantidad" name="cant" min="1" placeholder="Cant." class="cant-input" />
+              <button type="button" class="btn btn-outline" (click)="agregarDetalle()"><i class="fas fa-plus"></i></button>
+            </div>
+            @if (detalleEquipoId > 0) {
+              <small class="text-muted" style="margin-top:0.25rem; display:block">Seleccionado: <strong>{{ getEquipoName(detalleEquipoId) }}</strong> ({{ getEquipoDisponible(detalleEquipoId) }} disp.)</small>
+            }
           </div>
         </div>
         @if ((form.detalles || []).length) {

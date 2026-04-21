@@ -75,12 +75,23 @@ export class InventarioComponent implements OnInit {
   /** Archivo de foto seleccionado al crear (obligatorio). */
   fotoArchivo: File | null = null;
 
+  /** Estado para editar foto de un equipo existente. */
+  editingFotoEquipoId = signal<number | null>(null);
+  editFotoArchivo: File | null = null;
+  editFotoProcesando = signal(false);
+  editFotoSaving = signal(false);
+
+  /** Paginación configurable. */
+  readonly pageSizeOptions = [10, 20, 30, 60];
+  pageSize = signal(10);
+  currentPage = signal(1);
+
   /** Sub-ubicaciones disponibles según la ubicación seleccionada en el formulario. */
   subUbicacionesAmbiente = signal<SubUbicacionResumen[]>([]);
 
   form: EquipoCrear = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: 0, ambienteId: 0, subUbicacionId: null, propietarioId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
 
-  canAssignOwner = computed(() => this.isAlimentadorEquipos() || this.isSuperAdmin());
+  canAssignOwner = computed(() => this.isAlimentadorEquipos() || this.isSuperAdmin() || this.isAdmin());
   usuariosDisponibles = computed(() =>
     this.usuarios()
       .filter((usuario) => usuario.activo)
@@ -107,10 +118,28 @@ export class InventarioComponent implements OnInit {
       if (cat !== '' && e.categoriaId !== cat) return false;
       if (est && e.estado !== est) return false;
       if (amb !== '' && e.ambienteId !== amb) return false;
-      if (q && !e.nombre.toLowerCase().includes(q) && !e.codigoUnico.toLowerCase().includes(q)) return false;
+      if (q && !e.nombre.toLowerCase().includes(q) && !(e.placa ?? '').toLowerCase().includes(q)) return false;
       return true;
     });
   });
+
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filteredEquipos().length / this.pageSize())));
+
+  paginatedEquipos = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize();
+    return this.filteredEquipos().slice(start, start + this.pageSize());
+  });
+
+  setPageSize(size: number) {
+    this.pageSize.set(size);
+    this.currentPage.set(1);
+  }
+
+  goToPage(page: number) {
+    const total = this.totalPages();
+    if (page < 1 || page > total) return;
+    this.currentPage.set(page);
+  }
 
   readonly ESTADOS = [
     { value: '', label: 'Todos los estados' },
@@ -150,7 +179,9 @@ export class InventarioComponent implements OnInit {
     this.editingId.set(null);
     this.fotoArchivo = null;
     const defaultAmbienteId = this.ambientes()[0]?.id ?? 0;
-    this.form = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: defaultAmbienteId, subUbicacionId: null, propietarioId: null, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
+    // Si el usuario es ADMIN, el propietario por defecto es él mismo; si es ALIMENTADOR, el backend asignará el superadmin.
+    const defaultPropietarioId = this.isAdmin() ? (this.auth.user()?.id ?? null) : null;
+    this.form = { nombre: '', descripcion: '', codigoUnico: '', placa: '', serial: '', modelo: '', marcaId: null, categoriaId: this.categorias()[0]?.id ?? 0, ambienteId: defaultAmbienteId, subUbicacionId: null, propietarioId: defaultPropietarioId, cantidadTotal: 1, tipoUso: 'NO_CONSUMIBLE', umbralMinimo: 0 };
     this.subUbicacionesAmbiente.set([]);
     if (defaultAmbienteId) {
       this.ambienteService.listarSubUbicaciones(defaultAmbienteId).subscribe({
@@ -175,6 +206,55 @@ export class InventarioComponent implements OnInit {
   }
 
   closeModal() { this.modalOpen.set(false); this.editingId.set(null); this.fotoArchivo = null; this.error.set(''); this.savingForm.set(false); this.subUbicacionesAmbiente.set([]); }
+
+  openEditFoto(e: Equipo) {
+    this.editingFotoEquipoId.set(e.id);
+    this.editFotoArchivo = null;
+    this.editFotoProcesando.set(false);
+    this.editFotoSaving.set(false);
+  }
+
+  closeEditFoto() {
+    this.editingFotoEquipoId.set(null);
+    this.editFotoArchivo = null;
+  }
+
+  async onEditFotoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) { this.editFotoArchivo = null; return; }
+    this.editFotoProcesando.set(true);
+    try {
+      const prepared = await this.imageUpload.prepareForUpload(file);
+      this.editFotoArchivo = prepared.file;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No fue posible preparar la foto.';
+      this.editFotoArchivo = null;
+      input.value = '';
+      this.ui.error(message, 'Inventario');
+    } finally {
+      this.editFotoProcesando.set(false);
+    }
+  }
+
+  submitEditFoto() {
+    const id = this.editingFotoEquipoId();
+    if (!id || !this.editFotoArchivo) return;
+    this.editFotoSaving.set(true);
+    this.equipoService.subirFoto(id, this.editFotoArchivo).subscribe({
+      next: () => {
+        this.editFotoSaving.set(false);
+        this.closeEditFoto();
+        this.loadEquipos();
+        this.ui.success('Foto del equipo actualizada correctamente.', 'Inventario');
+      },
+      error: (err) => {
+        this.editFotoSaving.set(false);
+        const message = err.error?.message ?? 'Error al subir la foto';
+        this.ui.error(message, 'Inventario');
+      },
+    });
+  }
 
   /** Cuando se cambia la ubicación en el formulario, recarga las sub-ubicaciones y limpia la selección anterior. */
   onAmbienteChanged(id: number | string) {

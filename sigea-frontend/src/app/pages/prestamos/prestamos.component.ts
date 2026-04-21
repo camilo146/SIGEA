@@ -34,7 +34,7 @@ export class PrestamosComponent implements OnInit {
   private ui = inject(UiFeedbackService);
 
   prestamos = signal<Prestamo[]>([]);
-  equipos = signal<{ id: number; nombre: string; codigoUnico: string; cantidadDisponible: number }[]>([]);
+  equipos = signal<{ id: number; nombre: string; codigoUnico: string; placa?: string; cantidadDisponible: number }[]>([]);
   loading = signal(true);
   error = signal('');
   modalSolicitar = signal(false);
@@ -45,6 +45,23 @@ export class PrestamosComponent implements OnInit {
   devolucionSaving = signal(false);
   actionPending = signal<Record<string, boolean>>({});
   devolucionDetalles = signal<PrestamoDevolucionDetalle[]>([]);
+
+  /** Búsqueda de equipo en el modal (reemplaza el select). */
+  equipoBusqueda = signal('');
+  mostrarListaEquipos = signal(false);
+
+  /** Paginación de la tabla de préstamos. */
+  readonly prestamosPageSizeOptions = [10, 20, 30, 60];
+  prestamosPageSize = signal(10);
+  prestamosCurrentPage = signal(1);
+
+  equiposFiltrados = computed(() => {
+    const q = this.equipoBusqueda().toLowerCase().trim();
+    if (!q) return this.equipos().slice(0, 20);
+    return this.equipos()
+      .filter((e) => e.nombre.toLowerCase().includes(q) || (e.placa ?? '').toLowerCase().includes(q))
+      .slice(0, 20);
+  });
 
   isAdmin = this.auth.isAdmin;
 
@@ -74,6 +91,13 @@ export class PrestamosComponent implements OnInit {
     );
   });
 
+  paginatedPrestamos = computed(() => {
+    const start = (this.prestamosCurrentPage() - 1) * this.prestamosPageSize();
+    return this.filteredPrestamos().slice(start, start + this.prestamosPageSize());
+  });
+
+  totalPrestamoPages = computed(() => Math.max(1, Math.ceil(this.filteredPrestamos().length / this.prestamosPageSize())));
+
   private tabFilteredPrestamos = computed(() => {
     const all = this.prestamos();
     switch (this.activeTab()) {
@@ -91,7 +115,7 @@ export class PrestamosComponent implements OnInit {
     const equipoIdPreseleccionado = state?.solicitarEquipoId;
     this.equipoService.listarActivos().subscribe({
       next: (list) => {
-        this.equipos.set(list.map((e) => ({ id: e.id, nombre: e.nombre, codigoUnico: e.codigoUnico, cantidadDisponible: e.cantidadDisponible })));
+        this.equipos.set(list.map((e) => ({ id: e.id, nombre: e.nombre, codigoUnico: e.codigoUnico, placa: e.placa, cantidadDisponible: e.cantidadDisponible })));
         if (equipoIdPreseleccionado && list.some((e) => e.id === equipoIdPreseleccionado)) {
           this.form = { fechaHoraDevolucionEstimada: this.fechaMinDevolucion(), observacionesGenerales: '', detalles: [] };
           this.detalleEquipoId = equipoIdPreseleccionado;
@@ -134,13 +158,33 @@ export class PrestamosComponent implements OnInit {
   setTab(tab: TabKey) {
     this.activeTab.set(tab);
     this.searchTerm.set('');
+    this.prestamosCurrentPage.set(1);
+  }
+
+  setPrestamosPageSize(size: number) {
+    this.prestamosPageSize.set(size);
+    this.prestamosCurrentPage.set(1);
+  }
+
+  goToPrestamosPage(page: number) {
+    const total = this.totalPrestamoPages();
+    if (page < 1 || page > total) return;
+    this.prestamosCurrentPage.set(page);
   }
 
   openSolicitar() {
     this.form = { fechaHoraDevolucionEstimada: this.fechaMinDevolucion(), observacionesGenerales: '', detalles: [] };
-    this.detalleEquipoId = this.equipos()[0]?.id ?? 0;
+    this.detalleEquipoId = 0;
     this.detalleCantidad = 1;
+    this.equipoBusqueda.set('');
+    this.mostrarListaEquipos.set(false);
     this.modalSolicitar.set(true);
+  }
+
+  seleccionarEquipoDesdeInput(equipo: { id: number; nombre: string; placa?: string; cantidadDisponible: number }) {
+    this.detalleEquipoId = equipo.id;
+    this.equipoBusqueda.set(equipo.nombre + (equipo.placa ? ' · ' + equipo.placa : ''));
+    this.mostrarListaEquipos.set(false);
   }
 
   fechaMinDevolucion(): string {
