@@ -180,52 +180,52 @@ wait_for_stack_health() {
 
   if [ "$skip_admin_creation" != "true" ]; then
     ensure_default_admin_user
-  fi
 
-  info "Verificando login directo del backend..."
-  for _ in $(seq 1 12); do
-    code="$(curl -s -o /tmp/sigea_backend_login.txt -w '%{http_code}' \
-      -H 'Content-Type: application/json' \
-      -d '{"numeroDocumento":"999999999","contrasena":"password"}' \
-      http://127.0.0.1:8082/api/v1/auth/login || true)"
-    if [ "$code" = "200" ]; then
-      info "Login backend operativo (HTTP 200)."
-      break
+    info "Verificando login directo del backend..."
+    for _ in $(seq 1 12); do
+      code="$(curl -s -o /tmp/sigea_backend_login.txt -w '%{http_code}' \
+        -H 'Content-Type: application/json' \
+        -d '{"numeroDocumento":"999999999","contrasena":"password"}' \
+        http://127.0.0.1:8082/api/v1/auth/login || true)"
+      if [ "$code" = "200" ]; then
+        info "Login backend operativo (HTTP 200)."
+        break
+      fi
+      sleep 3
+    done
+
+    if [ "$code" != "200" ]; then
+      warning "Login fallido (HTTP ${code:-sin respuesta}). Diagnóstico del usuario admin en BD:"
+      local db_name root_password
+      db_name="$(grep -E '^MARIADB_DATABASE=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+      root_password="$(grep -E '^MARIADB_ROOT_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
+      [ -n "$db_name" ] || db_name="sigea_db"
+      [ -n "$root_password" ] || root_password="root_sigea_2026"
+      docker compose -f docker-compose.yml exec -T db mariadb -N -uroot -p"$root_password" "$db_name" \
+        -e "SELECT id, numero_documento, correo_electronico, rol, activo, email_verificado, estado_aprobacion, intentos_fallidos, cuenta_bloqueada_hasta FROM usuario WHERE numero_documento = '999999999' OR correo_electronico = 'admin2@sigea.local';" 2>/dev/null || true
+      warning "Cuerpo de respuesta del login:"
+      cat /tmp/sigea_backend_login.txt 2>/dev/null || true
+      docker compose -f docker-compose.yml logs --tail=200 backend db || true
+      error "El backend no aceptó el login del administrador por defecto. Último HTTP: ${code:-sin respuesta}"
     fi
-    sleep 3
-  done
 
-  if [ "$code" != "200" ]; then
-    warning "Login fallido (HTTP ${code:-sin respuesta}). Diagnóstico del usuario admin en BD:"
-    local db_name root_password
-    db_name="$(grep -E '^MARIADB_DATABASE=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
-    root_password="$(grep -E '^MARIADB_ROOT_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)"
-    [ -n "$db_name" ] || db_name="sigea_db"
-    [ -n "$root_password" ] || root_password="root_sigea_2026"
-    docker compose -f docker-compose.yml exec -T db mariadb -N -uroot -p"$root_password" "$db_name" \
-      -e "SELECT id, numero_documento, correo_electronico, rol, activo, email_verificado, estado_aprobacion, intentos_fallidos, cuenta_bloqueada_hasta FROM usuario WHERE numero_documento = '999999999' OR correo_electronico = 'admin2@sigea.local';" 2>/dev/null || true
-    warning "Cuerpo de respuesta del login:"
-    cat /tmp/sigea_backend_login.txt 2>/dev/null || true
-    docker compose -f docker-compose.yml logs --tail=200 backend db || true
-    error "El backend no aceptó el login del administrador por defecto. Último HTTP: ${code:-sin respuesta}"
+    info "Verificando que el login por el proxy del frontend funcione..."
+    for _ in $(seq 1 24); do
+      code="$(curl -s -o /tmp/sigea_proxy_login.txt -w '%{http_code}' \
+        -H 'Content-Type: application/json' \
+        -d '{"numeroDocumento":"999999999","contrasena":"password"}' \
+        http://127.0.0.1/api/v1/auth/login || true)"
+      if [ "$code" = "200" ]; then
+        info "Proxy operativo (HTTP 200 en login)."
+        return 0
+      fi
+      sleep 5
+    done
+
+    docker compose -f docker-compose.yml ps || true
+    docker compose -f docker-compose.yml logs --tail=200 frontend backend || true
+    error "El login a través del proxy del frontend no respondió 200. Revisa nginx y backend."
   fi
-
-  info "Verificando que el login por el proxy del frontend funcione..."
-  for _ in $(seq 1 24); do
-    code="$(curl -s -o /tmp/sigea_proxy_login.txt -w '%{http_code}' \
-      -H 'Content-Type: application/json' \
-      -d '{"numeroDocumento":"999999999","contrasena":"password"}' \
-      http://127.0.0.1/api/v1/auth/login || true)"
-    if [ "$code" = "200" ]; then
-      info "Proxy operativo (HTTP 200 en login)."
-      return 0
-    fi
-    sleep 5
-  done
-
-  docker compose -f docker-compose.yml ps || true
-  docker compose -f docker-compose.yml logs --tail=200 frontend backend || true
-  error "El login a través del proxy del frontend no respondió 200. Revisa nginx y backend."
 }
 
 frontend_url() {
