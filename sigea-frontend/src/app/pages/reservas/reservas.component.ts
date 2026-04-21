@@ -41,7 +41,10 @@ export class ReservasComponent implements OnInit {
 
   reservas = signal<Reserva[]>([]);
   reservasAmbientes = signal<PrestamoAmbiente[]>([]);
-  equipos = signal<{ id: number; nombre: string; codigoUnico: string; cantidadDisponible: number }[]>([]);
+  equipos = signal<{ id: number; nombre: string; codigoUnico: string; placa?: string; cantidadDisponible: number }[]>([]);
+  /** Búsqueda de equipo en el modal de reserva (reemplaza el select). */
+  equipoBusqueda = signal('');
+  mostrarListaEquipos = signal(false);
   ambientes = signal<Ambiente[]>([]);
   agendaAmbiente = signal<PrestamoAmbiente[]>([]);
   loading = signal(true);
@@ -160,6 +163,14 @@ export class ReservasComponent implements OnInit {
   });
 
   ambientesReservables = computed(() => this.ambientes().filter((a) => a.activo && !a.padreId));
+
+  equiposFiltrados = computed(() => {
+    const q = this.equipoBusqueda().toLowerCase().trim();
+    if (!q) return this.equipos().slice(0, 20);
+    return this.equipos()
+      .filter((e) => e.nombre.toLowerCase().includes(q) || (e.placa ?? '').toLowerCase().includes(q) || e.codigoUnico.toLowerCase().includes(q))
+      .slice(0, 20);
+  });
 
   ambienteSeleccionadoReserva = computed(() =>
     this.ambientesReservables().find((a) => a.id === this.formAmbiente.ambienteId) ?? null
@@ -282,10 +293,15 @@ export class ReservasComponent implements OnInit {
 
   ensureEquiposLoaded(preselectedId?: number) {
     if (this.equipos().length > 0) {
-      if (preselectedId && this.equipos().some((equipo) => equipo.id === preselectedId)) {
-        this.form = { equipoId: preselectedId, cantidad: 1, fechaHoraInicio: this.fechaMinInicio() };
-        this.modalCrear.set(true);
-        this.error.set('');
+      if (preselectedId) {
+        const eq = this.equipos().find((equipo) => equipo.id === preselectedId);
+        if (eq) {
+          this.form = { equipoId: preselectedId, cantidad: 1, fechaHoraInicio: this.fechaMinInicio() };
+          this.equipoBusqueda.set(eq.nombre + (eq.placa ? ' · ' + eq.placa : ''));
+          this.mostrarListaEquipos.set(false);
+          this.modalCrear.set(true);
+          this.error.set('');
+        }
       }
       return;
     }
@@ -297,13 +313,19 @@ export class ReservasComponent implements OnInit {
             id: e.id,
             nombre: e.nombre,
             codigoUnico: e.codigoUnico,
+            placa: e.placa,
             cantidadDisponible: e.cantidadDisponible,
           }))
         );
-        if (preselectedId && list.some((equipo) => equipo.id === preselectedId)) {
-          this.form = { equipoId: preselectedId, cantidad: 1, fechaHoraInicio: this.fechaMinInicio() };
-          this.modalCrear.set(true);
-          this.error.set('');
+        if (preselectedId) {
+          const eq = list.find((equipo) => equipo.id === preselectedId);
+          if (eq) {
+            this.form = { equipoId: preselectedId, cantidad: 1, fechaHoraInicio: this.fechaMinInicio() };
+            this.equipoBusqueda.set(eq.nombre + (eq.placa ? ' · ' + eq.placa : ''));
+            this.mostrarListaEquipos.set(false);
+            this.modalCrear.set(true);
+            this.error.set('');
+          }
         }
       },
       error: () => {},
@@ -338,12 +360,20 @@ export class ReservasComponent implements OnInit {
   openCrear() {
     this.ensureEquiposLoaded();
     this.form = {
-      equipoId: this.equipos()[0]?.id ?? 0,
+      equipoId: 0,
       cantidad: 1,
       fechaHoraInicio: this.fechaMinInicio(),
     };
+    this.equipoBusqueda.set('');
+    this.mostrarListaEquipos.set(false);
     this.error.set('');
     this.modalCrear.set(true);
+  }
+
+  seleccionarEquipoDesdeInput(eq: { id: number; nombre: string; codigoUnico: string; placa?: string; cantidadDisponible: number }) {
+    this.form = { ...this.form, equipoId: eq.id };
+    this.equipoBusqueda.set(eq.nombre + (eq.placa ? ' · ' + eq.placa : ''));
+    this.mostrarListaEquipos.set(false);
   }
 
   openCrearAmbiente() {

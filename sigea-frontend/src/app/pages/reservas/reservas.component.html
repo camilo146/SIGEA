@@ -279,14 +279,33 @@
         }
         <div class="form-group">
           <label>Equipo *</label>
-          <select [(ngModel)]="form.equipoId" name="equipoId" required>
-            <option [value]="0" disabled>Seleccione un equipo</option>
-            @for (e of equipos(); track e.id) {
-              <option [value]="e.id">
-                {{ e.nombre }} &nbsp;·&nbsp; Disponible: {{ e.cantidadDisponible }}
-              </option>
+          <div style="position:relative">
+            <input
+              type="text"
+              [ngModel]="equipoBusqueda()"
+              (ngModelChange)="equipoBusqueda.set($event); mostrarListaEquipos.set(true); form.equipoId = 0"
+              (focus)="mostrarListaEquipos.set(true)"
+              name="equipoBusquedaReserva"
+              placeholder="Buscar por nombre o placa..."
+              class="equipo-select"
+              autocomplete="off"
+            />
+            @if (mostrarListaEquipos() && equiposFiltrados().length > 0) {
+              <div class="equipo-dropdown" style="position:absolute; z-index:200; top:100%; left:0; right:0; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); max-height:200px; overflow-y:auto; box-shadow:var(--shadow-md)">
+                @for (e of equiposFiltrados(); track e.id) {
+                  <div class="equipo-option" (click)="seleccionarEquipoDesdeInput(e)" style="padding:0.5rem 0.75rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center">
+                    <span>{{ e.nombre }}@if (e.placa) { <small class="text-muted"> · {{ e.placa }}</small> }</span>
+                    <span class="badge" [class.badge-success]="e.cantidadDisponible > 0" [class.badge-danger]="e.cantidadDisponible === 0">disp: {{ e.cantidadDisponible }}</span>
+                  </div>
+                }
+              </div>
             }
-          </select>
+          </div>
+          @if (form.equipoId > 0) {
+            <small class="text-muted" style="margin-top:0.25rem; display:block">
+              Equipo seleccionado: <strong>{{ equipoBusqueda() }}</strong>
+            </small>
+          }
         </div>
         <div class="form-group">
           <label>Cantidad *</label>

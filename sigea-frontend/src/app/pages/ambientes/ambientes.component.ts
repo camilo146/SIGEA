@@ -123,9 +123,9 @@ export class AmbientesComponent implements OnInit {
   loadAmbientes() {
     this.loading.set(true);
     this.error.set('');
-    const request = this.auth.isInstructor()
-      ? this.ambienteService.listarMiAmbiente()
-      : this.ambienteService.listarTodos();
+    const request = this.auth.isAdmin()
+      ? this.ambienteService.listarTodos()
+      : this.ambienteService.listar();
 
     request.subscribe({
       next: (list) => {
