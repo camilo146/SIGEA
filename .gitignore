@@ -19,6 +19,9 @@ target/
 .DS_Store
 Thumbs.db
 
+# Documentación generada (PDFs binarios - no rastrear en git)
+docs/pdf/
+
 # Logs
 *.log
 logs/
