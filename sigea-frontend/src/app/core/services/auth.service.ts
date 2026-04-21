@@ -91,8 +91,8 @@ export class AuthService {
     return localStorage.getItem(TOKEN_KEY);
   }
 
-  register(data: RegisterRequest): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/registro`, data);
+  register(data: RegisterRequest): Observable<{ verificacionPendiente: boolean }> {
+    return this.http.post<{ verificacionPendiente: boolean }>(`${this.apiUrl}/registro`, data);
   }
 
   recuperarContrasena(data: PasswordRecoveryRequest): Observable<string> {

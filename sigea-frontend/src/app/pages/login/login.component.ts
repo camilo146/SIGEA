@@ -255,14 +255,21 @@ export class LoginComponent implements OnInit {
     }
     this.loading = true;
     this.auth.register(this.reg).subscribe({
-      next: () => {
+      next: (res) => {
         this.loading = false;
-        this.correoPendienteVerificar = this.reg.correoElectronico.trim();
-        this.codigoVerificacion = '';
-        this.showVerificacionCodigo = true;
-        this.successMsg = 'Cuenta creada. Revisa tu correo e ingresa el código de 6 dígitos que te enviamos.';
+        const correoRegistrado = this.reg.correoElectronico.trim();
         this.reg = { nombre: '', tipoDocumento: 'CC', numeroDocumento: '', correoElectronico: '', programaFormacion: '', telefono: '', numeroFicha: '', contrasena: '' };
         this.regConfirmPassword = '';
+
+        if (res.verificacionPendiente) {
+          this.correoPendienteVerificar = correoRegistrado;
+          this.codigoVerificacion = '';
+          this.showVerificacionCodigo = true;
+          this.successMsg = 'Cuenta creada. Revisa tu correo e ingresa el código de 6 dígitos que te enviamos.';
+        } else {
+          this.successMsg = 'Cuenta creada correctamente. Tu solicitud está pendiente de aprobación por un administrador.';
+          this.showVerificacionCodigo = false;
+        }
       },
       error: (err) => {
         this.loading = false;

@@ -71,15 +71,13 @@ public class AuthControlador {
      * se devuelve 201 Created si todo sale bien o errores de validacion si falla
      */
     @PostMapping("/registro")
-    public ResponseEntity<Void> registro(
+    public ResponseEntity<java.util.Map<String, Boolean>> registro(
             @Valid @RequestBody RegistroDTO registroDTO) {
 
-        // Delegar toda la lógica al servicio
-        autenticacionServicio.registrar(registroDTO);
+        boolean verificacionEnviada = autenticacionServicio.registrar(registroDTO);
 
-        // Retornar 201 CREATED sin cuerpo
-        // HttpStatus.CREATED = código 201 (recurso creado exitosamente)
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(java.util.Map.of("verificacionPendiente", verificacionEnviada));
     }
 
     /**

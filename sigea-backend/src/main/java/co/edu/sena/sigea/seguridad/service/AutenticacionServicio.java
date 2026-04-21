@@ -238,7 +238,7 @@ public class AutenticacionServicio {
      */
 
     @Transactional
-    public void registrar(RegistroDTO registroDTO) {
+    public boolean registrar(RegistroDTO registroDTO) {
         // verificar que el numero de documento no este duplicado
         // La BD tiene una restriccion de unicidad pero es mejor validar
         if (usuarioRepository.existsByNumeroDocumento(registroDTO.getNumeroDocumento())) {
@@ -283,12 +283,15 @@ public class AutenticacionServicio {
 
         usuarioRepository.save(nuevoUsuario);
 
+        boolean verificacionEnviada = false;
         if (requireEmailVerification
                 && nuevoUsuario.getCorreoElectronico() != null
                 && !nuevoUsuario.getCorreoElectronico().isBlank()) {
             verificacionEmailServicio.enviarEmailVerificacion(nuevoUsuario);
+            verificacionEnviada = true;
         }
 
+        return verificacionEnviada;
     }
 
     @Transactional
